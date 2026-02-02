@@ -1,0 +1,19 @@
+.landing-page-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: var(--spacing-md);
+    box-sizing: border-box;
+}
+
+@media (max-width: 575px) {
+    .landing-page-content {
+        padding: var(--spacing-sm);
+        align-items: flex-start;
+    }
+
+        .landing-page-content h2 {
+            font-size: var(--font-size-lg);
+        }
+}

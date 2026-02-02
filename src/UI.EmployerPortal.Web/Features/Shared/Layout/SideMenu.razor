@@ -1,0 +1,69 @@
+@rendermode InteractiveServer
+
+<nav class="side-menu @(_isMinimized ? "minimized" : "")" role="navigation" aria-label="Main navigation">
+    <!-- Hide/Expand Menu Toggle -->
+    <button type="button" class="menu-toggle"
+            @onclick="ToggleMenu"
+            aria-expanded="@(!_isMinimized)"
+            aria-label="@(_isMinimized ? "Expand menu" : "Hide menu")">
+        @if (_isMinimized)
+        {
+            <img src="images/menu/expand-menu.svg" alt="" width="24" height="24" aria-hidden="true" />
+        }
+        else
+        {
+            <span class="menu-toggle-text fw-bold">Hide Menu</span>
+            <img src="images/menu/hide-menu.svg" alt="" width="24" height="24" aria-hidden="true" />
+        }
+    </button>
+
+    <!-- Menu Items -->
+    @foreach (var item in _menuItems)
+    {
+        var isExpanded = _expandedMenus.Contains(item.Id);
+        var isActive = IsMenuActive(item);
+
+        <div class="menu-item-container">
+            <!-- Main Menu Item -->
+            @if (item.HasSubmenu)
+            {
+                <button type="button" class="menu-item @(isActive ? "highlighted" : "")"
+                        @onclick="() => OnMenuClick(item)"
+                        aria-expanded="@isExpanded"
+                        aria-current="@(isActive ? "true" : null)">
+                    <img src="@item.Icon" alt="" width="24" height="24" class="menu-icon" aria-hidden="true" />
+                    @if (!_isMinimized)
+                    {
+                        <span class="menu-text fw-bold fs-md">@item.Title</span>
+                        <img src="@(isActive ? "images/menu/submenu-arrow-white.svg" : "images/menu/submenu-arrow.svg")"
+                             alt="" width="24" height="24" class="submenu-arrow @(isExpanded ? "rotated" : "")" aria-hidden="true" />
+                    }
+                </button>
+            }
+            else
+            {
+                <a href="@item.Url" class="menu-item @(isActive ? "highlighted" : "")"
+                   aria-current="@(isActive ? "page" : null)">
+                    <img src="@item.Icon" alt="" width="24" height="24" class="menu-icon" aria-hidden="true" />
+                    @if (!_isMinimized)
+                    {
+                        <span class="menu-text fw-bold fs-md">@item.Title</span>
+                    }
+                </a>
+            }
+
+            <!-- Submenus -->
+            @if (!_isMinimized && item.HasSubmenu && isExpanded)
+            {
+                @foreach (var submenu in item.Submenus)
+                {
+                    var isSubmenuActive = IsSubmenuActive(submenu);
+                    <a href="@submenu.Url" class="submenu-item @(isSubmenuActive ? "selected" : "")"
+                       aria-current="@(isSubmenuActive ? "page" : null)">
+                        <span class="submenu-text fw-bold fs-md">@submenu.Title</span>
+                    </a>
+                }
+            }
+        </div>
+    }
+</nav>

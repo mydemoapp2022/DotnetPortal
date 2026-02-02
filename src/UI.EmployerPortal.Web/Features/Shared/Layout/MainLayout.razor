@@ -1,0 +1,56 @@
+@using Microsoft.AspNetCore.Components.Authorization;
+@using UI.EmployerPortal.Web.Auth
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Services
+@inherits LayoutComponentBase
+@inject IUserAccountService userAccountService
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div class="page">
+    <Header />
+
+    <div class="main-content-wrapper">
+        @if (ShowSideMenu)
+        {
+            <SideMenu />
+        }
+
+        <main id="main-content" class="@(ShowSideMenu ? "with-menu" : "")">
+            <article class="content">
+                <AuthorizeView>
+                    <Authorized>
+                        <div style="text-align: right; width: 100%;">@GetAuthenticatedUserInformation()</div>
+                        <div style="text-align: right; width: 100%;"><a href="/auth/logout">Logout</a></div>
+                        
+                    </Authorized>
+                    <NotAuthorized>
+                        <div style="text-align: right; width: 100%"><a href="/auth/login">Login</a></div>                        
+                    </NotAuthorized>
+                </AuthorizeView>
+                @Body
+            </article>
+        </main>
+    </div>
+
+    <Footer />
+</div>
+
+<div id="blazor-error-ui" data-nosnippet role="alert">
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <button type="button" class="dismiss" aria-label="Dismiss error">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+@code {
+    string GetAuthenticatedUserInformation()
+    {
+        var dwdClaims = userAccountService.GetClaims().GetDwdClaims();
+        return $"{dwdClaims.FirstName} {dwdClaims.LastName}, {dwdClaims.UserID} | UUID: {dwdClaims.OktaUUID} | SecureUserSK: {dwdClaims.SecureUserSK}";
+
+        //var dwdClaims = userAccountService.GetClaims().GetDwdClaims();
+        //return $"ABc Xyz, 123 | UUID: 123456789112345789 | SecureUserSK: 123456";
+
+    }
+}

@@ -1,0 +1,33 @@
+
+.page-header {
+    width: 100%;
+    height: auto;
+    background-color: var(--color-white);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+    font-family: var(--font-primary);
+}
+
+.page-header-left {
+    width: 1085px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--font-primary);
+}
+
+.page-header-right {
+    width: 283px;
+    height: auto;
+    display: flex;
+    gap: 4px;
+    flex-direction: column;
+    font-family: var(--font-primary);
+}
+
+.guest-access {
+    color: blue;
+    font-family: var(--font-primary);
+}

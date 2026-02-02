@@ -1,0 +1,8 @@
+<div class="account-header">
+    <div class="account-details fs-sm">
+        <div class="account-info">
+            <span class="detail-item account-no"><span class="detail-label fw-bold">UI Account No:</span><span class="detail-value fw-normal">@(_account?.AccountNo ?? "-")</span></span>
+            <span class="detail-item balance-due"><span class="detail-label fw-bold">Balance Due:</span><span class="detail-value fw-normal">@(_account?.BalanceDue.ToString("C") ?? "-")</span></span>
+        </div>
+    </div>
+</div>

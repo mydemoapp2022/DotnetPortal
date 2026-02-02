@@ -1,0 +1,15 @@
+**/.editorconfig            @brian-havice_widwd
+
+/Directory.Build.props      @brian-havice_widwd
+/Directory.Build.targets    @brian-havice_widwd
+/global.json
+
+/.config/dotnet-tools.json  @brian-havice_widwd
+
+/docs/decisions             @brian-havice_widwd
+/docs/standards             @brian-havice_widwd
+/.husky/                    @brian-havice_widwd
+
+/src/                       @manish-patel_widwd @nandini-ganesan_widwd
+/test/                      @manish-patel_widwd @nandini-ganesan_widwd
+/docs/conventions           @manish-patel_widwd @nandini-ganesan_widwd @brian-havice_widwd

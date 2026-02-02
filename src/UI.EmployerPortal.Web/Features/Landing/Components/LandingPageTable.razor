@@ -1,0 +1,127 @@
+<div class="table-container">
+    <table class="table" style="table-layout: fixed; width: 100%;" aria-label="Employer accounts">
+        <caption class="visually-hidden">List of employer accounts with balance and status information</caption>
+        <thead>
+            <tr class="header-row">
+                <th scope="col" class="header-cell" style="width: 362px;"
+                    @onclick="@(() => Sort("legalName"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "legalName"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("legalName")">
+                    <div class="header-content header-content-left">
+                        <span class="header-label fw-bold fs-sm">Legal Name</span>
+                        @GetSortIcon("legalName")
+                    </div>
+                </th>
+                <th scope="col" class="header-cell" style="width: 200px;"
+                    @onclick="@(() => Sort("accountNo"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "accountNo"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("accountNo")">
+                    <div class="header-content header-content-right">
+                        <span class="header-label fw-bold fs-sm">UI Account No.</span>
+                        @GetSortIcon("accountNo")
+                    </div>
+                </th>
+                <th scope="col" class="header-cell" style="width: 200px;"
+                    @onclick="@(() => Sort("balanceDue"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "balanceDue"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("balanceDue")">
+                    <div class="header-content header-content-right">
+                        <span class="header-label fw-bold fs-sm">Balance Due</span>
+                        @GetSortIcon("balanceDue")
+                    </div>
+                </th>
+                <th scope="col" class="header-cell" style="width: 177px;"
+                    @onclick="@(() => Sort("missingQuarterlyReports"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "missingQuarterlyReports"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("missingQuarterlyReports")">
+                    <div class="header-content header-content-right header-content-multiline">
+                        <span class="header-label-small fw-bold fs-xs">Missing Quarterly Reports</span>
+                        @GetSortIcon("missingQuarterlyReports")
+                    </div>
+                </th>
+                <th scope="col" class="header-cell" style="width: 145px;"
+                    @onclick="@(() => Sort("pendingTaxEForms"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "pendingTaxEForms"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("pendingTaxEForms")">
+                    <div class="header-content header-content-right header-content-multiline">
+                        <span class="header-label-small fw-bold fs-xs">Pending Tax eForms</span>
+                        @GetSortIcon("pendingTaxEForms")
+                    </div>
+                </th>
+                <th scope="col" class="header-cell" style="width: 163px;"
+                    @onclick="@(() => Sort("pendingBenefitsEForms"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "pendingBenefitsEForms"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("pendingBenefitsEForms")">
+                    <div class="header-content header-content-right header-content-multiline">
+                        <span class="header-label-small fw-bold fs-xs">Pending Benefits eForms</span>
+                        @GetSortIcon("pendingBenefitsEForms")
+                    </div>
+                </th>
+                <th scope="col" class="header-cell" style="width: 145px;"
+                    @onclick="@(() => Sort("unreadMessages"))"
+                    @onkeydown="@(e => HandleHeaderKeyDown(e, "unreadMessages"))"
+                    tabindex="0"
+                    aria-sort="@GetAriaSort("unreadMessages")">
+                    <div class="header-content header-content-right header-content-multiline">
+                        <span class="header-label-small fw-bold fs-xs">Unread Messages</span>
+                        @GetSortIcon("unreadMessages")
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var account in _accounts)
+            {
+                <tr class="data-row"
+                    @onclick="() => NavigateToEmployerDashboard(account)"
+                    @onkeydown="@(e => HandleRowKeyDown(e, account))"
+                    tabindex="0"
+                    role="button"
+                    aria-label="View @account.LegalName account details">
+                    <td class="fw-bold fs-lg">@account.LegalName</td>
+                    <td class="fw-normal fs-md">@account.AccountNo</td>
+                    <td class="fw-normal fs-md @(account.BalanceDue < 0 ? "text-danger negative-balance" : "")">
+                        @if (account.BalanceDue < 0)
+                        {
+                            <span class="negative-indicator" aria-hidden="true">!</span>
+                        }
+                        @account.BalanceDue.ToString("C")
+                    </td>
+                    <td class="fw-normal fs-md">@account.MissingQuarterlyReports</td>
+                    <td class="fw-normal fs-md">@account.PendingTaxEForms</td>
+                    <td class="fw-normal fs-md">@account.PendingBenefitsEForms</td>
+                    <td class="fw-normal fs-md">@account.UnreadMessages</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (_totalCount > 10)
+{
+<div class="d-flex justify-content-end">
+    <div class="pagination-container fw-normal fs-md">
+                <div class="rows-per-page">
+                    <label for="page-size-select" class="me-2">Rows per page</label>
+                    <select id="page-size-select" class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                <option value="10" selected="@(_pageSize == 10)">10</option>
+                <option value="25" selected="@(_pageSize == 25)">25</option>
+                <option value="50" selected="@(_pageSize == 50)">50</option>
+            </select>
+        </div>
+        <div class="d-flex align-items-center">
+            <span class="page-info">@((_currentPage - 1) * _pageSize + 1)-@(Math.Min(_currentPage * _pageSize, _totalCount)) of @_totalCount</span>
+            <button class="btn btn-sm p-1 paging-btn" disabled="@(_currentPage <= 1)" @onclick="FirstPage" title="First"><img src="@(_currentPage <= 1 ? "/images/paging/page-first-disabled.svg" : "/images/paging/page-first.svg")" alt="First" /></button>
+            <button class="btn btn-sm p-1 paging-btn" disabled="@(_currentPage <= 1)" @onclick="PreviousPage" title="Previous"><img src="@(_currentPage <= 1 ? "/images/paging/page-prev-disabled.svg" : "/images/paging/page-prev.svg")" alt="Previous" /></button>
+            <button class="btn btn-sm p-1 paging-btn" disabled="@(_currentPage >= TotalPages)" @onclick="NextPage" title="Next"><img src="@(_currentPage >= TotalPages ? "/images/paging/page-next-disabled.svg" : "/images/paging/page-next.svg")" alt="Next" /></button>
+            <button class="btn btn-sm p-1 paging-btn" disabled="@(_currentPage >= TotalPages)" @onclick="LastPage" title="Last"><img src="@(_currentPage >= TotalPages ? "/images/paging/page-last-disabled.svg" : "/images/paging/page-last.svg")" alt="Last" /></button>
+        </div>
+    </div>
+</div>
+}

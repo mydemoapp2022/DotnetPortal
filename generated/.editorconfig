@@ -1,0 +1,5 @@
+# Override for generated code
+root = true
+
+# Suppress all rules for generated code
+[*.*]

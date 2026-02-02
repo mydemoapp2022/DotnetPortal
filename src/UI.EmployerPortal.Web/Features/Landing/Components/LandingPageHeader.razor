@@ -1,0 +1,26 @@
+@using Microsoft.AspNetCore.Components.Authorization;
+@using UI.EmployerPortal.Web.Auth
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Services
+@inject IUserAccountService userAccountService
+@inject NavigationManager NavigationManager
+
+<header class="page-header">
+    <div class="page-header-left">
+        <div><strong>Hello @GetAuthenticatedUserInformation()</strong><br />Welcome to your UI Employer Portal</div>
+    </div>
+    <div class="page-header-right">
+        <span class="guest-access" @onclick="OnGuestAccessclicked"><strong>Guest Access Dashboard</strong></span>Access the employer portal with out a UI account
+     </div>
+    </header>
+@code {
+    string GetAuthenticatedUserInformation()
+    {
+        var dwdClaims = userAccountService.GetClaims().GetDwdClaims();
+        return $"{dwdClaims.FirstName} {dwdClaims.LastName}";
+        //return $"Guest User";
+    }
+    private void OnGuestAccessclicked()
+    {
+        NavigationManager.NavigateTo("/employer-dashboard");
+    }
+}
