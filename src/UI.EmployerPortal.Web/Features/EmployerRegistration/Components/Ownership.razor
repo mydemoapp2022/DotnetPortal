@@ -54,16 +54,19 @@
         </div>
 
         <!-- Navigation Buttons -->
+        <!-- Navigation Buttons -->
         <div class="form-actions">
             <button type="button" class="btn btn-back" @onclick="OnBack">
                 <span class="btn-icon">‹</span> BACK
             </button>
-            <button type="button" class="btn btn-save" @onclick="OnSaveAndQuit">
-                SAVE & QUIT
-            </button>
-            <button type="button" class="btn btn-continue" @onclick="OnContinue">
-                CONTINUE <span class="btn-icon">›</span>
-            </button>
+            <div class="form-actions-right">
+                <button type="button" class="btn btn-save" @onclick="OnSaveAndQuit">
+                    SAVE & QUIT
+                </button>
+                <button type="button" class="btn btn-continue" @onclick="OnContinue">
+                    CONTINUE <span class="btn-icon">›</span>
+                </button>
+            </div>
         </div>
     </form>
 </div>

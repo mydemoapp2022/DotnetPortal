@@ -6,7 +6,7 @@
         <div class="form-group state-selection">
             <label for="incorporation-state" class="form-label">@Config.StateLabel</label>
             <select id="incorporation-state" 
-                    class="form-select" 
+                    class="form-select form-select-medium" 
                     @bind="IncorporationState"
                     disabled="@(!string.IsNullOrWhiteSpace(ForeignCountry))">
                 <option value="">Select State</option>
