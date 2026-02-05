@@ -17,7 +17,9 @@
         <div class="form-section">
             <!-- Ownership Type -->
             <div class="form-group">
-                <label for="ownership-type" class="form-label">Ownership Type</label>
+                <label for="ownership-type" class="form-label">
+                    <span class="required-asterisk">*</span> Ownership Type
+                </label>
                 <select id="ownership-type" class="form-select form-select-medium" @bind="OwnershipType" @bind:after="OnOwnershipTypeChanged">
                     <option value="">Select Ownership Type</option>
                     <option value="llc">Limited Liability Company (LLC)</option>

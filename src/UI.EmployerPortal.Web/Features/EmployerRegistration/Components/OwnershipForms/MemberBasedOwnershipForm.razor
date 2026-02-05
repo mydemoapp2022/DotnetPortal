@@ -5,7 +5,9 @@
     {
         <!-- Registration State -->
         <div class="form-group state-selection">
-            <label for="registration-state" class="form-label">@Config.StateLabel</label>
+            <label for="registration-state" class="form-label">
+                <span class="required-asterisk">*</span> @Config.StateLabel
+            </label>
             <select id="registration-state" class="form-select form-select-medium" @bind="RegistrationState">
                 <option value="">Select State</option>
                 <option value="AL">AL</option>
@@ -82,7 +84,9 @@
                 
                 <div class="member-fields">
                     <div class="form-group">
-                        <label for="first-name-@index" class="form-label">First Name</label>
+                        <label for="first-name-@index" class="form-label">
+                            <span class="required-asterisk">*</span> First Name
+                        </label>
                         <input type="text" id="first-name-@index" class="form-input" @bind="member.FirstName" />
                     </div>
 
@@ -92,12 +96,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="last-name-@index" class="form-label">Last Name</label>
+                        <label for="last-name-@index" class="form-label">
+                            <span class="required-asterisk">*</span> Last Name
+                        </label>
                         <input type="text" id="last-name-@index" class="form-input" @bind="member.LastName" />
                     </div>
 
                     <div class="form-group">
-                        <label for="ssn-@index" class="form-label">SSN</label>
+                        <label for="ssn-@index" class="form-label">
+                            <span class="required-asterisk">*</span> SSN
+                        </label>
                         <div class="ssn-input-wrapper">
                             <input type="@(ShowSSN ? "text" : "password")" 
                                    id="ssn-@index"

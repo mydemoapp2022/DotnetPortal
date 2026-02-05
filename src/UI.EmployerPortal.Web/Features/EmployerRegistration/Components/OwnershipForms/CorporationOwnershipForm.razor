@@ -4,7 +4,9 @@
     <!-- Incorporation State or Foreign Country -->
     <div class="form-row">
         <div class="form-group state-selection">
-            <label for="incorporation-state" class="form-label">@Config.StateLabel</label>
+            <label for="incorporation-state" class="form-label">
+                <span class="required-asterisk">*</span> @Config.StateLabel
+            </label>
             <select id="incorporation-state" 
                     class="form-select form-select-medium" 
                     @bind="IncorporationState"
@@ -68,7 +70,9 @@
         </div>
 
         <div class="form-group state-selection">
-            <label for="foreign-country" class="form-label">Foreign Country</label>
+            <label for="foreign-country" class="form-label">
+                <span class="required-asterisk">*</span> Foreign Country
+            </label>
             <input type="text" 
                    id="foreign-country" 
                    class="form-input" 
@@ -89,7 +93,9 @@
                 
                 <div class="member-fields">
                     <div class="form-group">
-                        <label for="first-name-@officer.Role" class="form-label">First Name</label>
+                        <label for="first-name-@officer.Role" class="form-label">
+                            <span class="required-asterisk">*</span> First Name
+                        </label>
                         <input type="text" id="first-name-@officer.Role" class="form-input" @bind="officer.FirstName" />
                     </div>
 
@@ -99,12 +105,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="last-name-@officer.Role" class="form-label">Last Name</label>
+                        <label for="last-name-@officer.Role" class="form-label">
+                            <span class="required-asterisk">*</span> Last Name
+                        </label>
                         <input type="text" id="last-name-@officer.Role" class="form-input" @bind="officer.LastName" />
                     </div>
 
                     <div class="form-group">
-                        <label for="ssn-@officer.Role" class="form-label">SSN</label>
+                        <label for="ssn-@officer.Role" class="form-label">
+                            <span class="required-asterisk">*</span> SSN
+                        </label>
                         <div class="ssn-input-wrapper">
                             <input type="@(ShowSSN ? "text" : "password")" 
                                    id="ssn-@officer.Role"

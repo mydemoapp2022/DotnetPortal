@@ -38,6 +38,8 @@
     background-color: #fff;
     padding: 0 0.25rem;
     z-index: 1;
+    display: flex;
+    align-items: center;
 }
 
 ::deep .form-select,
@@ -264,6 +266,7 @@
 ::deep .required-asterisk {
     color: #d9534f;
     font-weight: 700;
+    margin-right: 0.25rem;
 }
 
 ::deep .radio-label {
