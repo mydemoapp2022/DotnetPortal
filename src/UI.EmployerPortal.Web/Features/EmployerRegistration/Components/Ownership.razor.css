@@ -1,34 +1,34 @@
-.ownership-container {
+::deep .ownership-container {
     /*max-width: 800px;*/
     margin: 0 auto;
     padding: 2rem;
     background-color: #fff;
 }
 
-.ownership-title {
+::deep .ownership-title {
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 1rem;
     color: #000;
 }
 
-.required-note {
+::deep .required-note {
     font-size: 0.875rem;
     color: #666;
     margin-bottom: 2rem;
 }
 
-.form-section {
+::deep .form-section {
     background-color: #fff;
 }
 
 /* Form Groups with Floating Labels */
-.form-group {
+::deep .form-group {
     position: relative;
     margin-bottom: 1.5rem;
 }
 
-.form-label {
+::deep .form-label {
     position: absolute;
     top: -0.5rem;
     left: 0.75rem;
@@ -40,8 +40,8 @@
     z-index: 1;
 }
 
-.form-select,
-.form-input {
+::deep .form-select,
+::deep .form-input {
     width: 100%;
     padding: 0.875rem 0.75rem;
     font-size: 1rem;
@@ -53,18 +53,18 @@
     transition: border-color 0.2s;
 }
 
-    .form-select:focus,
-    .form-input:focus {
+    ::deep .form-select:focus,
+    ::deep .form-input:focus {
         outline: none;
         border-color: #666;
     }
 
 /* Checkbox */
-.checkbox-group {
+::deep .checkbox-group {
     margin: 2rem 0;
 }
 
-.checkbox-label {
+::deep .checkbox-label {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -74,7 +74,7 @@
     color: #000;
 }
 
-    .checkbox-label input[type="checkbox"] {
+    ::deep .checkbox-label input[type="checkbox"] {
         width: 1.25rem;
         height: 1.25rem;
         cursor: pointer;
@@ -82,84 +82,96 @@
     }
 
 /* Owner Information Section */
-.owner-info-section {
+::deep .owner-info-section {
     margin-top: 2.5rem;
     padding-top: 2rem;
-    border-top: 2px solid #003d82;
 }
 
-.section-subtitle {
+::deep .section-subtitle {
     font-size: 1.125rem;
     font-weight: 700;
     color: #003d82;
     margin-bottom: 1.5rem;
+    border-bottom: 2px solid #003d82;
 }
 
-.member-card {
+::deep .member-card {
     background-color: #fff;
     padding: 0;
     border: none;
+    margin-top: 2%;
 }
 
-.member-title {
+::deep .member-title {
     font-size: 1rem;
     font-weight: 700;
     color: #003d82;
     margin-bottom: 1.5rem;
 }
 
-.member-fields {
+::deep .member-fields {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
 }
 
-    .member-fields .form-group {
+    ::deep .member-fields .form-group {
         margin-bottom: 0;
     }
 
     /* Specific field widths based on screenshot */
-    .member-fields .form-group {
+    ::deep .member-fields .form-group {
         /* First Name */
         grid-column: span 1;
     }
 
 /* SSN Input with Toggle */
-.ssn-input-wrapper {
+::deep .ssn-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
 }
 
-.ssn-input {
+::deep .ssn-input {
     padding-right: 3rem;
 }
 
-.toggle-visibility-btn {
+::deep .toggle-visibility-btn,
+::deep .ssn-toggle-btn {
     position: absolute;
     right: 0.5rem;
-    background: none;
-    border: none;
+    background-color: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
     cursor: pointer;
-    padding: 0.5rem;
-    font-size: 1.25rem;
+    padding: 0.375rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
-    .toggle-visibility-btn:hover {
-        opacity: 0.7;
+    ::deep .toggle-visibility-btn:hover,
+    ::deep .ssn-toggle-btn:hover {
+        background-color: #f5f5f5;
+        border-color: #999;
     }
 
-    .toggle-visibility-btn .icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    ::deep .toggle-visibility-btn svg,
+    ::deep .ssn-toggle-btn svg {
+        display: block;
+        width: 20px;
+        height: 20px;
+        color: #000;
+    }
+
+    ::deep .toggle-visibility-btn:hover svg,
+    ::deep .ssn-toggle-btn:hover svg {
+        color: #003d82;
     }
 
 /* Form Actions */
-.form-actions {
+::deep .form-actions {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -167,7 +179,7 @@
     gap: 1rem;
 }
 
-.btn {
+::deep .btn {
     padding: 0.875rem 2rem;
     font-size: 0.875rem;
     font-weight: 700;
@@ -179,72 +191,199 @@
     letter-spacing: 0.5px;
 }
 
-.btn-back {
+::deep .btn-back {
     background-color: transparent;
     color: #003d82;
     border: 2px solid #003d82;
 }
 
-    .btn-back:hover {
+    ::deep .btn-back:hover {
         background-color: #003d82;
         color: #fff;
     }
 
-.btn-save {
+::deep .btn-save {
     background-color: transparent;
     color: #003d82;
     border: 2px solid #003d82;
 }
 
-    .btn-save:hover {
+    ::deep .btn-save:hover {
         background-color: #f5f5f5;
     }
 
-.btn-continue {
+::deep .btn-continue {
     background-color: #003d82;
     color: #fff;
     padding: 0.875rem 2.5rem;
 }
 
-    .btn-continue:hover {
+    ::deep .btn-continue:hover {
         background-color: #002554;
     }
 
-.btn-icon {
+::deep .btn-icon {
     font-weight: 700;
     font-size: 1.125rem;
 }
 
+/* Instruction Text */
+::deep .instruction-text {
+    font-size: 0.95rem;
+    color: #0066cc;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+}
+
+/* More than five radio button group */
+::deep .more-than-five-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0 1rem 0;
+    padding-top: 1rem;
+}
+
+::deep .more-label {
+    font-weight: 600;
+    color: #000;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 1rem;
+}
+
+::deep .required-asterisk {
+    color: #d9534f;
+    font-weight: 700;
+}
+
+::deep .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #000;
+}
+
+    ::deep .radio-label input[type="radio"] {
+        cursor: pointer;
+        margin: 0;
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    ::deep .radio-label:hover {
+        color: #003d82;
+    }
+
+/* Responsive adjustments for radio buttons */
+@media (max-width: 768px) {
+    ::deep .more-than-five-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
-    .member-fields {
+    ::deep .member-fields {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
 @media (max-width: 768px) {
-    .ownership-container {
+    ::deep .ownership-container {
         padding: 1rem;
     }
 
-    .member-fields {
+    ::deep .member-fields {
         grid-template-columns: 1fr;
     }
 
-    .form-actions {
+    ::deep .form-actions {
         flex-direction: column;
     }
 
-    .btn {
+    ::deep .btn {
         width: 100%;
     }
 }
 
-.toggle-visibility-btn svg {
-    color: #666;
-    transition: color 0.2s;
+::deep .officers-table,
+::deep .members-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
 }
 
-.toggle-visibility-btn:hover svg {
-    color: #003d82;
+    ::deep .officers-table th,
+    ::deep .officers-table td,
+    ::deep .members-table th,
+    ::deep .members-table td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    ::deep .officers-table th,
+    ::deep .members-table th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+    }
+
+::deep .office-label,
+::deep .member-label {
+    font-weight: 500;
+    color: #0066cc;
+}
+
+::deep .form-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+::deep .form-group-divider {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-weight: 600;
+    color: #666;
+}
+
+::deep .corporation-section,
+::deep .sole-proprietorship-section,
+::deep .llc-section {
+    margin-top: 20px;
+}
+
+::deep .required-note {
+    color: #d9534f;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Medium-sized dropdowns (for Ownership Type, Registration State, etc.) */
+::deep .form-select-medium {
+    max-width: 500px;
+    width: 100%;
+}
+
+/* Or use a fixed width */
+::deep .form-select-small {
+    max-width: 350px;
+    width: 100%;
+}
+
+/* Responsive adjustment */
+@media (max-width: 768px) {
+    ::deep .form-select-medium,
+    ::deep .form-select-small {
+        max-width: 100%;
+    }
 }

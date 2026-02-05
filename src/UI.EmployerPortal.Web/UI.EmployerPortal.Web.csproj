@@ -10,6 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Features\backup\**" />
+    <Content Remove="Features\backup\**" />
+    <EmbeddedResource Remove="Features\backup\**" />
+    <None Remove="Features\backup\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="Startup\MyWisconsinID.cs" />
     <Compile Remove="Startup\OpenTelemetry.cs" />
     <Compile Remove="Startup\WcfServiceClients\DependencyInjection.cs" />

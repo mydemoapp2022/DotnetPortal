@@ -1,0 +1,202 @@
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+
+<div class="member-based-section">
+    @if (Config.RequiresState)
+    {
+        <!-- Registration State -->
+        <div class="form-group state-selection">
+            <label for="registration-state" class="form-label">@Config.StateLabel</label>
+            <select id="registration-state" class="form-select form-select-medium" @bind="RegistrationState">
+                <option value="">Select State</option>
+                <option value="AL">AL</option>
+                <option value="AK">AK</option>
+                <option value="AZ">AZ</option>
+                <option value="AR">AR</option>
+                <option value="CA">CA</option>
+                <option value="CO">CO</option>
+                <option value="CT">CT</option>
+                <option value="DE">DE</option>
+                <option value="FL">FL</option>
+                <option value="GA">GA</option>
+                <option value="HI">HI</option>
+                <option value="ID">ID</option>
+                <option value="IL">IL</option>
+                <option value="IN">IN</option>
+                <option value="IA">IA</option>
+                <option value="KS">KS</option>
+                <option value="KY">KY</option>
+                <option value="LA">LA</option>
+                <option value="ME">ME</option>
+                <option value="MD">MD</option>
+                <option value="MA">MA</option>
+                <option value="MI">MI</option>
+                <option value="MN">MN</option>
+                <option value="MS">MS</option>
+                <option value="MO">MO</option>
+                <option value="MT">MT</option>
+                <option value="NE">NE</option>
+                <option value="NV">NV</option>
+                <option value="NH">NH</option>
+                <option value="NJ">NJ</option>
+                <option value="NM">NM</option>
+                <option value="NY">NY</option>
+                <option value="NC">NC</option>
+                <option value="ND">ND</option>
+                <option value="OH">OH</option>
+                <option value="OK">OK</option>
+                <option value="OR">OR</option>
+                <option value="PA">PA</option>
+                <option value="RI">RI</option>
+                <option value="SC">SC</option>
+                <option value="SD">SD</option>
+                <option value="TN">TN</option>
+                <option value="TX">TX</option>
+                <option value="UT">UT</option>
+                <option value="VT">VT</option>
+                <option value="VA">VA</option>
+                <option value="WA">WA</option>
+                <option value="WV">WV</option>
+                <option value="WI">WI</option>
+                <option value="WY">WY</option>
+            </select>
+        </div>
+    }
+
+    <!-- Owner Information Section -->
+    <div class="owner-info-section">
+        <h2 class="section-subtitle">Owner Information</h2>
+
+        <!-- Instruction Text -->
+        @* <p class="instruction-text">
+            Enter the names, Social Security Numbers, and ownership percentages of the members.
+            If there are more than five members, list the five with the highest ownership percentages.
+        </p> *@
+
+        @for (int i = 0; i < Members.Count; i++)
+        {
+            var index = i;
+            var member = Members[index];
+            
+            <div class="member-card">
+                <h3 class="member-title">@member.Role</h3>
+                
+                <div class="member-fields">
+                    <div class="form-group">
+                        <label for="first-name-@index" class="form-label">First Name</label>
+                        <input type="text" id="first-name-@index" class="form-input" @bind="member.FirstName" />
+                    </div>
+
+                    <div class="form-group form-field-small">
+                        <label for="middle-initial-@index" class="form-label">Middle Initial</label>
+                        <input type="text" id="middle-initial-@index" class="form-input" maxlength="1" @bind="member.MiddleInitial" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="last-name-@index" class="form-label">Last Name</label>
+                        <input type="text" id="last-name-@index" class="form-input" @bind="member.LastName" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ssn-@index" class="form-label">SSN</label>
+                        <div class="ssn-input-wrapper">
+                            <input type="@(ShowSSN ? "text" : "password")" 
+                                   id="ssn-@index"
+                                   class="form-input ssn-input" 
+                                   placeholder="@(ShowSSN ? "123-45-6789" : "•••-••-••••")"
+                                   maxlength="11"
+                                   @bind="member.SSN" />
+                            <button type="button"
+                                    class="ssn-toggle-btn"
+                                    @onclick="ToggleSSNVisibility"
+                                    aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    @if (ShowSSN)
+                                    {
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    }
+                                    else
+                                    {
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    }
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ownership-percentage-@index" class="form-label">Ownership Percentage</label>
+                        <input type="number" 
+                               id="ownership-percentage-@index"
+                               class="form-input" 
+                               min="0" 
+                               max="100"
+                               @bind="member.OwnershipPercentage" />
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- More than five radio buttons -->
+        <div class="more-than-five-group">
+            <label class="more-label">
+                <span class="required-asterisk">*</span> More than five?
+            </label>
+            <label class="radio-label">
+                <input type="radio" 
+                       name="more-than-five" 
+                       value="true" 
+                       checked="@MoreThanFive" 
+                       @onchange="() => OnMoreThanFiveChanged(true)" />
+                <span>Yes</span>
+            </label>
+            <label class="radio-label">
+                <input type="radio" 
+                       name="more-than-five" 
+                       value="false" 
+                       checked="@(!MoreThanFive)" 
+                       @onchange="() => OnMoreThanFiveChanged(false)" />
+                <span>No</span>
+            </label>
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public OwnershipFormConfig Config { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<OwnerMember>> OnDataChanged { get; set; }
+
+    private string RegistrationState { get; set; } = string.Empty;
+    private bool ShowSSN { get; set; }
+    private bool MoreThanFive { get; set; }
+    private List<OwnerMember> Members { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        InitializeMembers();
+    }
+
+    private void InitializeMembers()
+    {
+        Members.Clear();
+        for (int i = 1; i <= Config.MaxEntries; i++)
+        {
+            Members.Add(new OwnerMember { Role = $"{Config.MemberLabel} {i}" });
+        }
+    }
+
+    private void ToggleSSNVisibility()
+    {
+        ShowSSN = !ShowSSN;
+    }
+
+    private void OnMoreThanFiveChanged(bool value)
+    {
+        MoreThanFive = value;
+        // You can add additional logic here if needed when the value changes
+    }
+}
+
