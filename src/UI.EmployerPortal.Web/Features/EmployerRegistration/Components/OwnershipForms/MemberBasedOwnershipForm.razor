@@ -1,4 +1,5 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using System.Linq
 
 <div class="member-based-section">
     @if (Config.RequiresState)
@@ -8,7 +9,10 @@
             <label for="registration-state" class="form-label">
                 <span class="required-asterisk">*</span> @Config.StateLabel
             </label>
-            <select id="registration-state" class="form-select form-select-medium" @bind="RegistrationState">
+            <select id="registration-state"
+                    class="form-select form-select-medium @(GetFieldCssClass("RegistrationState"))"
+                    @bind="RegistrationState"
+                    @bind:after="ValidateForm">
                 <option value="">Select State</option>
                 <option value="AL">AL</option>
                 <option value="AK">AK</option>
@@ -68,38 +72,45 @@
     <div class="owner-info-section">
         <h2 class="section-subtitle">Owner Information</h2>
 
-        <!-- Instruction Text -->
-        @* <p class="instruction-text">
-            Enter the names, Social Security Numbers, and ownership percentages of the members.
-            If there are more than five members, list the five with the highest ownership percentages.
-        </p> *@
-
         @for (int i = 0; i < Members.Count; i++)
         {
             var index = i;
             var member = Members[index];
-            
+
             <div class="member-card">
                 <h3 class="member-title">@member.Role</h3>
-                
+
                 <div class="member-fields">
                     <div class="form-group">
                         <label for="first-name-@index" class="form-label">
                             <span class="required-asterisk">*</span> First Name
                         </label>
-                        <input type="text" id="first-name-@index" class="form-input" @bind="member.FirstName" />
+                        <input type="text"
+                               id="first-name-@index"
+                               class="form-input @(GetFieldCssClass($"Member{index}_FirstName"))"
+                               @bind="member.FirstName"
+                               @bind:after="ValidateForm" />
                     </div>
 
                     <div class="form-group form-field-small">
                         <label for="middle-initial-@index" class="form-label">Middle Initial</label>
-                        <input type="text" id="middle-initial-@index" class="form-input" maxlength="1" @bind="member.MiddleInitial" />
+                        <input type="text"
+                               id="middle-initial-@index"
+                               class="form-input"
+                               maxlength="1"
+                               @bind="member.MiddleInitial"
+                               @bind:after="ValidateForm" />
                     </div>
 
                     <div class="form-group">
                         <label for="last-name-@index" class="form-label">
                             <span class="required-asterisk">*</span> Last Name
                         </label>
-                        <input type="text" id="last-name-@index" class="form-input" @bind="member.LastName" />
+                        <input type="text"
+                               id="last-name-@index"
+                               class="form-input @(GetFieldCssClass($"Member{index}_LastName"))"
+                               @bind="member.LastName"
+                               @bind:after="ValidateForm" />
                     </div>
 
                     <div class="form-group">
@@ -107,12 +118,15 @@
                             <span class="required-asterisk">*</span> SSN
                         </label>
                         <div class="ssn-input-wrapper">
-                            <input type="@(ShowSSN ? "text" : "password")" 
+                            <input type="text"
                                    id="ssn-@index"
-                                   class="form-input ssn-input" 
-                                   placeholder="@(ShowSSN ? "123-45-6789" : "•••-••-••••")"
+                                   class="form-input ssn-input @(GetFieldCssClass($"Member{index}_SSN"))"
+                                   placeholder="999-99-9999"
                                    maxlength="11"
-                                   @bind="member.SSN" />
+                                   value="@GetSSNDisplay(member.SSN)"
+                                   @oninput="@(e => HandleSSNInput(index, e.Value?.ToString() ?? string.Empty))"
+                                   @onfocus="@(() => member.IsSSNFocused = true)"
+                                   @onblur="@(() => { member.IsSSNFocused = false; ValidateForm(); })" />
                             <button type="button"
                                     class="ssn-toggle-btn"
                                     @onclick="ToggleSSNVisibility"
@@ -135,35 +149,36 @@
 
                     <div class="form-group">
                         <label for="ownership-percentage-@index" class="form-label">Ownership Percentage</label>
-                        <input type="number" 
+                        <input type="number"
                                id="ownership-percentage-@index"
-                               class="form-input" 
-                               min="0" 
+                               class="form-input"
+                               min="0"
                                max="100"
-                               @bind="member.OwnershipPercentage" />
+                               @bind="member.OwnershipPercentage"
+                               @bind:after="ValidateForm" />
                     </div>
                 </div>
             </div>
         }
 
         <!-- More than five radio buttons -->
-        <div class="more-than-five-group">
+        <div class="more-than-five-group @(GetFieldCssClass("MoreThanFive"))">
             <label class="more-label">
                 <span class="required-asterisk">*</span> More than five?
             </label>
             <label class="radio-label">
-                <input type="radio" 
-                       name="more-than-five" 
-                       value="true" 
-                       checked="@MoreThanFive" 
+                <input type="radio"
+                       name="more-than-five"
+                       value="true"
+                       checked="@(MoreThanFive == true)"
                        @onchange="() => OnMoreThanFiveChanged(true)" />
                 <span>Yes</span>
             </label>
             <label class="radio-label">
-                <input type="radio" 
-                       name="more-than-five" 
-                       value="false" 
-                       checked="@(!MoreThanFive)" 
+                <input type="radio"
+                       name="more-than-five"
+                       value="false"
+                       checked="@(MoreThanFive == false)"
                        @onchange="() => OnMoreThanFiveChanged(false)" />
                 <span>No</span>
             </label>
@@ -177,14 +192,40 @@
     [Parameter]
     public EventCallback<List<OwnerMember>> OnDataChanged { get; set; }
 
+    [Parameter]
+    public EventCallback<List<string>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public bool ShouldValidate { get; set; }
+
     private string RegistrationState { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
-    private bool MoreThanFive { get; set; }
+    private bool? MoreThanFive { get; set; }
     private List<OwnerMember> Members { get; set; } = new();
+    private List<string> ValidationErrors { get; set; } = new();
+    private HashSet<string> InvalidFields { get; set; } = new();
+    private bool _lastShouldValidate = false;
 
     protected override void OnInitialized()
     {
         InitializeMembers();
+        ValidateForm();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        // Detect when ShouldValidate changes from false to true
+        if (ShouldValidate && !_lastShouldValidate)
+        {
+            _lastShouldValidate = true;
+            ValidateForm();
+        }
+        else if (!ShouldValidate)
+        {
+            _lastShouldValidate = false;
+        }
     }
 
     private void InitializeMembers()
@@ -201,10 +242,146 @@
         ShowSSN = !ShowSSN;
     }
 
+    private void HandleSSNInput(int memberIndex, string value)
+    {
+        var member = Members[memberIndex];
+        
+        // Remove all non-digit characters
+        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+        
+        // Limit to 9 digits
+        if (digitsOnly.Length > 9)
+        {
+            digitsOnly = digitsOnly.Substring(0, 9);
+        }
+        
+        // Format with dashes
+        if (digitsOnly.Length > 5)
+        {
+            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
+        }
+        else if (digitsOnly.Length > 3)
+        {
+            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
+        }
+        else
+        {
+            member.SSN = digitsOnly;
+        }
+    }
+
+    private string GetSSNDisplay(string? ssn)
+    {
+        if (string.IsNullOrWhiteSpace(ssn))
+            return string.Empty;
+
+        var member = Members.FirstOrDefault(m => m.SSN == ssn);
+        if (member?.IsSSNFocused == true || ShowSSN)
+        {
+            return ssn;
+        }
+
+        // Remove dashes for processing
+        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
+        
+        if (digitsOnly.Length >= 4)
+        {
+            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
+            return $"***-**-{lastFour}";
+        }
+        
+        return ssn;
+    }
+
     private void OnMoreThanFiveChanged(bool value)
     {
         MoreThanFive = value;
-        // You can add additional logic here if needed when the value changes
+        ValidateForm();
+    }
+
+    private void ValidateForm()
+    {
+        ValidationErrors.Clear();
+        InvalidFields.Clear();
+
+        // Validate Registration State if required
+        if (Config.RequiresState && string.IsNullOrWhiteSpace(RegistrationState))
+        {
+            ValidationErrors.Add($"{Config.StateLabel} is required");
+            InvalidFields.Add("RegistrationState");
+        }
+
+        // Validate each member
+        for (int i = 0; i < Members.Count; i++)
+        {
+            var member = Members[i];
+            var memberNumber = i + 1;
+
+            // Check if any field is filled for this member
+            bool hasAnyValue = !string.IsNullOrWhiteSpace(member.FirstName) ||
+                             !string.IsNullOrWhiteSpace(member.MiddleInitial) ||
+                             !string.IsNullOrWhiteSpace(member.LastName) ||
+                             !string.IsNullOrWhiteSpace(member.SSN) ||
+                             member.OwnershipPercentage.HasValue;
+
+            // Member 1 is always required
+            // Members 2-5 are required only if any field is filled
+            if (i == 0 || hasAnyValue)
+            {
+                // Validate First Name
+                if (string.IsNullOrWhiteSpace(member.FirstName))
+                {
+                    ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} First Name is required");
+                    InvalidFields.Add($"Member{i}_FirstName");
+                }
+
+                // Validate Last Name
+                if (string.IsNullOrWhiteSpace(member.LastName))
+                {
+                    ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} Last Name is required");
+                    InvalidFields.Add($"Member{i}_LastName");
+                }
+
+                // Validate SSN
+                if (string.IsNullOrWhiteSpace(member.SSN))
+                {
+                    ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} SSN is required");
+                    InvalidFields.Add($"Member{i}_SSN");
+                }
+                else
+                {
+                    // Validate SSN format
+                    var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
+                    
+                    if (digitsOnly.Length != 9)
+                    {
+                        ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} Social Security Number format must be 999-99-9999");
+                        InvalidFields.Add($"Member{i}_SSN");
+                    }
+                    else if (digitsOnly.Distinct().Count() == 1)
+                    {
+                        ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} SSN cannot be all the same character");
+                        InvalidFields.Add($"Member{i}_SSN");
+                    }
+                }
+            }
+        }
+
+        // Validate "More than five?" selection
+        if (MoreThanFive == null)
+        {
+            ValidationErrors.Add("More than five? selection is required");
+            InvalidFields.Add("MoreThanFive");
+        }
+
+        // Notify parent component of validation changes (fire and forget)
+        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+
+        StateHasChanged();
+    }
+
+    private string GetFieldCssClass(string fieldName)
+    {
+        return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
     }
 }
-

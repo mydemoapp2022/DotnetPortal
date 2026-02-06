@@ -4,15 +4,20 @@
 
 <div class="ownership-container">
     <h1 class="ownership-title">Ownership</h1>
-    
-    @if (!string.IsNullOrEmpty(OwnershipType) && GetCurrentConfig() != null)
+
+    <!-- Validation Error Summary -->
+    @if (ValidationErrors.Any())
     {
-        <p class="required-note">@GetRequiredFieldsMessage()</p>
+        <div class="validation-summary">
+            <ul>
+                @foreach (var error in ValidationErrors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
     }
-    else
-    {
-        <p class="required-note">All fields are required unless noted</p>
-    }
+
     <form>
         <div class="form-section">
             <!-- Ownership Type -->
@@ -49,13 +54,12 @@
 
             @* Render dynamic component based on ownership type *@
             @if (!string.IsNullOrEmpty(OwnershipType) && _ownershipComponentMap.ContainsKey(OwnershipType))
-            {   
-                <DynamicComponent Type="@_ownershipComponentMap[OwnershipType]" 
+            {
+                <DynamicComponent Type="@_ownershipComponentMap[OwnershipType]"
                                   Parameters="@GetComponentParameters()" />
             }
         </div>
 
-        <!-- Navigation Buttons -->
         <!-- Navigation Buttons -->
         <div class="form-actions">
             <button type="button" class="btn btn-back" @onclick="OnBack">
@@ -65,7 +69,10 @@
                 <button type="button" class="btn btn-save" @onclick="OnSaveAndQuit">
                     SAVE & QUIT
                 </button>
-                <button type="button" class="btn btn-continue" @onclick="OnContinue">
+                <button type="button"
+                        class="btn btn-continue"
+                        @onclick="OnContinue"
+                        disabled="@(!IsContinueEnabled)">
                     CONTINUE <span class="btn-icon">›</span>
                 </button>
             </div>

@@ -459,3 +459,49 @@
         max-width: 100%;
     }
 }
+
+
+.validation-summary {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+    .validation-summary ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #dc3545;
+        list-style-type: disc;
+    }
+
+    .validation-summary li {
+        margin: 5px 0;
+        font-weight: 500;
+    }
+
+::deep .input-validation-error {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+    ::deep .input-validation-error:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+/* Add to existing CSS */
+
+::deep .btn-continue:disabled {
+    background-color: #cccccc;
+    border-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+    ::deep .btn-continue:disabled:hover {
+        background-color: #cccccc;
+        border-color: #cccccc;
+        color: #666666;
+    }

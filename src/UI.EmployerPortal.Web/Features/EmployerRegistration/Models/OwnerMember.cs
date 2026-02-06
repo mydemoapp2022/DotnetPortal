@@ -34,4 +34,9 @@ public class OwnerMember
     /// Ownership percentage (0-100)
     /// </summary>
     public decimal? OwnershipPercentage { get; set; }
+
+    /// <summary>
+    /// Tracks whether the SSN field is currently focused (for masking display)
+    /// </summary>
+    public bool IsSSNFocused { get; set; }
 }

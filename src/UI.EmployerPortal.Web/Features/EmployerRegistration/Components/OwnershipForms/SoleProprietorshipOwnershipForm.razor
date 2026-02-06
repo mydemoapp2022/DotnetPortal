@@ -1,4 +1,5 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using System.Linq
 
 <div class="sole-proprietorship-section">
     <!-- Owner Information Section -->
@@ -14,21 +15,34 @@
                     <label for="first-name" class="form-label">
                         <span class="required-asterisk">*</span> First Name
                     </label>
-                    <input type="text" id="first-name" class="form-input" @bind="Owner.FirstName" />
+                    <input type="text" 
+                           id="first-name" 
+                           class="form-input @(GetFieldCssClass("FirstName"))" 
+                           @bind="Owner.FirstName"
+                           @bind:after="ValidateForm" />
                 </div>
 
                 <div class="form-group">
                     <label for="middle-initial" class="form-label">
                         Middle Initial
                     </label>
-                    <input type="text" id="middle-initial" class="form-input" maxlength="1" @bind="Owner.MiddleInitial" />
+                    <input type="text" 
+                           id="middle-initial" 
+                           class="form-input" 
+                           maxlength="1" 
+                           @bind="Owner.MiddleInitial"
+                           @bind:after="ValidateForm" />
                 </div>
 
                 <div class="form-group">
                     <label for="last-name" class="form-label">
                         <span class="required-asterisk">*</span>Last Name
                     </label>
-                    <input type="text" id="last-name" class="form-input" @bind="Owner.LastName" />
+                    <input type="text" 
+                           id="last-name" 
+                           class="form-input @(GetFieldCssClass("LastName"))" 
+                           @bind="Owner.LastName"
+                           @bind:after="ValidateForm" />
                 </div>
 
                 <div class="form-group">
@@ -36,12 +50,15 @@
                         <span class="required-asterisk">*</span>SSN
                     </label>
                     <div class="ssn-input-wrapper">
-                        <input type="@(ShowSSN ? "text" : "password")" 
+                        <input type="text" 
                                id="ssn"
-                               class="form-input ssn-input" 
-                               placeholder="@(ShowSSN ? "123-45-6789" : "•••-••-••••")"
+                               class="form-input ssn-input @(GetFieldCssClass("SSN"))" 
+                               placeholder="999-99-9999"
                                maxlength="11"
-                               @bind="Owner.SSN" />
+                               value="@GetSSNDisplay(Owner.SSN)"
+                               @oninput="@(e => HandleSSNInput(e.Value?.ToString() ?? string.Empty))"
+                               @onfocus="@(() => Owner.IsSSNFocused = true)"
+                               @onblur="@(() => { Owner.IsSSNFocused = false; ValidateForm(); })" />
                         <button type="button"
                                 class="ssn-toggle-btn"
                                 @onclick="ToggleSSNVisibility"
@@ -69,7 +86,8 @@
                            class="form-input" 
                            min="0" 
                            max="100"
-                           @bind="Owner.OwnershipPercentage" />
+                           @bind="Owner.OwnershipPercentage"
+                           @bind:after="ValidateForm" />
                 </div>
             </div>
         </div>
@@ -83,17 +101,143 @@
     [Parameter]
     public EventCallback<OwnerMember> OnDataChanged { get; set; }
 
+    [Parameter]
+    public EventCallback<List<string>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public bool ShouldValidate { get; set; }
+
     private OwnerMember Owner { get; set; } = new();
     private bool ShowSSN { get; set; }
+    private List<string> ValidationErrors { get; set; } = new();
+    private HashSet<string> InvalidFields { get; set; } = new();
+    private bool _lastShouldValidate = false;
 
     protected override void OnInitialized()
     {
         Owner = new OwnerMember();
+        ValidateForm();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        // Detect when ShouldValidate changes from false to true
+        if (ShouldValidate && !_lastShouldValidate)
+        {
+            _lastShouldValidate = true;
+            ValidateForm();
+        }
+        else if (!ShouldValidate)
+        {
+            _lastShouldValidate = false;
+        }
     }
 
     private void ToggleSSNVisibility()
     {
         ShowSSN = !ShowSSN;
     }
-}
 
+    private void HandleSSNInput(string value)
+    {
+        // Remove all non-digit characters
+        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+        
+        // Limit to 9 digits
+        if (digitsOnly.Length > 9)
+        {
+            digitsOnly = digitsOnly.Substring(0, 9);
+        }
+        
+        // Format with dashes
+        if (digitsOnly.Length > 5)
+        {
+            Owner.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
+        }
+        else if (digitsOnly.Length > 3)
+        {
+            Owner.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
+        }
+        else
+        {
+            Owner.SSN = digitsOnly;
+        }
+    }
+
+    private string GetSSNDisplay(string? ssn)
+    {
+        if (string.IsNullOrWhiteSpace(ssn))
+            return string.Empty;
+
+        if (Owner.IsSSNFocused || ShowSSN)
+        {
+            return ssn;
+        }
+
+        // Remove dashes for processing
+        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
+        
+        if (digitsOnly.Length >= 4)
+        {
+            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
+            return $"***-**-{lastFour}";
+        }
+        
+        return ssn;
+    }
+
+    private void ValidateForm()
+    {
+        ValidationErrors.Clear();
+        InvalidFields.Clear();
+
+        // Validate First Name
+        if (string.IsNullOrWhiteSpace(Owner.FirstName))
+        {
+            ValidationErrors.Add("First Name is required");
+            InvalidFields.Add("FirstName");
+        }
+
+        // Validate Last Name
+        if (string.IsNullOrWhiteSpace(Owner.LastName))
+        {
+            ValidationErrors.Add("Last Name is required");
+            InvalidFields.Add("LastName");
+        }
+
+        // Validate SSN
+        if (string.IsNullOrWhiteSpace(Owner.SSN))
+        {
+            ValidationErrors.Add("SSN is required");
+            InvalidFields.Add("SSN");
+        }
+        else
+        {
+            // Validate SSN format
+            var digitsOnly = new string(Owner.SSN.Where(char.IsDigit).ToArray());
+            
+            if (digitsOnly.Length != 9)
+            {
+                ValidationErrors.Add("Social Security Number format must be 999-99-9999");
+                InvalidFields.Add("SSN");
+            }
+            else if (digitsOnly.Distinct().Count() == 1)
+            {
+                ValidationErrors.Add("SSN cannot be all the same character");
+                InvalidFields.Add("SSN");
+            }
+        }
+
+        // Notify parent component of validation changes (fire and forget)
+        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+
+        StateHasChanged();
+    }
+
+    private string GetFieldCssClass(string fieldName)
+    {
+        return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+    }
+}

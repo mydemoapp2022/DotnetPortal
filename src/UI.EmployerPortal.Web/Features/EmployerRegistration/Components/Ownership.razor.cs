@@ -29,6 +29,9 @@ public partial class Ownership
 
     private string OwnershipType { get; set; } = string.Empty;
     private bool IsOutsideUSA { get; set; }
+    private List<string> ValidationErrors { get; set; } = new();
+    private bool _shouldValidate = false;
+    private bool IsContinueEnabled => IsFormValid();
 
     // Component mapping dictionary
     private readonly Dictionary<string, Type> _ownershipComponentMap = new()
@@ -46,10 +49,10 @@ public partial class Ownership
     // Configuration mapping for each ownership type
     private readonly Dictionary<string, OwnershipFormConfig> _configurationMap = new()
     {
-        { 
-            "corporation", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "corporation",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "corporation",
                 TypeDisplayName = "Corporation",
                 StateLabel = "Incorporation State",
@@ -58,10 +61,10 @@ public partial class Ownership
                 PredefinedRoles = new List<string> { "President", "Vice President", "Secretary", "Treasurer" }
             }
         },
-        { 
-            "llc-corporation", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "llc-corporation",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "llc-corporation",
                 TypeDisplayName = "LLC Electing to be Treated as a Corporation",
                 StateLabel = "Incorporation State",
@@ -70,10 +73,10 @@ public partial class Ownership
                 PredefinedRoles = new List<string> { "President", "Vice President", "Secretary", "Treasurer" }
             }
         },
-        { 
-            "llc", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "llc",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "llc",
                 TypeDisplayName = "Limited Liability Company (LLC)",
                 MemberLabel = "Member",
@@ -83,10 +86,10 @@ public partial class Ownership
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the members. If there are more than five members, list the five with the highest ownership percentages."
             }
         },
-        { 
-            "llp", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "llp",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "llp",
                 TypeDisplayName = "Limited Liability Partnership (LLP)",
                 MemberLabel = "Partner",
@@ -96,10 +99,10 @@ public partial class Ownership
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the partners. If there are more than five partners, list the five with the highest ownership percentages."
             }
         },
-        { 
-            "lp", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "lp",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "lp",
                 TypeDisplayName = "Limited Partnership (LP)",
                 MemberLabel = "Partner",
@@ -109,10 +112,10 @@ public partial class Ownership
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the partners. If there are more than five partners, list the five with the highest ownership percentages."
             }
         },
-        { 
-            "partnership", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "partnership",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "partnership",
                 TypeDisplayName = "Partnership (not LLC or Corporation)",
                 MemberLabel = "Partner",
@@ -122,19 +125,19 @@ public partial class Ownership
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the partners. If there are more than five partners, list the five with the highest ownership percentages."
             }
         },
-        { 
-            "sole-proprietorship", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "sole-proprietorship",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "sole-proprietorship",
                 TypeDisplayName = "Sole Proprietorship (not LLC or Corporation)",
                 MaxEntries = 1
             }
         },
-        { 
-            "individual", 
-            new OwnershipFormConfig 
-            { 
+        {
+            "individual",
+            new OwnershipFormConfig
+            {
                 OwnershipTypeValue = "individual",
                 TypeDisplayName = "Individual",
                 MaxEntries = 1
@@ -142,25 +145,48 @@ public partial class Ownership
         }
     };
 
-    private void OnOwnershipTypeChanged()
+    private async void OnOwnershipTypeChanged()
     {
-        // This method is called after the ownership type changes
+        // Clear validation errors when ownership type changes
+        ValidationErrors.Clear();
+        // Reset validation flag first
+        _shouldValidate = false;
+        StateHasChanged();
+
+        // Wait for component to render
+        await Task.Delay(50);
+
+        // Trigger validation on the new component
+        _shouldValidate = true;
         StateHasChanged();
     }
 
     private OwnershipFormConfig? GetCurrentConfig()
     {
-        return string.IsNullOrEmpty(OwnershipType) || !_configurationMap.ContainsKey(OwnershipType) 
-            ? null 
+        return string.IsNullOrEmpty(OwnershipType) || !_configurationMap.ContainsKey(OwnershipType)
+            ? null
             : _configurationMap[OwnershipType];
     }
 
     private Dictionary<string, object> GetComponentParameters()
     {
         var config = GetCurrentConfig();
-        return config == null 
-            ? new Dictionary<string, object>() 
-            : new Dictionary<string, object> { { "Config", config } };
+        var parameters = new Dictionary<string, object>();
+
+        if (config != null)
+        {
+            parameters.Add("Config", config);
+            parameters.Add("OnValidationChanged", EventCallback.Factory.Create<List<string>>(this, OnChildValidationChanged));
+            parameters.Add("ShouldValidate", _shouldValidate);
+        }
+
+        return parameters;
+    }
+
+    private void OnChildValidationChanged(List<string> errors)
+    {
+        ValidationErrors = errors ?? new List<string>();
+        StateHasChanged();
     }
 
     private string GetRequiredFieldsMessage()
@@ -187,16 +213,19 @@ public partial class Ownership
 
     private async Task OnContinue()
     {
-        // Validate form before continuing
-        if (ValidateForm())
-        {
-            await OnContinueClicked.InvokeAsync();
-        }
+        // Simply navigate to next step - button is only enabled when form is valid
+        await OnContinueClicked.InvokeAsync();
     }
 
-    private bool ValidateForm()
+    private bool IsFormValid()
     {
         // Basic validation - ownership type must be selected
-        return !string.IsNullOrWhiteSpace(OwnershipType);
+        if (string.IsNullOrWhiteSpace(OwnershipType))
+        {
+            return false;
+        }
+
+        // Check if there are any validation errors from child component
+        return !ValidationErrors.Any();
     }
 }
