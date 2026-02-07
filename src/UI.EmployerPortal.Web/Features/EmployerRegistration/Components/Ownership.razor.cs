@@ -13,6 +13,9 @@ public partial class Ownership
     [Inject]
     private ProtectedSessionStorage SessionStorage { get; set; } = default!;
 
+    //[Inject]
+    //private ProtectedLocalStorage LocalStorage { get; set; } = default!;
+
     /// <summary>
     /// OnBackClicked
     /// </summary>
@@ -170,18 +173,13 @@ public partial class Ownership
         try
         {
             var result = await SessionStorage.GetAsync<OwnershipSessionData>("OwnershipData");
+            //var result = await LocalStorage.GetAsync<OwnershipSessionData>("OwnershipData");  // Changed SessionStorage to LocalStorage
             if (result.Success && result.Value != null)
             {
                 var savedData = result.Value;
                 OwnershipType = savedData.OwnershipType;
                 IsOutsideUSA = savedData.IsOutsideUSA;
                 _savedSessionData = savedData;
-
-                // Debug logging
-                Console.WriteLine($"✅ Session loaded: OwnershipType={savedData.OwnershipType}");
-                Console.WriteLine($"   - Members: {savedData.Members?.Count ?? 0}");
-                Console.WriteLine($"   - Officers: {savedData.Officers?.Count ?? 0}");
-                Console.WriteLine($"   - Owner: {(savedData.Owner != null ? "Yes" : "No")}");
             }
         }
         catch (Exception ex)
@@ -362,6 +360,7 @@ public partial class Ownership
             }
 
             await SessionStorage.SetAsync("OwnershipData", sessionData);
+            //await LocalStorage.SetAsync("OwnershipData", sessionData);
             _savedSessionData = sessionData;
         }
         catch (Exception ex)
@@ -380,6 +379,21 @@ public partial class Ownership
 
         // Check if there are any validation errors from child component
         return !ValidationErrors.Any();
+    }
+
+    /// <summary>
+    /// Clear ownership data from local storage (call after successful submission)
+    /// </summary>
+    public async Task ClearStoredData()
+    {
+        //try
+        //{
+        //    await LocalStorage.DeleteAsync("OwnershipData");
+        //}
+        //catch (Exception ex)
+        //{
+        //    Console.WriteLine($"Error clearing storage: {ex.Message}");
+        //}
     }
 }
 
