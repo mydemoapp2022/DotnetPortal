@@ -107,15 +107,20 @@
     [Parameter]
     public bool ShouldValidate { get; set; }
 
+    [Parameter]
+    public object? SavedData { get; set; }
+
     private OwnerMember Owner { get; set; } = new();
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = new();
     private HashSet<string> InvalidFields { get; set; } = new();
     private bool _lastShouldValidate = false;
+    private bool _dataRestored = false;
 
     protected override void OnInitialized()
     {
         Owner = new OwnerMember();
+        RestoreFromSession();
         ValidateForm();
     }
 
@@ -135,6 +140,33 @@
         }
     }
 
+    private void RestoreFromSession()
+    {
+        if (_dataRestored || SavedData == null) return;
+
+        try
+        {
+            if (SavedData is OwnershipSessionData sessionData && sessionData.Owner != null)
+            {
+                Owner = new OwnerMember
+                {
+                    Role = sessionData.Owner.Role,
+                    FirstName = sessionData.Owner.FirstName,
+                    MiddleInitial = sessionData.Owner.MiddleInitial,
+                    LastName = sessionData.Owner.LastName,
+                    SSN = sessionData.Owner.SSN,
+                    OwnershipPercentage = sessionData.Owner.OwnershipPercentage
+                };
+
+                _dataRestored = true;
+            }
+        }
+        catch (Exception)
+        {
+            // Failed to restore, continue with defaults
+        }
+    }
+
     private void ToggleSSNVisibility()
     {
         ShowSSN = !ShowSSN;
@@ -144,13 +176,13 @@
     {
         // Remove all non-digit characters
         var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-        
+
         // Limit to 9 digits
         if (digitsOnly.Length > 9)
         {
             digitsOnly = digitsOnly.Substring(0, 9);
         }
-        
+
         // Format with dashes
         if (digitsOnly.Length > 5)
         {
@@ -164,6 +196,8 @@
         {
             Owner.SSN = digitsOnly;
         }
+
+        NotifyDataChanged();
     }
 
     private string GetSSNDisplay(string? ssn)
@@ -178,13 +212,13 @@
 
         // Remove dashes for processing
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-        
+
         if (digitsOnly.Length >= 4)
         {
             var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
             return $"***-**-{lastFour}";
         }
-        
+
         return ssn;
     }
 
@@ -217,7 +251,7 @@
         {
             // Validate SSN format
             var digitsOnly = new string(Owner.SSN.Where(char.IsDigit).ToArray());
-            
+
             if (digitsOnly.Length != 9)
             {
                 ValidationErrors.Add("Social Security Number format must be 999-99-9999");
@@ -232,8 +266,14 @@
 
         // Notify parent component of validation changes (fire and forget)
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        NotifyDataChanged();
 
         StateHasChanged();
+    }
+
+    private void NotifyDataChanged()
+    {
+        _ = OnDataChanged.InvokeAsync(Owner);
     }
 
     private string GetFieldCssClass(string fieldName)

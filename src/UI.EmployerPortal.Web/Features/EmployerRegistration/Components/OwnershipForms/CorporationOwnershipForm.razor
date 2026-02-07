@@ -181,13 +181,16 @@
     public OwnershipFormConfig Config { get; set; } = new();
 
     [Parameter]
-    public EventCallback<List<OwnerMember>> OnDataChanged { get; set; }
+    public EventCallback<CorporationFormData> OnDataChanged { get; set; }
 
     [Parameter]
     public EventCallback<List<string>> OnValidationChanged { get; set; }
 
     [Parameter]
     public bool ShouldValidate { get; set; }
+
+    [Parameter]
+    public object? SavedData { get; set; }
 
     private string IncorporationState { get; set; } = string.Empty;
     private string ForeignCountry { get; set; } = string.Empty;
@@ -196,17 +199,19 @@
     private List<string> ValidationErrors { get; set; } = new();
     private HashSet<string> InvalidFields { get; set; } = new();
     private bool _lastShouldValidate = false;
+    private bool _dataRestored = false;
 
     protected override void OnInitialized()
     {
         InitializeOfficers();
+        RestoreFromSession();
         ValidateForm();
     }
 
     protected override void OnAfterRender(bool firstRender)
     {
         base.OnAfterRender(firstRender);
-        
+
         // Detect when ShouldValidate changes from false to true
         if (ShouldValidate && !_lastShouldValidate)
         {
@@ -219,8 +224,47 @@
         }
     }
 
+    private void RestoreFromSession()
+    {
+        if (_dataRestored || SavedData == null) return;
+
+        try
+        {
+            if (SavedData is OwnershipSessionData sessionData)
+            {
+                IncorporationState = sessionData.IncorporationState ?? string.Empty;
+                ForeignCountry = sessionData.ForeignCountry ?? string.Empty;
+
+                if (sessionData.Officers != null && sessionData.Officers.Any())
+                {
+                    Officers.Clear();
+                    foreach (var savedOfficer in sessionData.Officers)
+                    {
+                        Officers.Add(new OwnerMember
+                        {
+                            Role = savedOfficer.Role,
+                            FirstName = savedOfficer.FirstName,
+                            MiddleInitial = savedOfficer.MiddleInitial,
+                            LastName = savedOfficer.LastName,
+                            SSN = savedOfficer.SSN,
+                            OwnershipPercentage = savedOfficer.OwnershipPercentage
+                        });
+                    }
+                }
+
+                _dataRestored = true;
+            }
+        }
+        catch (Exception)
+        {
+            // Failed to restore, continue with defaults
+        }
+    }
+
     private void InitializeOfficers()
     {
+        if (Officers.Any()) return;
+
         Officers.Clear();
         foreach (var role in Config.PredefinedRoles)
         {
@@ -246,13 +290,13 @@
     {
         // Remove all non-digit characters
         var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-        
+
         // Limit to 9 digits
         if (digitsOnly.Length > 9)
         {
             digitsOnly = digitsOnly.Substring(0, 9);
         }
-        
+
         // Format with dashes
         if (digitsOnly.Length > 5)
         {
@@ -266,6 +310,8 @@
         {
             officer.SSN = digitsOnly;
         }
+
+        NotifyDataChanged();
     }
 
     private string GetSSNDisplay(string? ssn)
@@ -281,13 +327,13 @@
 
         // Remove dashes for processing
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-        
+
         if (digitsOnly.Length >= 4)
         {
             var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
             return $"***-**-{lastFour}";
         }
-        
+
         return ssn;
     }
 
@@ -305,7 +351,7 @@
         }
 
         // Check if at least one officer has any data entered
-        bool hasAnyOfficerData = Officers.Any(o => 
+        bool hasAnyOfficerData = Officers.Any(o =>
             !string.IsNullOrWhiteSpace(o.FirstName) ||
             !string.IsNullOrWhiteSpace(o.MiddleInitial) ||
             !string.IsNullOrWhiteSpace(o.LastName) ||
@@ -354,7 +400,7 @@
                     {
                         // Validate SSN format
                         var digitsOnly = new string(officer.SSN.Where(char.IsDigit).ToArray());
-                        
+
                         if (digitsOnly.Length != 9)
                         {
                             ValidationErrors.Add($"{officer.Role} Social Security Number format must be 999-99-9999");
@@ -372,8 +418,29 @@
 
         // Notify parent component of validation changes (fire and forget)
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        NotifyDataChanged();
 
         StateHasChanged();
+    }
+
+    private void NotifyDataChanged()
+    {
+        var formData = new CorporationFormData
+        {
+            IncorporationState = IncorporationState,
+            ForeignCountry = ForeignCountry,
+            Officers = Officers.Select(o => new OwnerMember
+            {
+                Role = o.Role,
+                FirstName = o.FirstName,
+                MiddleInitial = o.MiddleInitial,
+                LastName = o.LastName,
+                SSN = o.SSN,
+                OwnershipPercentage = o.OwnershipPercentage
+            }).ToList()
+        };
+
+        _ = OnDataChanged.InvokeAsync(formData);
     }
 
     private string GetFieldCssClass(string fieldName)
@@ -381,4 +448,3 @@
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
     }
 }
-

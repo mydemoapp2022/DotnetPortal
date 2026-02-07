@@ -5,77 +5,84 @@
 <div class="ownership-container">
     <h1 class="ownership-title">Ownership</h1>
 
-    <!-- Validation Error Summary -->
-    @if (ValidationErrors.Any())
+    @if (!_isSessionLoaded)
     {
-        <div class="validation-summary">
-            <ul>
-                @foreach (var error in ValidationErrors)
-                {
-                    <li>@error</li>
-                }
-            </ul>
-        </div>
+        <p>Loading...</p>
     }
+    else
+    {
+        <!-- Validation Error Summary -->
+        @if (ValidationErrors.Any())
+        {
+            <div class="validation-summary">
+                <ul>
+                    @foreach (var error in ValidationErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
 
-    <form>
-        <div class="form-section">
-            <!-- Ownership Type -->
-            <div class="form-group">
-                <label for="ownership-type" class="form-label">
-                    <span class="required-asterisk">*</span> Ownership Type
-                </label>
-                <select id="ownership-type" class="form-select form-select-medium" @bind="OwnershipType" @bind:after="OnOwnershipTypeChanged">
-                    <option value="">Select Ownership Type</option>
-                    <option value="llc">Limited Liability Company (LLC)</option>
-                    <option value="llc-corporation">LLC Electing to be Treated as a Corporation</option>
-                    <option value="sole-proprietorship">Sole Proprietorship (not LLC or Corporation)</option>
-                    <option value="corporation">Corporation</option>
-                    <option value="partnership">Partnership (not LLC or Corporation)</option>
-                    <option value="llp">Limited Liability Partnership (LLP)</option>
-                    <option value="lp">Limited Partnership (LP)</option>
-                    <option value="association">Association</option>
-                    <option value="cooperative">Cooperative</option>
-                    <option value="estate">Estate</option>
-                    <option value="fiduciary">Fiduciary</option>
-                    <option value="individual">Individual</option>
-                    <option value="joint-venture">Joint Venture</option>
-                    <option value="qsf">Qualified Settlement Fund (QSF)</option>
-                </select>
+        <form>
+            <div class="form-section">
+                <!-- Ownership Type -->
+                <div class="form-group">
+                    <label for="ownership-type" class="form-label">
+                        <span class="required-asterisk">*</span> Ownership Type
+                    </label>
+                    <select id="ownership-type" class="form-select form-select-medium" @bind="OwnershipType" @bind:after="OnOwnershipTypeChanged">
+                        <option value="">Select Ownership Type</option>
+                        <option value="llc">Limited Liability Company (LLC)</option>
+                        <option value="llc-corporation">LLC Electing to be Treated as a Corporation</option>
+                        <option value="sole-proprietorship">Sole Proprietorship (not LLC or Corporation)</option>
+                        <option value="corporation">Corporation</option>
+                        <option value="partnership">Partnership (not LLC or Corporation)</option>
+                        <option value="llp">Limited Liability Partnership (LLP)</option>
+                        <option value="lp">Limited Partnership (LP)</option>
+                        <option value="association">Association</option>
+                        <option value="cooperative">Cooperative</option>
+                        <option value="estate">Estate</option>
+                        <option value="fiduciary">Fiduciary</option>
+                        <option value="individual">Individual</option>
+                        <option value="joint-venture">Joint Venture</option>
+                        <option value="qsf">Qualified Settlement Fund (QSF)</option>
+                    </select>
+                </div>
+
+                <!-- Headquartered Outside USA Checkbox -->
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="IsOutsideUSA" />
+                        <span>The business is headquartered outside of the United States</span>
+                    </label>
+                </div>
+
+                @* Render dynamic component based on ownership type *@
+                @if (!string.IsNullOrEmpty(OwnershipType) && _ownershipComponentMap.ContainsKey(OwnershipType))
+                {
+                    <DynamicComponent Type="@_ownershipComponentMap[OwnershipType]"
+                                      Parameters="@GetComponentParameters()" />
+                }
             </div>
 
-            <!-- Headquartered Outside USA Checkbox -->
-            <div class="checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" @bind="IsOutsideUSA" />
-                    <span>The business is headquartered outside of the United States</span>
-                </label>
-            </div>
-
-            @* Render dynamic component based on ownership type *@
-            @if (!string.IsNullOrEmpty(OwnershipType) && _ownershipComponentMap.ContainsKey(OwnershipType))
-            {
-                <DynamicComponent Type="@_ownershipComponentMap[OwnershipType]"
-                                  Parameters="@GetComponentParameters()" />
-            }
-        </div>
-
-        <!-- Navigation Buttons -->
-        <div class="form-actions">
-            <button type="button" class="btn btn-back" @onclick="OnBack">
-                <span class="btn-icon">‹</span> BACK
-            </button>
-            <div class="form-actions-right">
-                <button type="button" class="btn btn-save" @onclick="OnSaveAndQuit">
-                    SAVE & QUIT
+            <!-- Navigation Buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-back" @onclick="OnBack">
+                    <span class="btn-icon">‹</span> BACK
                 </button>
-                <button type="button"
-                        class="btn btn-continue"
-                        @onclick="OnContinue"
-                        disabled="@(!IsContinueEnabled)">
-                    CONTINUE <span class="btn-icon">›</span>
-                </button>
+                <div class="form-actions-right">
+                    <button type="button" class="btn btn-save" @onclick="OnSaveAndQuit">
+                        SAVE & QUIT
+                    </button>
+                    <button type="button"
+                            class="btn btn-continue"
+                            @onclick="OnContinue"
+                            disabled="@(!IsContinueEnabled)">
+                        CONTINUE <span class="btn-icon">›</span>
+                    </button>
+                </div>
             </div>
-        </div>
-    </form>
+        </form>
+    }
 </div>

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms;
 
@@ -9,6 +10,9 @@ namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 /// </summary>
 public partial class Ownership
 {
+    [Inject]
+    private ProtectedSessionStorage SessionStorage { get; set; } = default!;
+
     /// <summary>
     /// OnBackClicked
     /// </summary>
@@ -32,6 +36,9 @@ public partial class Ownership
     private List<string> ValidationErrors { get; set; } = new();
     private bool _shouldValidate = false;
     private bool IsContinueEnabled => IsFormValid();
+    private object? _currentFormData;
+    private OwnershipSessionData? _savedSessionData;
+    private bool _isSessionLoaded;
 
     // Component mapping dictionary
     private readonly Dictionary<string, Type> _ownershipComponentMap = new()
@@ -145,20 +152,71 @@ public partial class Ownership
         }
     };
 
-    private async void OnOwnershipTypeChanged()
+    /// <summary>
+    /// OnAfterRenderAsync - Load session data here where JS interop is available
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Clear validation errors when ownership type changes
-        ValidationErrors.Clear();
-        // Reset validation flag first
-        _shouldValidate = false;
-        StateHasChanged();
+        if (firstRender)
+        {
+            await LoadFromSession();
+            _isSessionLoaded = true;
+            StateHasChanged();
+        }
+    }
 
-        // Wait for component to render
-        await Task.Delay(50);
+    private async Task LoadFromSession()
+    {
+        try
+        {
+            var result = await SessionStorage.GetAsync<OwnershipSessionData>("OwnershipData");
+            if (result.Success && result.Value != null)
+            {
+                var savedData = result.Value;
+                OwnershipType = savedData.OwnershipType;
+                IsOutsideUSA = savedData.IsOutsideUSA;
+                _savedSessionData = savedData;
 
-        // Trigger validation on the new component
-        _shouldValidate = true;
-        StateHasChanged();
+                // Debug logging
+                Console.WriteLine($"✅ Session loaded: OwnershipType={savedData.OwnershipType}");
+                Console.WriteLine($"   - Members: {savedData.Members?.Count ?? 0}");
+                Console.WriteLine($"   - Officers: {savedData.Officers?.Count ?? 0}");
+                Console.WriteLine($"   - Owner: {(savedData.Owner != null ? "Yes" : "No")}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading from session: {ex.Message}");
+        }
+    }
+
+    private async Task OnOwnershipTypeChanged()
+    {
+        try
+        {
+            // Clear validation errors when ownership type changes
+            ValidationErrors.Clear();
+
+            // Clear saved session data when changing ownership type
+            // This prevents passing incompatible data to the new component
+            _savedSessionData = null;
+            _currentFormData = null;
+
+            // Reset validation flag
+            _shouldValidate = false;
+            StateHasChanged();
+
+            // Wait for the new DynamicComponent to render
+            await Task.Delay(100);
+
+            // Trigger validation on the new component
+            _shouldValidate = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in OnOwnershipTypeChanged: {ex.Message}");
+        }
     }
 
     private OwnershipFormConfig? GetCurrentConfig()
@@ -178,6 +236,36 @@ public partial class Ownership
             parameters.Add("Config", config);
             parameters.Add("OnValidationChanged", EventCallback.Factory.Create<List<string>>(this, OnChildValidationChanged));
             parameters.Add("ShouldValidate", _shouldValidate);
+
+            // Create correctly-typed EventCallback to match each child component's parameter type
+            switch (OwnershipType)
+            {
+                case "llc":
+                case "llp":
+                case "lp":
+                case "partnership":
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<MemberBasedFormData>(this, OnFormDataChanged));
+                    break;
+
+                case "corporation":
+                case "llc-corporation":
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<CorporationFormData>(this, OnFormDataChanged));
+                    break;
+
+                case "sole-proprietorship":
+                case "individual":
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<OwnerMember>(this, OnFormDataChanged));
+                    break;
+            }
+
+            // Only pass saved data if it matches current ownership type
+            if (_savedSessionData != null && _savedSessionData.OwnershipType == OwnershipType)
+            {
+                parameters.Add("SavedData", _savedSessionData);
+            }
         }
 
         return parameters;
@@ -187,6 +275,11 @@ public partial class Ownership
     {
         ValidationErrors = errors ?? new List<string>();
         StateHasChanged();
+    }
+
+    private void OnFormDataChanged(object formData)
+    {
+        _currentFormData = formData;
     }
 
     private string GetRequiredFieldsMessage()
@@ -208,13 +301,73 @@ public partial class Ownership
 
     private async Task OnSaveAndQuit()
     {
+        await SaveToSession();
         await OnSaveAndQuitClicked.InvokeAsync();
     }
 
     private async Task OnContinue()
     {
-        // Simply navigate to next step - button is only enabled when form is valid
+        // Save to session before continuing
+        await SaveToSession();
+
+        // Navigate to next step - button is only enabled when form is valid
         await OnContinueClicked.InvokeAsync();
+    }
+
+    private async Task SaveToSession()
+    {
+        try
+        {
+            var sessionData = new OwnershipSessionData
+            {
+                OwnershipType = OwnershipType,
+                IsOutsideUSA = IsOutsideUSA
+            };
+
+            // Save form-specific data based on ownership type
+            if (_currentFormData != null)
+            {
+                switch (OwnershipType)
+                {
+                    case "llc":
+                    case "llp":
+                    case "lp":
+                    case "partnership":
+                        if (_currentFormData is MemberBasedFormData memberData)
+                        {
+                            sessionData.RegistrationState = memberData.RegistrationState;
+                            sessionData.Members = memberData.Members;
+                            sessionData.MoreThanFive = memberData.MoreThanFive;
+                        }
+                        break;
+
+                    case "corporation":
+                    case "llc-corporation":
+                        if (_currentFormData is CorporationFormData corpData)
+                        {
+                            sessionData.IncorporationState = corpData.IncorporationState;
+                            sessionData.ForeignCountry = corpData.ForeignCountry;
+                            sessionData.Officers = corpData.Officers;
+                        }
+                        break;
+
+                    case "sole-proprietorship":
+                    case "individual":
+                        if (_currentFormData is OwnerMember owner)
+                        {
+                            sessionData.Owner = owner;
+                        }
+                        break;
+                }
+            }
+
+            await SessionStorage.SetAsync("OwnershipData", sessionData);
+            _savedSessionData = sessionData;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving to session: {ex.Message}");
+        }
     }
 
     private bool IsFormValid()
@@ -229,3 +382,4 @@ public partial class Ownership
         return !ValidationErrors.Any();
     }
 }
+

@@ -190,7 +190,7 @@
     public OwnershipFormConfig Config { get; set; } = new();
 
     [Parameter]
-    public EventCallback<List<OwnerMember>> OnDataChanged { get; set; }
+    public EventCallback<MemberBasedFormData> OnDataChanged { get; set; }
 
     [Parameter]
     public EventCallback<List<string>> OnValidationChanged { get; set; }
@@ -198,17 +198,22 @@
     [Parameter]
     public bool ShouldValidate { get; set; }
 
+    [Parameter]
+    public object? SavedData { get; set; }
+
     private string RegistrationState { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
-    private bool? MoreThanFive { get; set; }
+    private bool? MoreThanFive { get; set; } = false;
     private List<OwnerMember> Members { get; set; } = new();
     private List<string> ValidationErrors { get; set; } = new();
     private HashSet<string> InvalidFields { get; set; } = new();
     private bool _lastShouldValidate = false;
+    private bool _dataRestored = false;
 
     protected override void OnInitialized()
     {
         InitializeMembers();
+        RestoreFromSession();
         ValidateForm();
     }
 
@@ -228,8 +233,53 @@
         }
     }
 
+    // Example for MemberBasedOwnershipForm
+    private void RestoreFromSession()
+    {
+        // Only restore once and only if SavedData is provided
+        if (_dataRestored || SavedData == null) return;
+
+        try
+        {
+            if (SavedData is OwnershipSessionData sessionData)
+            {
+                Console.WriteLine($"🔄 Restoring MemberBased form data");
+
+                RegistrationState = sessionData.RegistrationState ?? string.Empty;
+                MoreThanFive = sessionData.MoreThanFive;
+
+                if (sessionData.Members != null && sessionData.Members.Any())
+                {
+                    Members.Clear();
+                    foreach (var savedMember in sessionData.Members)
+                    {
+                        Members.Add(new OwnerMember
+                        {
+                            Role = savedMember.Role,
+                            FirstName = savedMember.FirstName,
+                            MiddleInitial = savedMember.MiddleInitial,
+                            LastName = savedMember.LastName,
+                            SSN = savedMember.SSN,
+                            OwnershipPercentage = savedMember.OwnershipPercentage
+                        });
+                    }
+                    Console.WriteLine($"✅ Restored {Members.Count} members");
+                }
+
+                _dataRestored = true;
+                StateHasChanged(); // Force UI update
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to restore session: {ex.Message}");
+        }
+    }
+
     private void InitializeMembers()
     {
+        if (Members.Any()) return;
+
         Members.Clear();
         for (int i = 1; i <= Config.MaxEntries; i++)
         {
@@ -245,16 +295,16 @@
     private void HandleSSNInput(int memberIndex, string value)
     {
         var member = Members[memberIndex];
-        
+
         // Remove all non-digit characters
         var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-        
+
         // Limit to 9 digits
         if (digitsOnly.Length > 9)
         {
             digitsOnly = digitsOnly.Substring(0, 9);
         }
-        
+
         // Format with dashes
         if (digitsOnly.Length > 5)
         {
@@ -268,6 +318,8 @@
         {
             member.SSN = digitsOnly;
         }
+
+        NotifyDataChanged();
     }
 
     private string GetSSNDisplay(string? ssn)
@@ -283,13 +335,13 @@
 
         // Remove dashes for processing
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-        
+
         if (digitsOnly.Length >= 4)
         {
             var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
             return $"***-**-{lastFour}";
         }
-        
+
         return ssn;
     }
 
@@ -352,7 +404,7 @@
                 {
                     // Validate SSN format
                     var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
-                    
+
                     if (digitsOnly.Length != 9)
                     {
                         ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} Social Security Number format must be 999-99-9999");
@@ -376,8 +428,29 @@
 
         // Notify parent component of validation changes (fire and forget)
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        NotifyDataChanged();
 
         StateHasChanged();
+    }
+
+    private void NotifyDataChanged()
+    {
+        var formData = new MemberBasedFormData
+        {
+            RegistrationState = RegistrationState,
+            Members = Members.Select(m => new OwnerMember
+            {
+                Role = m.Role,
+                FirstName = m.FirstName,
+                MiddleInitial = m.MiddleInitial,
+                LastName = m.LastName,
+                SSN = m.SSN,
+                OwnershipPercentage = m.OwnershipPercentage
+            }).ToList(),
+            MoreThanFive = MoreThanFive
+        };
+
+        _ = OnDataChanged.InvokeAsync(formData);
     }
 
     private string GetFieldCssClass(string fieldName)
