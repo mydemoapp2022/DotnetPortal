@@ -1,0 +1,364 @@
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using System.Linq
+
+<div class="limited-partnership-section">
+    <!-- Registration State -->
+    <div class="form-group state-selection">
+        <label for="registration-state" class="form-label">
+            <span class="required-asterisk">*</span> Registration State
+        </label>
+        <select id="registration-state"
+                class="form-select form-select-medium @(GetFieldCssClass("RegistrationState"))"
+                @bind="RegistrationState"
+                @bind:after="ValidateForm">
+            <option value="">Select State</option>
+            <option value="AL">AL</option>
+            <option value="AK">AK</option>
+            <option value="AZ">AZ</option>
+            <option value="AR">AR</option>
+            <option value="CA">CA</option>
+            <option value="CO">CO</option>
+            <option value="CT">CT</option>
+            <option value="DE">DE</option>
+            <option value="FL">FL</option>
+            <option value="GA">GA</option>
+            <option value="HI">HI</option>
+            <option value="ID">ID</option>
+            <option value="IN">IN</option>
+            <option value="IA">IA</option>
+            <option value="KS">KS</option>
+            <option value="KY">KY</option>
+            <option value="LA">LA</option>
+            <option value="ME">ME</option>
+            <option value="MD">MD</option>
+            <option value="MA">MA</option>
+            <option value="MI">MI</option>
+            <option value="MN">MN</option>
+            <option value="MS">MS</option>
+            <option value="MO">MO</option>
+            <option value="MT">MT</option>
+            <option value="NE">NE</option>
+            <option value="NV">NV</option>
+            <option value="NH">NH</option>
+            <option value="NJ">NJ</option>
+            <option value="NM">NM</option>
+            <option value="NY">NY</option>
+            <option value="NC">NC</option>
+            <option value="ND">ND</option>
+            <option value="OH">OH</option>
+            <option value="OK">OK</option>
+            <option value="OR">OR</option>
+            <option value="PA">PA</option>
+            <option value="RI">RI</option>
+            <option value="SC">SC</option>
+            <option value="SD">SD</option>
+            <option value="TN">TN</option>
+            <option value="TX">TX</option>
+            <option value="UT">UT</option>
+            <option value="VT">VT</option>
+            <option value="VA">VA</option>
+            <option value="WA">WA</option>
+            <option value="WV">WV</option>
+            <option value="WI">WI</option>
+            <option value="WY">WY</option>
+        </select>
+    </div>
+
+    <!-- General Partner Section -->
+    <div class="general-partner-section">
+        <h2 class="section-subtitle">General Partner Information</h2>
+
+        <div class="member-card">
+            <h3 class="member-title">General Partner</h3>
+
+            <div class="member-fields">
+                <div class="form-group">
+                    <label for="first-name" class="form-label">
+                        <span class="required-asterisk">*</span> First Name
+                    </label>
+                    <input type="text"
+                           id="first-name"
+                           class="form-input @(GetFieldCssClass("GeneralPartner_FirstName"))"
+                           @bind="GeneralPartner.FirstName"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group form-field-small">
+                    <label for="middle-initial" class="form-label">Middle Initial</label>
+                    <input type="text"
+                           id="middle-initial"
+                           class="form-input"
+                           maxlength="1"
+                           @bind="GeneralPartner.MiddleInitial"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group">
+                    <label for="last-name" class="form-label">
+                        <span class="required-asterisk">*</span> Last Name
+                    </label>
+                    <input type="text"
+                           id="last-name"
+                           class="form-input @(GetFieldCssClass("GeneralPartner_LastName"))"
+                           @bind="GeneralPartner.LastName"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group">
+                    <label for="ssn" class="form-label">
+                        <span class="required-asterisk">*</span> SSN
+                    </label>
+                    <div class="ssn-input-wrapper">
+                        <input type="text"
+                               id="ssn"
+                               class="form-input ssn-input @(GetFieldCssClass("GeneralPartner_SSN"))"
+                               placeholder="999-99-9999"
+                               maxlength="11"
+                               value="@GetSSNDisplay(GeneralPartner.SSN)"
+                               @oninput="@(e => HandleSSNInput(e.Value?.ToString() ?? string.Empty))"
+                               @onfocus="@(() => GeneralPartner.IsSSNFocused = true)"
+                               @onblur="@(() => { GeneralPartner.IsSSNFocused = false; ValidateForm(); })" />
+                        <button type="button"
+                                class="ssn-toggle-btn"
+                                @onclick="ToggleSSNVisibility"
+                                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                @if (ShowSSN)
+                                {
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                }
+                                else
+                                {
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                }
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br/>
+    <!-- Limited Partnership Name -->
+    <div class="form-group">
+        <label for="partnership-name" class="form-label">
+            <span class="required-asterisk">*</span> Limited Partnership Name
+        </label>
+        <input type="text"
+               id="partnership-name"
+               class="form-input @(GetFieldCssClass("LimitedPartnershipName"))"
+               @bind="LimitedPartnershipName"
+               @bind:after="ValidateForm" />
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public OwnershipFormConfig Config { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<LimitedPartnershipFormData> OnDataChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<List<string>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public bool ShouldValidate { get; set; }
+
+    [Parameter]
+    public object? SavedData { get; set; }
+
+    private string RegistrationState { get; set; } = string.Empty;
+    private string LimitedPartnershipName { get; set; } = string.Empty;
+    private OwnerMember GeneralPartner { get; set; } = new() { Role = "General Partner" };
+    private bool ShowSSN { get; set; }
+    private List<string> ValidationErrors { get; set; } = new();
+    private HashSet<string> InvalidFields { get; set; } = new();
+    private bool _lastShouldValidate = false;
+    private bool _dataRestored = false;
+
+    protected override void OnInitialized()
+    {
+        GeneralPartner = new OwnerMember { Role = "General Partner" };
+        RestoreFromSession();
+        ValidateForm();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (ShouldValidate && !_lastShouldValidate)
+        {
+            _lastShouldValidate = true;
+            ValidateForm();
+        }
+        else if (!ShouldValidate)
+        {
+            _lastShouldValidate = false;
+        }
+    }
+
+    private void RestoreFromSession()
+    {
+        if (_dataRestored || SavedData == null) return;
+
+        try
+        {
+            if (SavedData is OwnershipSessionData sessionData)
+            {
+                RegistrationState = sessionData.RegistrationState ?? string.Empty;
+                LimitedPartnershipName = sessionData.LimitedPartnershipName ?? string.Empty;
+
+                if (sessionData.GeneralPartner != null)
+                {
+                    GeneralPartner = new OwnerMember
+                    {
+                        Role = "General Partner",
+                        FirstName = sessionData.GeneralPartner.FirstName,
+                        MiddleInitial = sessionData.GeneralPartner.MiddleInitial,
+                        LastName = sessionData.GeneralPartner.LastName,
+                        SSN = sessionData.GeneralPartner.SSN
+                    };
+                }
+
+                _dataRestored = true;
+            }
+        }
+        catch (Exception)
+        {
+            // Failed to restore, continue with defaults
+        }
+    }
+
+    private void ValidateForm()
+    {
+        ValidationErrors.Clear();
+        InvalidFields.Clear();
+
+        if (string.IsNullOrWhiteSpace(RegistrationState))
+        {
+            ValidationErrors.Add("Registration State is required");
+            InvalidFields.Add("RegistrationState");
+        }
+
+        if (string.IsNullOrWhiteSpace(LimitedPartnershipName))
+        {
+            ValidationErrors.Add("Limited Partnership Name is required");
+            InvalidFields.Add("LimitedPartnershipName");
+        }
+
+        if (string.IsNullOrWhiteSpace(GeneralPartner.FirstName))
+        {
+            ValidationErrors.Add("General Partner First Name is required");
+            InvalidFields.Add("GeneralPartner_FirstName");
+        }
+
+        if (string.IsNullOrWhiteSpace(GeneralPartner.LastName))
+        {
+            ValidationErrors.Add("General Partner Last Name is required");
+            InvalidFields.Add("GeneralPartner_LastName");
+        }
+
+        if (string.IsNullOrWhiteSpace(GeneralPartner.SSN))
+        {
+            ValidationErrors.Add("General Partner SSN is required");
+            InvalidFields.Add("GeneralPartner_SSN");
+        }
+        else
+        {
+            var digitsOnly = new string(GeneralPartner.SSN.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length != 9)
+            {
+                ValidationErrors.Add("General Partner Social Security Number format must be 999-99-9999");
+                InvalidFields.Add("GeneralPartner_SSN");
+            }
+            else if (digitsOnly.Distinct().Count() == 1)
+            {
+                ValidationErrors.Add("General Partner SSN cannot be all the same character");
+                InvalidFields.Add("GeneralPartner_SSN");
+            }
+        }
+
+        // Notify parent (fire and forget - same pattern as working components)
+        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        NotifyDataChanged();
+
+        StateHasChanged();
+    }
+
+    private void NotifyDataChanged()
+    {
+        var formData = new LimitedPartnershipFormData
+        {
+            RegistrationState = RegistrationState,
+            LimitedPartnershipName = LimitedPartnershipName,
+            GeneralPartner = GeneralPartner
+        };
+
+        _ = OnDataChanged.InvokeAsync(formData);
+    }
+
+    private bool IsValidSSN(string ssn)
+    {
+        if (string.IsNullOrWhiteSpace(ssn)) return false;
+        var cleanSSN = ssn.Replace("-", "");
+        return cleanSSN.Length == 9 && cleanSSN.All(char.IsDigit);
+    }
+
+    private string GetFieldCssClass(string fieldName)
+    {
+        return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+    }
+
+    private string GetSSNDisplay(string ssn)
+    {
+        if (string.IsNullOrWhiteSpace(ssn)) return string.Empty;
+
+        if (ShowSSN || GeneralPartner.IsSSNFocused)
+        {
+            return ssn;
+        }
+
+        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
+        if (digitsOnly.Length >= 4)
+        {
+            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
+            return $"***-**-{lastFour}";
+        }
+
+        return ssn;
+    }
+
+    private void HandleSSNInput(string value)
+    {
+        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+
+        if (digitsOnly.Length > 9)
+        {
+            digitsOnly = digitsOnly.Substring(0, 9);
+        }
+
+        if (digitsOnly.Length > 5)
+        {
+            GeneralPartner.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
+        }
+        else if (digitsOnly.Length > 3)
+        {
+            GeneralPartner.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
+        }
+        else
+        {
+            GeneralPartner.SSN = digitsOnly;
+        }
+
+        NotifyDataChanged();
+    }
+
+    private void ToggleSSNVisibility()
+    {
+        ShowSSN = !ShowSSN;
+    }
+}

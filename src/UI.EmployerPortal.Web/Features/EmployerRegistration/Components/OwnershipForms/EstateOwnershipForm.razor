@@ -1,0 +1,371 @@
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using System.Linq
+
+<div class="estate-section">
+    <!-- Decedent Section -->
+    <div class="owner-info-section">
+        <div class="member-card">
+            <h3 class="member-title">Decedent</h3>
+
+            <div class="member-fields">
+                <div class="form-group">
+                    <label for="decedent-first-name" class="form-label">
+                        <span class="required-asterisk">*</span> First Name
+                    </label>
+                    <input type="text"
+                           id="decedent-first-name"
+                           class="form-input @(GetFieldCssClass("Decedent_FirstName"))"
+                           @bind="Decedent.FirstName"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group form-field-small">
+                    <label for="decedent-middle-initial" class="form-label">Middle Initial</label>
+                    <input type="text"
+                           id="decedent-middle-initial"
+                           class="form-input"
+                           maxlength="1"
+                           @bind="Decedent.MiddleInitial"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group">
+                    <label for="decedent-last-name" class="form-label">
+                        <span class="required-asterisk">*</span> Last Name
+                    </label>
+                    <input type="text"
+                           id="decedent-last-name"
+                           class="form-input @(GetFieldCssClass("Decedent_LastName"))"
+                           @bind="Decedent.LastName"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group">
+                    <label for="decedent-ssn" class="form-label">
+                        <span class="required-asterisk">*</span> SSN
+                    </label>
+                    <div class="ssn-input-wrapper">
+                        <input type="text"
+                               id="decedent-ssn"
+                               class="form-input ssn-input @(GetFieldCssClass("Decedent_SSN"))"
+                               placeholder="999-99-9999"
+                               maxlength="11"
+                               value="@GetSSNDisplay(Decedent)"
+                               @oninput="@(e => HandleSSNInput(Decedent, e.Value?.ToString() ?? string.Empty))"
+                               @onfocus="@(() => Decedent.IsSSNFocused = true)"
+                               @onblur="@(() => { Decedent.IsSSNFocused = false; ValidateForm(); })" />
+                        <button type="button"
+                                class="ssn-toggle-btn"
+                                @onclick="ToggleSSNVisibility"
+                                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                @if (ShowSSN)
+                                {
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                }
+                                else
+                                {
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                }
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Representative Section -->
+    <div class="owner-info-section">
+        <div class="member-card">
+            <h3 class="member-title">Personal Representative</h3>
+
+            <div class="member-fields">
+                <div class="form-group">
+                    <label for="representative-first-name" class="form-label">
+                        <span class="required-asterisk">*</span> First Name
+                    </label>
+                    <input type="text"
+                           id="representative-first-name"
+                           class="form-input @(GetFieldCssClass("PersonalRepresentative_FirstName"))"
+                           @bind="PersonalRepresentative.FirstName"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group form-field-small">
+                    <label for="representative-middle-initial" class="form-label">Middle Initial</label>
+                    <input type="text"
+                           id="representative-middle-initial"
+                           class="form-input"
+                           maxlength="1"
+                           @bind="PersonalRepresentative.MiddleInitial"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group">
+                    <label for="representative-last-name" class="form-label">
+                        <span class="required-asterisk">*</span> Last Name
+                    </label>
+                    <input type="text"
+                           id="representative-last-name"
+                           class="form-input @(GetFieldCssClass("PersonalRepresentative_LastName"))"
+                           @bind="PersonalRepresentative.LastName"
+                           @bind:after="ValidateForm" />
+                </div>
+
+                <div class="form-group">
+                    <label for="representative-ssn" class="form-label">
+                        <span class="required-asterisk">*</span> SSN
+                    </label>
+                    <div class="ssn-input-wrapper">
+                        <input type="text"
+                               id="representative-ssn"
+                               class="form-input ssn-input @(GetFieldCssClass("PersonalRepresentative_SSN"))"
+                               placeholder="999-99-9999"
+                               maxlength="11"
+                               value="@GetSSNDisplay(PersonalRepresentative)"
+                               @oninput="@(e => HandleSSNInput(PersonalRepresentative, e.Value?.ToString() ?? string.Empty))"
+                               @onfocus="@(() => PersonalRepresentative.IsSSNFocused = true)"
+                               @onblur="@(() => { PersonalRepresentative.IsSSNFocused = false; ValidateForm(); })" />
+                        <button type="button"
+                                class="ssn-toggle-btn"
+                                @onclick="ToggleSSNVisibility"
+                                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                @if (ShowSSN)
+                                {
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                }
+                                else
+                                {
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                }
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public OwnershipFormConfig Config { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<EstateFormData> OnDataChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<List<string>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public bool ShouldValidate { get; set; }
+
+    [Parameter]
+    public object? SavedData { get; set; }
+
+    private OwnerMember Decedent { get; set; } = new() { Role = "Decedent" };
+    private OwnerMember PersonalRepresentative { get; set; } = new() { Role = "Personal Representative" };
+    private bool ShowSSN { get; set; }
+    private List<string> ValidationErrors { get; set; } = new();
+    private HashSet<string> InvalidFields { get; set; } = new();
+    private bool _lastShouldValidate = false;
+    private bool _dataRestored = false;
+
+    protected override void OnInitialized()
+    {
+        Decedent = new OwnerMember { Role = "Decedent" };
+        PersonalRepresentative = new OwnerMember { Role = "Personal Representative" };
+        RestoreFromSession();
+        ValidateForm();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (ShouldValidate && !_lastShouldValidate)
+        {
+            _lastShouldValidate = true;
+            ValidateForm();
+        }
+        else if (!ShouldValidate)
+        {
+            _lastShouldValidate = false;
+        }
+    }
+
+    private void RestoreFromSession()
+    {
+        if (_dataRestored || SavedData == null) return;
+
+        try
+        {
+            if (SavedData is OwnershipSessionData sessionData)
+            {
+                if (sessionData.Decedent != null)
+                {
+                    Decedent = new OwnerMember
+                    {
+                        Role = "Decedent",
+                        FirstName = sessionData.Decedent.FirstName,
+                        MiddleInitial = sessionData.Decedent.MiddleInitial,
+                        LastName = sessionData.Decedent.LastName,
+                        SSN = sessionData.Decedent.SSN
+                    };
+                }
+
+                if (sessionData.PersonalRepresentative != null)
+                {
+                    PersonalRepresentative = new OwnerMember
+                    {
+                        Role = "Personal Representative",
+                        FirstName = sessionData.PersonalRepresentative.FirstName,
+                        MiddleInitial = sessionData.PersonalRepresentative.MiddleInitial,
+                        LastName = sessionData.PersonalRepresentative.LastName,
+                        SSN = sessionData.PersonalRepresentative.SSN
+                    };
+                }
+
+                _dataRestored = true;
+            }
+        }
+        catch (Exception)
+        {
+            // Failed to restore, continue with defaults
+        }
+    }
+
+    private void ValidateForm()
+    {
+        ValidationErrors.Clear();
+        InvalidFields.Clear();
+
+        // Validate Decedent
+        if (string.IsNullOrWhiteSpace(Decedent.FirstName))
+        {
+            ValidationErrors.Add("Decedent First Name is required");
+            InvalidFields.Add("Decedent_FirstName");
+        }
+
+        if (string.IsNullOrWhiteSpace(Decedent.LastName))
+        {
+            ValidationErrors.Add("Decedent Last Name is required");
+            InvalidFields.Add("Decedent_LastName");
+        }
+
+        ValidateSSN(Decedent, "Decedent");
+
+        // Validate Personal Representative
+        if (string.IsNullOrWhiteSpace(PersonalRepresentative.FirstName))
+        {
+            ValidationErrors.Add("Personal Representative First Name is required");
+            InvalidFields.Add("PersonalRepresentative_FirstName");
+        }
+
+        if (string.IsNullOrWhiteSpace(PersonalRepresentative.LastName))
+        {
+            ValidationErrors.Add("Personal Representative Last Name is required");
+            InvalidFields.Add("PersonalRepresentative_LastName");
+        }
+
+        ValidateSSN(PersonalRepresentative, "PersonalRepresentative");
+
+        // Notify parent (fire and forget - same pattern as working components)
+        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        NotifyDataChanged();
+
+        StateHasChanged();
+    }
+
+    private void ValidateSSN(OwnerMember member, string label)
+    {
+        if (string.IsNullOrWhiteSpace(member.SSN))
+        {
+            ValidationErrors.Add($"{label} SSN is required");
+            InvalidFields.Add($"{label}_SSN");
+        }
+        else
+        {
+            var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length != 9)
+            {
+                ValidationErrors.Add($"{label} Social Security Number format must be 999-99-9999");
+                InvalidFields.Add($"{label}_SSN");
+            }
+            else if (digitsOnly.Distinct().Count() == 1)
+            {
+                ValidationErrors.Add($"{label} SSN cannot be all the same character");
+                InvalidFields.Add($"{label}_SSN");
+            }
+        }
+    }
+
+    private void NotifyDataChanged()
+    {
+        _ = OnDataChanged.InvokeAsync(new EstateFormData
+        {
+            Decedent = Decedent,
+            PersonalRepresentative = PersonalRepresentative
+        });
+    }
+
+    private string GetFieldCssClass(string fieldName)
+    {
+        return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+    }
+
+    private string GetSSNDisplay(OwnerMember member)
+    {
+        if (string.IsNullOrWhiteSpace(member.SSN)) return string.Empty;
+
+        if (member.IsSSNFocused || ShowSSN)
+        {
+            return member.SSN;
+        }
+
+        var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
+        if (digitsOnly.Length >= 4)
+        {
+            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
+            return $"***-**-{lastFour}";
+        }
+
+        return member.SSN;
+    }
+
+    private void HandleSSNInput(OwnerMember member, string value)
+    {
+        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+
+        if (digitsOnly.Length > 9)
+        {
+            digitsOnly = digitsOnly.Substring(0, 9);
+        }
+
+        if (digitsOnly.Length > 5)
+        {
+            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
+        }
+        else if (digitsOnly.Length > 3)
+        {
+            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
+        }
+        else
+        {
+            member.SSN = digitsOnly;
+        }
+
+        NotifyDataChanged();
+    }
+
+    private void ToggleSSNVisibility()
+    {
+        ShowSSN = !ShowSSN;
+    }
+}

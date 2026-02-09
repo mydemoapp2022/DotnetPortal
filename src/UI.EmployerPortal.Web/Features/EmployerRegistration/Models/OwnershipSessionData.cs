@@ -44,4 +44,24 @@ public class OwnershipSessionData
     /// Owner For sole proprietorship
     /// </summary>
     public OwnerMember? Owner { get; set; }
+
+    /// <summary>
+    /// Limited Partnership Name (for LP type)
+    /// </summary>
+    public string? LimitedPartnershipName { get; set; }
+
+    /// <summary>
+    /// General Partner (for LP type)
+    /// </summary>
+    public OwnerMember? GeneralPartner { get; set; }
+
+    /// <summary>
+    /// Decedent (for Estate type)
+    /// </summary>
+    public OwnerMember? Decedent { get; set; }
+
+    /// <summary>
+    /// Personal Representative (for Estate type)
+    /// </summary>
+    public OwnerMember? PersonalRepresentative { get; set; }
 }

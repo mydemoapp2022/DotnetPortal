@@ -38,6 +38,7 @@ public partial class Ownership
     private bool IsOutsideUSA { get; set; }
     private List<string> ValidationErrors { get; set; } = new();
     private bool _shouldValidate = false;
+    private bool _showValidationSummary = false;
     private bool IsContinueEnabled => IsFormValid();
     private object? _currentFormData;
     private OwnershipSessionData? _savedSessionData;
@@ -50,10 +51,11 @@ public partial class Ownership
         { "llc-corporation", typeof(CorporationOwnershipForm) },
         { "llc", typeof(MemberBasedOwnershipForm) },
         { "llp", typeof(MemberBasedOwnershipForm) },
-        { "lp", typeof(MemberBasedOwnershipForm) },
+        { "lp", typeof(LimitedPartnershipOwnershipForm) },
         { "partnership", typeof(MemberBasedOwnershipForm) },
         { "sole-proprietorship", typeof(SoleProprietorshipOwnershipForm) },
-        { "individual", typeof(SoleProprietorshipOwnershipForm) }
+        { "individual", typeof(SoleProprietorshipOwnershipForm) },
+        { "estate", typeof(EstateOwnershipForm) }
     };
 
     // Configuration mapping for each ownership type
@@ -152,7 +154,17 @@ public partial class Ownership
                 TypeDisplayName = "Individual",
                 MaxEntries = 1
             }
-        }
+        },
+        {
+            "estate",
+            new OwnershipFormConfig
+            {
+                OwnershipTypeValue = "estate",
+                TypeDisplayName = "Estate",
+                MaxEntries = 2
+            }
+        },
+
     };
 
     /// <summary>
@@ -192,8 +204,9 @@ public partial class Ownership
     {
         try
         {
-            // Clear validation errors when ownership type changes
+            // Clear validation errors and hide validation summary when ownership type changes
             ValidationErrors.Clear();
+            _showValidationSummary = false;
 
             // Clear saved session data when changing ownership type
             // This prevents passing incompatible data to the new component
@@ -240,10 +253,14 @@ public partial class Ownership
             {
                 case "llc":
                 case "llp":
-                case "lp":
                 case "partnership":
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<MemberBasedFormData>(this, OnFormDataChanged));
+                    break;
+
+                case "lp":
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<LimitedPartnershipFormData>(this, OnFormDataChanged));
                     break;
 
                 case "corporation":
@@ -257,9 +274,14 @@ public partial class Ownership
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<OwnerMember>(this, OnFormDataChanged));
                     break;
+
+                case "estate":
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<EstateFormData>(this, OnFormDataChanged));
+                    break;
             }
 
-            // Only pass saved data if it matches current ownership type
+            // Pass saved data uniformly as SavedData for all component types
             if (_savedSessionData != null && _savedSessionData.OwnershipType == OwnershipType)
             {
                 parameters.Add("SavedData", _savedSessionData);
@@ -305,11 +327,31 @@ public partial class Ownership
 
     private async Task OnContinue()
     {
-        // Save to session before continuing
-        await SaveToSession();
+        // Trigger validation
+        _shouldValidate = true;
+        StateHasChanged();
 
-        // Navigate to next step - button is only enabled when form is valid
-        await OnContinueClicked.InvokeAsync();
+        // Wait for validation to complete
+        await Task.Delay(100);
+
+        // Check if form is valid
+        if (IsFormValid())
+        {
+            // Hide validation summary if there were any previous errors
+            _showValidationSummary = false;
+
+            // Save to session before continuing
+            await SaveToSession();
+
+            // Navigate to next step
+            await OnContinueClicked.InvokeAsync();
+        }
+        else
+        {
+            // Show validation summary
+            _showValidationSummary = true;
+            StateHasChanged();
+        }
     }
 
     private async Task SaveToSession()
@@ -329,13 +371,21 @@ public partial class Ownership
                 {
                     case "llc":
                     case "llp":
-                    case "lp":
                     case "partnership":
                         if (_currentFormData is MemberBasedFormData memberData)
                         {
                             sessionData.RegistrationState = memberData.RegistrationState;
                             sessionData.Members = memberData.Members;
                             sessionData.MoreThanFive = memberData.MoreThanFive;
+                        }
+                        break;
+
+                    case "lp":
+                        if (_currentFormData is LimitedPartnershipFormData lpData)
+                        {
+                            sessionData.RegistrationState = lpData.RegistrationState;
+                            sessionData.LimitedPartnershipName = lpData.LimitedPartnershipName;
+                            sessionData.GeneralPartner = lpData.GeneralPartner;
                         }
                         break;
 
@@ -354,6 +404,14 @@ public partial class Ownership
                         if (_currentFormData is OwnerMember owner)
                         {
                             sessionData.Owner = owner;
+                        }
+                        break;
+
+                    case "estate":
+                        if (_currentFormData is EstateFormData estateData)
+                        {
+                            sessionData.Decedent = estateData.Decedent;
+                            sessionData.PersonalRepresentative = estateData.PersonalRepresentative;
                         }
                         break;
                 }

@@ -12,7 +12,7 @@
     else
     {
         <!-- Validation Error Summary -->
-        @if (ValidationErrors.Any())
+        @if (_showValidationSummary && ValidationErrors.Any())
         {
             <div class="validation-summary">
                 <ul>
@@ -77,8 +77,7 @@
                     </button>
                     <button type="button"
                             class="btn btn-continue"
-                            @onclick="OnContinue"
-                            disabled="@(!IsContinueEnabled)">
+                            @onclick="OnContinue">
                         CONTINUE <span class="btn-icon">›</span>
                     </button>
                 </div>
