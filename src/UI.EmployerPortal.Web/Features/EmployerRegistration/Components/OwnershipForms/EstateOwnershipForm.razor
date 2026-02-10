@@ -1,5 +1,7 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
-@using System.Linq
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Services
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@inject ISSNValidationService SSNService
 
 <div class="estate-section">
     <!-- Decedent Section -->
@@ -40,39 +42,15 @@
                            @bind:after="ValidateForm" />
                 </div>
 
-                <div class="form-group">
-                    <label for="decedent-ssn" class="form-label">
-                        <span class="required-asterisk">*</span> SSN
-                    </label>
-                    <div class="ssn-input-wrapper">
-                        <input type="text"
-                               id="decedent-ssn"
-                               class="form-input ssn-input @(GetFieldCssClass("Decedent_SSN"))"
-                               placeholder="999-99-9999"
-                               maxlength="11"
-                               value="@GetSSNDisplay(Decedent)"
-                               @oninput="@(e => HandleSSNInput(Decedent, e.Value?.ToString() ?? string.Empty))"
-                               @onfocus="@(() => Decedent.IsSSNFocused = true)"
-                               @onblur="@(() => { Decedent.IsSSNFocused = false; ValidateForm(); })" />
-                        <button type="button"
-                                class="ssn-toggle-btn"
-                                @onclick="ToggleSSNVisibility"
-                                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                @if (ShowSSN)
-                                {
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                }
-                                else
-                                {
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                                }
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <SSNInput Id="decedent-ssn"
+                          Label="SSN"
+                          Value="@Decedent.SSN"
+                          ValueChanged="@(value => OnDecedentSSNChanged(value))"
+                          IsFocused="@Decedent.IsSSNFocused"
+                          IsFocusedChanged="@(focused => Decedent.IsSSNFocused = focused)"
+                          ShowSSN="@ShowSSN"
+                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          CssClass="@(GetFieldCssClass("Decedent_SSN"))" />
             </div>
         </div>
     </div>
@@ -115,39 +93,15 @@
                            @bind:after="ValidateForm" />
                 </div>
 
-                <div class="form-group">
-                    <label for="representative-ssn" class="form-label">
-                        <span class="required-asterisk">*</span> SSN
-                    </label>
-                    <div class="ssn-input-wrapper">
-                        <input type="text"
-                               id="representative-ssn"
-                               class="form-input ssn-input @(GetFieldCssClass("PersonalRepresentative_SSN"))"
-                               placeholder="999-99-9999"
-                               maxlength="11"
-                               value="@GetSSNDisplay(PersonalRepresentative)"
-                               @oninput="@(e => HandleSSNInput(PersonalRepresentative, e.Value?.ToString() ?? string.Empty))"
-                               @onfocus="@(() => PersonalRepresentative.IsSSNFocused = true)"
-                               @onblur="@(() => { PersonalRepresentative.IsSSNFocused = false; ValidateForm(); })" />
-                        <button type="button"
-                                class="ssn-toggle-btn"
-                                @onclick="ToggleSSNVisibility"
-                                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                @if (ShowSSN)
-                                {
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                }
-                                else
-                                {
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                                }
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <SSNInput Id="representative-ssn"
+                          Label="SSN"
+                          Value="@PersonalRepresentative.SSN"
+                          ValueChanged="@(value => OnRepresentativeSSNChanged(value))"
+                          IsFocused="@PersonalRepresentative.IsSSNFocused"
+                          IsFocusedChanged="@(focused => PersonalRepresentative.IsSSNFocused = focused)"
+                          ShowSSN="@ShowSSN"
+                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          CssClass="@(GetFieldCssClass("PersonalRepresentative_SSN"))" />
             </div>
         </div>
     </div>
@@ -172,10 +126,10 @@
     private OwnerMember Decedent { get; set; } = new() { Role = "Decedent" };
     private OwnerMember PersonalRepresentative { get; set; } = new() { Role = "Personal Representative" };
     private bool ShowSSN { get; set; }
-    private List<string> ValidationErrors { get; set; } = new();
-    private HashSet<string> InvalidFields { get; set; } = new();
-    private bool _lastShouldValidate = false;
-    private bool _dataRestored = false;
+    private List<string> ValidationErrors { get; set; } = [];
+    private HashSet<string> InvalidFields { get; set; } = [];
+    private bool _lastShouldValidate;
+    private bool _dataRestored;
 
     protected override void OnInitialized()
     {
@@ -202,7 +156,10 @@
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null) return;
+        if (_dataRestored || SavedData == null)
+        {
+            return;
+        }
 
         try
         {
@@ -235,10 +192,22 @@
                 _dataRestored = true;
             }
         }
-        catch (Exception)
+        catch
         {
             // Failed to restore, continue with defaults
         }
+    }
+
+    private void OnDecedentSSNChanged(string value)
+    {
+        Decedent.SSN = value;
+        ValidateForm();
+    }
+
+    private void OnRepresentativeSSNChanged(string value)
+    {
+        PersonalRepresentative.SSN = value;
+        ValidateForm();
     }
 
     private void ValidateForm()
@@ -259,7 +228,12 @@
             InvalidFields.Add("Decedent_LastName");
         }
 
-        ValidateSSN(Decedent, "Decedent");
+        var decedentSsnResult = SSNService.ValidateSSN(Decedent.SSN, "Decedent");
+        if (!decedentSsnResult.IsValid)
+        {
+            ValidationErrors.Add(decedentSsnResult.ErrorMessage);
+            InvalidFields.Add("Decedent_SSN");
+        }
 
         // Validate Personal Representative
         if (string.IsNullOrWhiteSpace(PersonalRepresentative.FirstName))
@@ -274,36 +248,28 @@
             InvalidFields.Add("PersonalRepresentative_LastName");
         }
 
-        ValidateSSN(PersonalRepresentative, "PersonalRepresentative");
+        var representativeSsnResult = SSNService.ValidateSSN(PersonalRepresentative.SSN, "PersonalRepresentative");
+        if (!representativeSsnResult.IsValid)
+        {
+            ValidationErrors.Add(representativeSsnResult.ErrorMessage);
+            InvalidFields.Add("PersonalRepresentative_SSN");
+        }
 
-        // Notify parent (fire and forget - same pattern as working components)
+        // Check for duplicate SSNs between Decedent and Personal Representative
+        var ssnList = new List<string?> { Decedent.SSN, PersonalRepresentative.SSN };
+        var duplicateErrors = SSNService.FindDuplicateSSNs(ssnList, i => i == 0 ? "Decedent" : "Personal Representative");
+
+        if (duplicateErrors.Count > 0)
+        {
+            ValidationErrors.AddRange(duplicateErrors);
+            InvalidFields.Add("Decedent_SSN");
+            InvalidFields.Add("PersonalRepresentative_SSN");
+        }
+
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
 
         StateHasChanged();
-    }
-
-    private void ValidateSSN(OwnerMember member, string label)
-    {
-        if (string.IsNullOrWhiteSpace(member.SSN))
-        {
-            ValidationErrors.Add($"{label} SSN is required");
-            InvalidFields.Add($"{label}_SSN");
-        }
-        else
-        {
-            var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
-            if (digitsOnly.Length != 9)
-            {
-                ValidationErrors.Add($"{label} Social Security Number format must be 999-99-9999");
-                InvalidFields.Add($"{label}_SSN");
-            }
-            else if (digitsOnly.Distinct().Count() == 1)
-            {
-                ValidationErrors.Add($"{label} SSN cannot be all the same character");
-                InvalidFields.Add($"{label}_SSN");
-            }
-        }
     }
 
     private void NotifyDataChanged()
@@ -318,54 +284,5 @@
     private string GetFieldCssClass(string fieldName)
     {
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
-    }
-
-    private string GetSSNDisplay(OwnerMember member)
-    {
-        if (string.IsNullOrWhiteSpace(member.SSN)) return string.Empty;
-
-        if (member.IsSSNFocused || ShowSSN)
-        {
-            return member.SSN;
-        }
-
-        var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
-        if (digitsOnly.Length >= 4)
-        {
-            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
-            return $"***-**-{lastFour}";
-        }
-
-        return member.SSN;
-    }
-
-    private void HandleSSNInput(OwnerMember member, string value)
-    {
-        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-
-        if (digitsOnly.Length > 9)
-        {
-            digitsOnly = digitsOnly.Substring(0, 9);
-        }
-
-        if (digitsOnly.Length > 5)
-        {
-            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
-        }
-        else if (digitsOnly.Length > 3)
-        {
-            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
-        }
-        else
-        {
-            member.SSN = digitsOnly;
-        }
-
-        NotifyDataChanged();
-    }
-
-    private void ToggleSSNVisibility()
-    {
-        ShowSSN = !ShowSSN;
     }
 }

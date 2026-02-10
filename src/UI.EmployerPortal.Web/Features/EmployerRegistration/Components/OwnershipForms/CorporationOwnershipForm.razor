@@ -1,71 +1,17 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
-@using System.Linq
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Services
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@inject ISSNValidationService SSNService
 
 <div class="corporation-section">
     <!-- Incorporation State or Foreign Country -->
     <div class="form-row">
-        <div class="form-group state-selection">
-            <label for="incorporation-state" class="form-label">
-                <span class="required-asterisk">*</span> @Config.StateLabel
-            </label>
-            <select id="incorporation-state" 
-                    class="form-select form-select-medium @(GetFieldCssClass("IncorporationState"))" 
-                    @bind="IncorporationState"
-                    @bind:after="ValidateForm"
-                    disabled="@(!string.IsNullOrWhiteSpace(ForeignCountry))">
-                <option value="">Select State</option>
-                <option value="AL">AL</option>
-                <option value="AK">AK</option>
-                <option value="AZ">AZ</option>
-                <option value="AR">AR</option>
-                <option value="CA">CA</option>
-                <option value="CO">CO</option>
-                <option value="CT">CT</option>
-                <option value="DE">DE</option>
-                <option value="FL">FL</option>
-                <option value="GA">GA</option>
-                <option value="HI">HI</option>
-                <option value="ID">ID</option>
-                <option value="IL">IL</option>
-                <option value="IN">IN</option>
-                <option value="IA">IA</option>
-                <option value="KS">KS</option>
-                <option value="KY">KY</option>
-                <option value="LA">LA</option>
-                <option value="ME">ME</option>
-                <option value="MD">MD</option>
-                <option value="MA">MA</option>
-                <option value="MI">MI</option>
-                <option value="MN">MN</option>
-                <option value="MS">MS</option>
-                <option value="MO">MO</option>
-                <option value="MT">MT</option>
-                <option value="NE">NE</option>
-                <option value="NV">NV</option>
-                <option value="NH">NH</option>
-                <option value="NJ">NJ</option>
-                <option value="NM">NM</option>
-                <option value="NY">NY</option>
-                <option value="NC">NC</option>
-                <option value="ND">ND</option>
-                <option value="OH">OH</option>
-                <option value="OK">OK</option>
-                <option value="OR">OR</option>
-                <option value="PA">PA</option>
-                <option value="RI">RI</option>
-                <option value="SC">SC</option>
-                <option value="SD">SD</option>
-                <option value="TN">TN</option>
-                <option value="TX">TX</option>
-                <option value="UT">UT</option>
-                <option value="VT">VT</option>
-                <option value="VA">VA</option>
-                <option value="WA">WA</option>
-                <option value="WV">WV</option>
-                <option value="WI">WI</option>
-                <option value="WY">WY</option>
-            </select>
-        </div>
+        <StateSelect Id="incorporation-state"
+                     Label="@Config.StateLabel"
+                     Value="@IncorporationState"
+                     ValueChanged="OnIncorporationStateChanged"
+                     Disabled="@(!string.IsNullOrWhiteSpace(ForeignCountry))"
+                     CssClass="@(GetFieldCssClass("IncorporationState"))" />
 
         <div class="form-group-divider">
             <span>OR</span>
@@ -75,9 +21,9 @@
             <label for="foreign-country" class="form-label">
                 <span class="required-asterisk">*</span> Foreign Country
             </label>
-            <input type="text" 
-                   id="foreign-country" 
-                   class="form-input @(GetFieldCssClass("ForeignCountry"))" 
+            <input type="text"
+                   id="foreign-country"
+                   class="form-input @(GetFieldCssClass("ForeignCountry"))"
                    @bind="ForeignCountry"
                    @bind:after="OnForeignCountryChanged"
                    disabled="@(!string.IsNullOrWhiteSpace(IncorporationState))" />
@@ -88,29 +34,32 @@
     <div class="owner-info-section">
         <h2 class="section-subtitle">Owner Information</h2>
 
-        @foreach (var officer in Officers)
+        @for (var i = 0; i < Officers.Count; i++)
         {
+            var index = i;
+            var officer = Officers[index];
+
             <div class="member-card">
                 <h3 class="member-title">@officer.Role</h3>
-                
+
                 <div class="member-fields">
                     <div class="form-group">
                         <label for="first-name-@officer.Role" class="form-label">
                             <span class="required-asterisk">*</span> First Name
                         </label>
-                        <input type="text" 
-                               id="first-name-@officer.Role" 
-                               class="form-input @(GetFieldCssClass($"{officer.Role}_FirstName"))" 
+                        <input type="text"
+                               id="first-name-@officer.Role"
+                               class="form-input @(GetFieldCssClass($"{officer.Role}_FirstName"))"
                                @bind="officer.FirstName"
                                @bind:after="ValidateForm" />
                     </div>
 
                     <div class="form-group">
                         <label for="middle-initial-@officer.Role" class="form-label">Middle Initial</label>
-                        <input type="text" 
-                               id="middle-initial-@officer.Role" 
-                               class="form-input" 
-                               maxlength="1" 
+                        <input type="text"
+                               id="middle-initial-@officer.Role"
+                               class="form-input"
+                               maxlength="1"
                                @bind="officer.MiddleInitial"
                                @bind:after="ValidateForm" />
                     </div>
@@ -119,53 +68,29 @@
                         <label for="last-name-@officer.Role" class="form-label">
                             <span class="required-asterisk">*</span> Last Name
                         </label>
-                        <input type="text" 
-                               id="last-name-@officer.Role" 
-                               class="form-input @(GetFieldCssClass($"{officer.Role}_LastName"))" 
+                        <input type="text"
+                               id="last-name-@officer.Role"
+                               class="form-input @(GetFieldCssClass($"{officer.Role}_LastName"))"
                                @bind="officer.LastName"
                                @bind:after="ValidateForm" />
                     </div>
 
-                    <div class="form-group">
-                        <label for="ssn-@officer.Role" class="form-label">
-                            <span class="required-asterisk">*</span> SSN
-                        </label>
-                        <div class="ssn-input-wrapper">
-                            <input type="text"
-                                   id="ssn-@officer.Role"
-                                   class="form-input ssn-input @(GetFieldCssClass($"{officer.Role}_SSN"))"
-                                   placeholder="999-99-9999"
-                                   maxlength="11"
-                                   value="@GetSSNDisplay(officer.SSN)"
-                                   @oninput="@(e => HandleSSNInput(officer, e.Value?.ToString() ?? string.Empty))"
-                                   @onfocus="@(() => officer.IsSSNFocused = true)"
-                                   @onblur="@(() => { officer.IsSSNFocused = false; ValidateForm(); })" />
-                            <button type="button"
-                                    class="ssn-toggle-btn"
-                                    @onclick="ToggleSSNVisibility"
-                                    aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    @if (ShowSSN)
-                                    {
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    }
-                                    else
-                                    {
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                        <line x1="1" y1="1" x2="23" y2="23"></line>
-                                    }
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                    <SSNInput Id="@($"ssn-{officer.Role}")"
+                              Label="SSN"
+                              Value="@officer.SSN"
+                              ValueChanged="@(value => OnSSNChanged(index, value))"
+                              IsFocused="@officer.IsSSNFocused"
+                              IsFocusedChanged="@(focused => OnSSNFocusChanged(index, focused))"
+                              ShowSSN="@ShowSSN"
+                              ShowSSNChanged="@(show => ShowSSN = show)"
+                              CssClass="@(GetFieldCssClass($"{officer.Role}_SSN"))" />
 
                     <div class="form-group">
                         <label for="ownership-percentage-@officer.Role" class="form-label">Ownership Percentage</label>
-                        <input type="number" 
+                        <input type="number"
                                id="ownership-percentage-@officer.Role"
-                               class="form-input" 
-                               min="0" 
+                               class="form-input"
+                               min="0"
                                max="100"
                                @bind="officer.OwnershipPercentage"
                                @bind:after="ValidateForm" />
@@ -195,11 +120,11 @@
     private string IncorporationState { get; set; } = string.Empty;
     private string ForeignCountry { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
-    private List<OwnerMember> Officers { get; set; } = new();
-    private List<string> ValidationErrors { get; set; } = new();
-    private HashSet<string> InvalidFields { get; set; } = new();
-    private bool _lastShouldValidate = false;
-    private bool _dataRestored = false;
+    private List<OwnerMember> Officers { get; set; } = [];
+    private List<string> ValidationErrors { get; set; } = [];
+    private HashSet<string> InvalidFields { get; set; } = [];
+    private bool _lastShouldValidate;
+    private bool _dataRestored;
 
     protected override void OnInitialized()
     {
@@ -212,7 +137,6 @@
     {
         base.OnAfterRender(firstRender);
 
-        // Detect when ShouldValidate changes from false to true
         if (ShouldValidate && !_lastShouldValidate)
         {
             _lastShouldValidate = true;
@@ -226,7 +150,10 @@
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null) return;
+        if (_dataRestored || SavedData == null)
+        {
+            return;
+        }
 
         try
         {
@@ -235,7 +162,7 @@
                 IncorporationState = sessionData.IncorporationState ?? string.Empty;
                 ForeignCountry = sessionData.ForeignCountry ?? string.Empty;
 
-                if (sessionData.Officers != null && sessionData.Officers.Any())
+                if (sessionData.Officers is { Count: > 0 })
                 {
                     Officers.Clear();
                     foreach (var savedOfficer in sessionData.Officers)
@@ -255,7 +182,7 @@
                 _dataRestored = true;
             }
         }
-        catch (Exception)
+        catch
         {
             // Failed to restore, continue with defaults
         }
@@ -263,13 +190,26 @@
 
     private void InitializeOfficers()
     {
-        if (Officers.Any()) return;
+        if (Officers.Count > 0)
+        {
+            return;
+        }
 
         Officers.Clear();
         foreach (var role in Config.PredefinedRoles)
         {
             Officers.Add(new OwnerMember { Role = role });
         }
+    }
+
+    private void OnIncorporationStateChanged(string value)
+    {
+        IncorporationState = value;
+        if (!string.IsNullOrWhiteSpace(IncorporationState))
+        {
+            ForeignCountry = string.Empty;
+        }
+        ValidateForm();
     }
 
     private void OnForeignCountryChanged()
@@ -281,60 +221,21 @@
         ValidateForm();
     }
 
-    private void ToggleSSNVisibility()
+    private void OnSSNChanged(int index, string value)
     {
-        ShowSSN = !ShowSSN;
+        if (index >= 0 && index < Officers.Count)
+        {
+            Officers[index].SSN = value;
+            ValidateForm();
+        }
     }
 
-    private void HandleSSNInput(OwnerMember officer, string value)
+    private void OnSSNFocusChanged(int index, bool focused)
     {
-        // Remove all non-digit characters
-        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-
-        // Limit to 9 digits
-        if (digitsOnly.Length > 9)
+        if (index >= 0 && index < Officers.Count)
         {
-            digitsOnly = digitsOnly.Substring(0, 9);
+            Officers[index].IsSSNFocused = focused;
         }
-
-        // Format with dashes
-        if (digitsOnly.Length > 5)
-        {
-            officer.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
-        }
-        else if (digitsOnly.Length > 3)
-        {
-            officer.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
-        }
-        else
-        {
-            officer.SSN = digitsOnly;
-        }
-
-        NotifyDataChanged();
-    }
-
-    private string GetSSNDisplay(string? ssn)
-    {
-        if (string.IsNullOrWhiteSpace(ssn))
-            return string.Empty;
-
-        var officer = Officers.FirstOrDefault(o => o.SSN == ssn);
-        if (officer?.IsSSNFocused == true || ShowSSN)
-        {
-            return ssn;
-        }
-
-        // Remove dashes for processing
-        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-
-        if (digitsOnly.Length >= 4)
-        {
-            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
-            return $"***-**-{lastFour}";
-        }
-
-        return ssn;
     }
 
     private void ValidateForm()
@@ -351,7 +252,7 @@
         }
 
         // Check if at least one officer has any data entered
-        bool hasAnyOfficerData = Officers.Any(o =>
+        var hasAnyOfficerData = Officers.Any(o =>
             !string.IsNullOrWhiteSpace(o.FirstName) ||
             !string.IsNullOrWhiteSpace(o.MiddleInitial) ||
             !string.IsNullOrWhiteSpace(o.LastName) ||
@@ -365,58 +266,65 @@
         else
         {
             // Validate each officer that has any data
-            foreach (var officer in Officers)
+            for (var i = 0; i < Officers.Count; i++)
             {
-                bool hasAnyValue = !string.IsNullOrWhiteSpace(officer.FirstName) ||
+                var officer = Officers[i];
+                var hasAnyValue = !string.IsNullOrWhiteSpace(officer.FirstName) ||
                                  !string.IsNullOrWhiteSpace(officer.MiddleInitial) ||
                                  !string.IsNullOrWhiteSpace(officer.LastName) ||
                                  !string.IsNullOrWhiteSpace(officer.SSN) ||
                                  officer.OwnershipPercentage.HasValue;
 
-                // Only validate if officer has any field filled
                 if (hasAnyValue)
                 {
-                    // Validate First Name
                     if (string.IsNullOrWhiteSpace(officer.FirstName))
                     {
                         ValidationErrors.Add($"{officer.Role} First Name is required");
                         InvalidFields.Add($"{officer.Role}_FirstName");
                     }
 
-                    // Validate Last Name
                     if (string.IsNullOrWhiteSpace(officer.LastName))
                     {
                         ValidationErrors.Add($"{officer.Role} Last Name is required");
                         InvalidFields.Add($"{officer.Role}_LastName");
                     }
 
-                    // Validate SSN
-                    if (string.IsNullOrWhiteSpace(officer.SSN))
+                    var ssnResult = SSNService.ValidateSSN(officer.SSN, officer.Role);
+                    if (!ssnResult.IsValid)
                     {
-                        ValidationErrors.Add($"{officer.Role} SSN is required");
+                        ValidationErrors.Add(ssnResult.ErrorMessage);
                         InvalidFields.Add($"{officer.Role}_SSN");
                     }
-                    else
-                    {
-                        // Validate SSN format
-                        var digitsOnly = new string(officer.SSN.Where(char.IsDigit).ToArray());
+                }
+            }
 
-                        if (digitsOnly.Length != 9)
-                        {
-                            ValidationErrors.Add($"{officer.Role} Social Security Number format must be 999-99-9999");
-                            InvalidFields.Add($"{officer.Role}_SSN");
-                        }
-                        else if (digitsOnly.Distinct().Count() == 1)
-                        {
-                            ValidationErrors.Add($"{officer.Role} SSN cannot be all the same character");
-                            InvalidFields.Add($"{officer.Role}_SSN");
-                        }
+            // Check for duplicate SSNs
+            var ssnList = Officers.Select(o => (string?)o.SSN).ToList();
+            var duplicateErrors = SSNService.FindDuplicateSSNs(ssnList, i => Officers[i].Role);
+
+            if (duplicateErrors.Count > 0)
+            {
+                ValidationErrors.AddRange(duplicateErrors);
+
+                var ssnGroups = Officers
+                    .Select((o, idx) => new { SSN = o.SSN, Role = o.Role, Index = idx })
+                    .Where(x => !string.IsNullOrWhiteSpace(x.SSN))
+                    .GroupBy(x =>
+                    {
+                        return new string(x.SSN!.Where(char.IsDigit).ToArray());
+                    })
+                    .Where(g => g.Count() > 1);
+
+                foreach (var group in ssnGroups)
+                {
+                    foreach (var item in group)
+                    {
+                        InvalidFields.Add($"{item.Role}_SSN");
                     }
                 }
             }
         }
 
-        // Notify parent component of validation changes (fire and forget)
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
 

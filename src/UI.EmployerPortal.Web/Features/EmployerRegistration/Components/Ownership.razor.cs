@@ -34,7 +34,7 @@ public partial class Ownership
     [Parameter]
     public EventCallback OnContinueClicked { get; set; }
 
-    private string OwnershipType { get; set; } = string.Empty;
+    private OwnershipType SelectedOwnershipType { get; set; } = OwnershipType.None;
     private bool IsOutsideUSA { get; set; }
     private List<string> ValidationErrors { get; set; } = new();
     private bool _shouldValidate = false;
@@ -45,24 +45,24 @@ public partial class Ownership
     private bool _isSessionLoaded;
 
     // Component mapping dictionary
-    private readonly Dictionary<string, Type> _ownershipComponentMap = new()
+    private readonly Dictionary<OwnershipType, Type> _ownershipComponentMap = new()
     {
-        { "corporation", typeof(CorporationOwnershipForm) },
-        { "llc-corporation", typeof(CorporationOwnershipForm) },
-        { "llc", typeof(MemberBasedOwnershipForm) },
-        { "llp", typeof(MemberBasedOwnershipForm) },
-        { "lp", typeof(LimitedPartnershipOwnershipForm) },
-        { "partnership", typeof(MemberBasedOwnershipForm) },
-        { "sole-proprietorship", typeof(SoleProprietorshipOwnershipForm) },
-        { "individual", typeof(SoleProprietorshipOwnershipForm) },
-        { "estate", typeof(EstateOwnershipForm) }
+        { OwnershipType.Corporation, typeof(CorporationOwnershipForm) },
+        { OwnershipType.LLCCorporation, typeof(CorporationOwnershipForm) },
+        { OwnershipType.LLC, typeof(MemberBasedOwnershipForm) },
+        { OwnershipType.LLP, typeof(MemberBasedOwnershipForm) },
+        { OwnershipType.LP, typeof(LimitedPartnershipOwnershipForm) },
+        { OwnershipType.Partnership, typeof(MemberBasedOwnershipForm) },
+        { OwnershipType.SoleProprietorship, typeof(SoleProprietorshipOwnershipForm) },
+        { OwnershipType.Individual, typeof(SoleProprietorshipOwnershipForm) },
+        { OwnershipType.Estate, typeof(EstateOwnershipForm) }
     };
 
-    // Configuration mapping for each ownership type
-    private readonly Dictionary<string, OwnershipFormConfig> _configurationMap = new()
+    // Configuration mapping using enum
+    private readonly Dictionary<OwnershipType, OwnershipFormConfig> _configurationMap = new()
     {
         {
-            "corporation",
+            OwnershipType.Corporation,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "corporation",
@@ -70,11 +70,11 @@ public partial class Ownership
                 StateLabel = "Incorporation State",
                 RequiresForeignCountry = true,
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the principal officers.",
-                PredefinedRoles = new List<string> { "President", "Vice President", "Secretary", "Treasurer" }
+                PredefinedRoles = ["President", "Vice President", "Secretary", "Treasurer"]
             }
         },
         {
-            "llc-corporation",
+            OwnershipType.LLCCorporation,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "llc-corporation",
@@ -82,11 +82,11 @@ public partial class Ownership
                 StateLabel = "Incorporation State",
                 RequiresForeignCountry = true,
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the principal officers.",
-                PredefinedRoles = new List<string> { "President", "Vice President", "Secretary", "Treasurer" }
+                PredefinedRoles = ["President", "Vice President", "Secretary", "Treasurer"]
             }
         },
         {
-            "llc",
+            OwnershipType.LLC,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "llc",
@@ -99,7 +99,7 @@ public partial class Ownership
             }
         },
         {
-            "llp",
+            OwnershipType.LLP,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "llp",
@@ -112,7 +112,7 @@ public partial class Ownership
             }
         },
         {
-            "lp",
+            OwnershipType.LP,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "lp",
@@ -125,7 +125,7 @@ public partial class Ownership
             }
         },
         {
-            "partnership",
+            OwnershipType.Partnership,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "partnership",
@@ -138,7 +138,7 @@ public partial class Ownership
             }
         },
         {
-            "sole-proprietorship",
+            OwnershipType.SoleProprietorship,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "sole-proprietorship",
@@ -147,7 +147,7 @@ public partial class Ownership
             }
         },
         {
-            "individual",
+            OwnershipType.Individual,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "individual",
@@ -156,15 +156,14 @@ public partial class Ownership
             }
         },
         {
-            "estate",
+            OwnershipType.Estate,
             new OwnershipFormConfig
             {
                 OwnershipTypeValue = "estate",
                 TypeDisplayName = "Estate",
                 MaxEntries = 2
             }
-        },
-
+        }
     };
 
     /// <summary>
@@ -189,7 +188,7 @@ public partial class Ownership
             if (result.Success && result.Value != null)
             {
                 var savedData = result.Value;
-                OwnershipType = savedData.OwnershipType;
+                SelectedOwnershipType = savedData.OwnershipType;
                 IsOutsideUSA = savedData.IsOutsideUSA;
                 _savedSessionData = savedData;
             }
@@ -232,9 +231,9 @@ public partial class Ownership
 
     private OwnershipFormConfig? GetCurrentConfig()
     {
-        return string.IsNullOrEmpty(OwnershipType) || !_configurationMap.ContainsKey(OwnershipType)
+        return SelectedOwnershipType == OwnershipType.None || !_configurationMap.ContainsKey(SelectedOwnershipType)
             ? null
-            : _configurationMap[OwnershipType];
+            : _configurationMap[SelectedOwnershipType];
     }
 
     private Dictionary<string, object> GetComponentParameters()
@@ -249,40 +248,40 @@ public partial class Ownership
             parameters.Add("ShouldValidate", _shouldValidate);
 
             // Create correctly-typed EventCallback to match each child component's parameter type
-            switch (OwnershipType)
+            switch (SelectedOwnershipType)
             {
-                case "llc":
-                case "llp":
-                case "partnership":
+                case OwnershipType.LLC:
+                case OwnershipType.LLP:
+                case OwnershipType.Partnership:
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<MemberBasedFormData>(this, OnFormDataChanged));
                     break;
 
-                case "lp":
+                case OwnershipType.LP:
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<LimitedPartnershipFormData>(this, OnFormDataChanged));
                     break;
 
-                case "corporation":
-                case "llc-corporation":
+                case OwnershipType.Corporation:
+                case OwnershipType.LLCCorporation:
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<CorporationFormData>(this, OnFormDataChanged));
                     break;
 
-                case "sole-proprietorship":
-                case "individual":
+                case OwnershipType.SoleProprietorship:
+                case OwnershipType.Individual:
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<OwnerMember>(this, OnFormDataChanged));
                     break;
 
-                case "estate":
+                case OwnershipType.Estate:
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<EstateFormData>(this, OnFormDataChanged));
                     break;
             }
 
             // Pass saved data uniformly as SavedData for all component types
-            if (_savedSessionData != null && _savedSessionData.OwnershipType == OwnershipType)
+            if (_savedSessionData != null && _savedSessionData.OwnershipType == SelectedOwnershipType)
             {
                 parameters.Add("SavedData", _savedSessionData);
             }
@@ -304,12 +303,12 @@ public partial class Ownership
 
     private string GetRequiredFieldsMessage()
     {
-        return OwnershipType switch
+        return SelectedOwnershipType switch
         {
-            "sole-proprietorship" => "• Sole Proprietor First Name is required • Sole Proprietor Last Name is required • SSN is required",
-            "individual" => "• Individual First Name is required • Individual Last Name is required • SSN is required",
-            "llc" => "• Member 1 First Name is required • Member 1 Last Name is required • Member 1 SSN is required",
-            "corporation" or "llc-corporation" => "• Sole Proprietor First Name is required • Sole Proprietor Last Name is required • SSN is required",
+            OwnershipType.SoleProprietorship => "• Sole Proprietor First Name is required • Sole Proprietor Last Name is required • SSN is required",
+            OwnershipType.Individual => "• Individual First Name is required • Individual Last Name is required • SSN is required",
+            OwnershipType.LLC => "• Member 1 First Name is required • Member 1 Last Name is required • Member 1 SSN is required",
+            OwnershipType.Corporation or OwnershipType.LLCCorporation => "• Sole Proprietor First Name is required • Sole Proprietor Last Name is required • SSN is required",
             _ => "All fields are required unless noted"
         };
     }
@@ -360,18 +359,18 @@ public partial class Ownership
         {
             var sessionData = new OwnershipSessionData
             {
-                OwnershipType = OwnershipType,
+                OwnershipType = SelectedOwnershipType,
                 IsOutsideUSA = IsOutsideUSA
             };
 
             // Save form-specific data based on ownership type
             if (_currentFormData != null)
             {
-                switch (OwnershipType)
+                switch (SelectedOwnershipType)
                 {
-                    case "llc":
-                    case "llp":
-                    case "partnership":
+                    case OwnershipType.LLC:
+                    case OwnershipType.LLP:
+                    case OwnershipType.Partnership:
                         if (_currentFormData is MemberBasedFormData memberData)
                         {
                             sessionData.RegistrationState = memberData.RegistrationState;
@@ -380,7 +379,7 @@ public partial class Ownership
                         }
                         break;
 
-                    case "lp":
+                    case OwnershipType.LP:
                         if (_currentFormData is LimitedPartnershipFormData lpData)
                         {
                             sessionData.RegistrationState = lpData.RegistrationState;
@@ -389,8 +388,8 @@ public partial class Ownership
                         }
                         break;
 
-                    case "corporation":
-                    case "llc-corporation":
+                    case OwnershipType.Corporation:
+                    case OwnershipType.LLCCorporation:
                         if (_currentFormData is CorporationFormData corpData)
                         {
                             sessionData.IncorporationState = corpData.IncorporationState;
@@ -399,15 +398,15 @@ public partial class Ownership
                         }
                         break;
 
-                    case "sole-proprietorship":
-                    case "individual":
+                    case OwnershipType.SoleProprietorship:
+                    case OwnershipType.Individual:
                         if (_currentFormData is OwnerMember owner)
                         {
                             sessionData.Owner = owner;
                         }
                         break;
 
-                    case "estate":
+                    case OwnershipType.Estate:
                         if (_currentFormData is EstateFormData estateData)
                         {
                             sessionData.Decedent = estateData.Decedent;
@@ -430,7 +429,7 @@ public partial class Ownership
     private bool IsFormValid()
     {
         // Basic validation - ownership type must be selected
-        if (string.IsNullOrWhiteSpace(OwnershipType))
+        if (SelectedOwnershipType == OwnershipType.None)
         {
             return false;
         }
@@ -444,14 +443,14 @@ public partial class Ownership
     /// </summary>
     public async Task ClearStoredData()
     {
-        //try
-        //{
-        //    await LocalStorage.DeleteAsync("OwnershipData");
-        //}
-        //catch (Exception ex)
-        //{
-        //    Console.WriteLine($"Error clearing storage: {ex.Message}");
-        //}
+        try
+        {
+            await SessionStorage.DeleteAsync("OwnershipData");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing storage: {ex.Message}");
+        }
     }
 }
 

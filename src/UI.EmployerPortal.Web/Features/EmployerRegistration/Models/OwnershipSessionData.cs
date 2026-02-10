@@ -8,7 +8,7 @@ public class OwnershipSessionData
     /// <summary>
     /// OwnershipType
     /// </summary>
-    public string OwnershipType { get; set; } = string.Empty;
+    public OwnershipType OwnershipType { get; set; } = OwnershipType.None;
     /// <summary>
     /// IsOutsideUSA
     /// </summary>

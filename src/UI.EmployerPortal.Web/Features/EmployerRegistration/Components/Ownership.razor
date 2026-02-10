@@ -1,6 +1,7 @@
 @rendermode InteractiveServer
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 
 <div class="ownership-container">
     <h1 class="ownership-title">Ownership</h1>
@@ -26,40 +27,12 @@
 
         <form>
             <div class="form-section">
-                <!-- Ownership Type -->
-                <div class="form-group">
-                    <label for="ownership-type" class="form-label">
-                        <span class="required-asterisk">*</span> Ownership Type
-                    </label>
-                    <select id="ownership-type" class="form-select form-select-medium" @bind="OwnershipType" @bind:after="OnOwnershipTypeChanged">
-                        <option value="">Select Ownership Type</option>
-                        <option value="llc">Limited Liability Company (LLC)</option>
-                        <option value="llc-corporation">LLC Electing to be Treated as a Corporation</option>
-                        <option value="sole-proprietorship">Sole Proprietorship (not LLC or Corporation)</option>
-                        <option value="corporation">Corporation</option>
-                        <option value="partnership">Partnership (not LLC or Corporation)</option>
-                        <option value="llp">Limited Liability Partnership (LLP)</option>
-                        <option value="lp">Limited Partnership (LP)</option>
-                        <option value="association">Association</option>
-                        <option value="cooperative">Cooperative</option>
-                        <option value="estate">Estate</option>
-                        <option value="fiduciary">Fiduciary</option>
-                        <option value="individual">Individual</option>
-                        <option value="joint-venture">Joint Venture</option>
-                        <option value="qsf">Qualified Settlement Fund (QSF)</option>
-                        <option value="union">Union</option>
-                        <option value="city-government-agency">City Government Agency</option>
-                        <option value="county-government-agency">County Government Agency</option>
-                        <option value="federal-government-agency">Federal Government Agency</option>
-                        <option value="indian-tribe">Indian Tribe</option>
-                        <option value="local-government-unit-not-listed">Local Government Unit not listed</option>
-                        <option value="school-district">School District</option>
-                        <option value="state-government-agency">State Government Agency</option>
-                        <option value="state-government-unit-not-listed">State Government Unit not listed</option>
-                        <option value="township">Township</option>
-                        <option value="village">Village</option>
-                    </select>
-                </div>
+                <!-- Ownership Type -->                
+                <OwnershipTypeSelect Id="ownership-type"
+                                     Label="Ownership Type"
+                                     @bind-Value="SelectedOwnershipType"
+                                     @bind-Value:after="OnOwnershipTypeChanged"
+                                     IsRequired="true" />
 
                 <!-- Headquartered Outside USA Checkbox -->
                 <div class="checkbox-group">
@@ -70,9 +43,9 @@
                 </div>
 
                 @* Render dynamic component based on ownership type *@
-                @if (!string.IsNullOrEmpty(OwnershipType) && _ownershipComponentMap.ContainsKey(OwnershipType))
+                @if (SelectedOwnershipType != OwnershipType.None && _ownershipComponentMap.ContainsKey(SelectedOwnershipType))
                 {
-                    <DynamicComponent Type="@_ownershipComponentMap[OwnershipType]"
+                    <DynamicComponent Type="@_ownershipComponentMap[SelectedOwnershipType]"
                                       Parameters="@GetComponentParameters()" />
                 }
             </div>

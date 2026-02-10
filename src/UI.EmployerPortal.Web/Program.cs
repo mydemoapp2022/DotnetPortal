@@ -1,5 +1,6 @@
 using UI.EmployerPortal.Web.Features;
 using UI.EmployerPortal.Web.Features.Dashboard;
+using UI.EmployerPortal.Web.Features.EmployerRegistration.Services;
 using UI.EmployerPortal.Web.Features.Landing;
 using UI.EmployerPortal.Web.Features.Shared.Accounts.Services;
 using UI.EmployerPortal.Web.Features.Shared.Session;
@@ -41,6 +42,7 @@ services.AddScoped<IDashboardOrchestrator, DashboardOrchestrator>();
 
 // Add mock UserAccountService for development
 services.AddScoped<IUserAccountService, MockUserAccountService>();
+builder.Services.AddScoped<ISSNValidationService, SSNValidationService>();
 //builder.AddOpenTelemetryInDevelopment();
 
 var app = builder.Build();

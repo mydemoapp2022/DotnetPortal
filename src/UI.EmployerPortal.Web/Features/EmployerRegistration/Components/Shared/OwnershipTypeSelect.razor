@@ -1,0 +1,53 @@
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+
+<div class="form-group">
+    <label for="@Id" class="form-label">
+        @if (IsRequired)
+        {
+            <span class="required-asterisk">*</span>
+        }
+        @Label
+    </label>
+    <InputSelect id="@Id"
+                 class="@($"form-select form-select-medium {CssClass}")"
+                 @bind-Value="Value"
+                 @bind-Value:after="OnValueChanged"
+                 disabled="@Disabled">
+        <option value="@OwnershipType.None">Select Ownership Type</option>
+        @foreach (OwnershipType ownershipType in Enum.GetValues(typeof(OwnershipType)))
+        {
+            @if (ownershipType != OwnershipType.None)
+            {
+                <option value="@ownershipType">@ownershipType.GetDisplayName()</option>
+            }
+        }
+    </InputSelect>
+</div>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = "ownership-type";
+
+    [Parameter]
+    public string Label { get; set; } = "Ownership Type";
+
+    [Parameter]
+    public OwnershipType Value { get; set; } = OwnershipType.None;
+
+    [Parameter]
+    public EventCallback<OwnershipType> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool IsRequired { get; set; } = true;
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    private void OnValueChanged()
+    {
+        _ = ValueChanged.InvokeAsync(Value);
+    }
+}

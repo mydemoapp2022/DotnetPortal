@@ -1,5 +1,7 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
-@using System.Linq
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Services
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@inject ISSNValidationService SSNService
 
 <div class="sole-proprietorship-section">
     <!-- Owner Information Section -->
@@ -9,15 +11,15 @@
         <!-- Member Card -->
         <div class="member-card">
             <h3 class="member-title">Member 1</h3>
-            
+
             <div class="member-fields">
                 <div class="form-group">
                     <label for="first-name" class="form-label">
                         <span class="required-asterisk">*</span> First Name
                     </label>
-                    <input type="text" 
-                           id="first-name" 
-                           class="form-input @(GetFieldCssClass("FirstName"))" 
+                    <input type="text"
+                           id="first-name"
+                           class="form-input @(GetFieldCssClass("FirstName"))"
                            @bind="Owner.FirstName"
                            @bind:after="ValidateForm" />
                 </div>
@@ -26,10 +28,10 @@
                     <label for="middle-initial" class="form-label">
                         Middle Initial
                     </label>
-                    <input type="text" 
-                           id="middle-initial" 
-                           class="form-input" 
-                           maxlength="1" 
+                    <input type="text"
+                           id="middle-initial"
+                           class="form-input"
+                           maxlength="1"
                            @bind="Owner.MiddleInitial"
                            @bind:after="ValidateForm" />
                 </div>
@@ -38,53 +40,29 @@
                     <label for="last-name" class="form-label">
                         <span class="required-asterisk">*</span>Last Name
                     </label>
-                    <input type="text" 
-                           id="last-name" 
-                           class="form-input @(GetFieldCssClass("LastName"))" 
+                    <input type="text"
+                           id="last-name"
+                           class="form-input @(GetFieldCssClass("LastName"))"
                            @bind="Owner.LastName"
                            @bind:after="ValidateForm" />
                 </div>
 
-                <div class="form-group">
-                    <label for="ssn" class="form-label">
-                        <span class="required-asterisk">*</span>SSN
-                    </label>
-                    <div class="ssn-input-wrapper">
-                        <input type="text" 
-                               id="ssn"
-                               class="form-input ssn-input @(GetFieldCssClass("SSN"))" 
-                               placeholder="999-99-9999"
-                               maxlength="11"
-                               value="@GetSSNDisplay(Owner.SSN)"
-                               @oninput="@(e => HandleSSNInput(e.Value?.ToString() ?? string.Empty))"
-                               @onfocus="@(() => Owner.IsSSNFocused = true)"
-                               @onblur="@(() => { Owner.IsSSNFocused = false; ValidateForm(); })" />
-                        <button type="button"
-                                class="ssn-toggle-btn"
-                                @onclick="ToggleSSNVisibility"
-                                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                @if (ShowSSN)
-                                {
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                }
-                                else
-                                {
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                                }
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <SSNInput Id="owner-ssn"
+                          Label="SSN"
+                          Value="@Owner.SSN"
+                          ValueChanged="@(value => OnSSNChanged(value))"
+                          IsFocused="@Owner.IsSSNFocused"
+                          IsFocusedChanged="@(focused => Owner.IsSSNFocused = focused)"
+                          ShowSSN="@ShowSSN"
+                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          CssClass="@(GetFieldCssClass("SSN"))" />
 
                 <div class="form-group">
                     <label for="ownership-percentage" class="form-label">Ownership Percentage</label>
-                    <input type="number" 
+                    <input type="number"
                            id="ownership-percentage"
-                           class="form-input" 
-                           min="0" 
+                           class="form-input"
+                           min="0"
                            max="100"
                            @bind="Owner.OwnershipPercentage"
                            @bind:after="ValidateForm" />
@@ -112,10 +90,10 @@
 
     private OwnerMember Owner { get; set; } = new();
     private bool ShowSSN { get; set; }
-    private List<string> ValidationErrors { get; set; } = new();
-    private HashSet<string> InvalidFields { get; set; } = new();
-    private bool _lastShouldValidate = false;
-    private bool _dataRestored = false;
+    private List<string> ValidationErrors { get; set; } = [];
+    private HashSet<string> InvalidFields { get; set; } = [];
+    private bool _lastShouldValidate;
+    private bool _dataRestored;
 
     protected override void OnInitialized()
     {
@@ -128,7 +106,6 @@
     {
         base.OnAfterRender(firstRender);
 
-        // Detect when ShouldValidate changes from false to true
         if (ShouldValidate && !_lastShouldValidate)
         {
             _lastShouldValidate = true;
@@ -142,7 +119,10 @@
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null) return;
+        if (_dataRestored || SavedData == null)
+        {
+            return;
+        }
 
         try
         {
@@ -161,65 +141,16 @@
                 _dataRestored = true;
             }
         }
-        catch (Exception)
+        catch
         {
             // Failed to restore, continue with defaults
         }
     }
 
-    private void ToggleSSNVisibility()
+    private void OnSSNChanged(string value)
     {
-        ShowSSN = !ShowSSN;
-    }
-
-    private void HandleSSNInput(string value)
-    {
-        // Remove all non-digit characters
-        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-
-        // Limit to 9 digits
-        if (digitsOnly.Length > 9)
-        {
-            digitsOnly = digitsOnly.Substring(0, 9);
-        }
-
-        // Format with dashes
-        if (digitsOnly.Length > 5)
-        {
-            Owner.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
-        }
-        else if (digitsOnly.Length > 3)
-        {
-            Owner.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
-        }
-        else
-        {
-            Owner.SSN = digitsOnly;
-        }
-
-        NotifyDataChanged();
-    }
-
-    private string GetSSNDisplay(string? ssn)
-    {
-        if (string.IsNullOrWhiteSpace(ssn))
-            return string.Empty;
-
-        if (Owner.IsSSNFocused || ShowSSN)
-        {
-            return ssn;
-        }
-
-        // Remove dashes for processing
-        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-
-        if (digitsOnly.Length >= 4)
-        {
-            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
-            return $"***-**-{lastFour}";
-        }
-
-        return ssn;
+        Owner.SSN = value;
+        ValidateForm();
     }
 
     private void ValidateForm()
@@ -227,44 +158,25 @@
         ValidationErrors.Clear();
         InvalidFields.Clear();
 
-        // Validate First Name
         if (string.IsNullOrWhiteSpace(Owner.FirstName))
         {
             ValidationErrors.Add("First Name is required");
             InvalidFields.Add("FirstName");
         }
 
-        // Validate Last Name
         if (string.IsNullOrWhiteSpace(Owner.LastName))
         {
             ValidationErrors.Add("Last Name is required");
             InvalidFields.Add("LastName");
         }
 
-        // Validate SSN
-        if (string.IsNullOrWhiteSpace(Owner.SSN))
+        var ssnResult = SSNService.ValidateSSN(Owner.SSN, "SSN");
+        if (!ssnResult.IsValid)
         {
-            ValidationErrors.Add("SSN is required");
+            ValidationErrors.Add(ssnResult.ErrorMessage);
             InvalidFields.Add("SSN");
         }
-        else
-        {
-            // Validate SSN format
-            var digitsOnly = new string(Owner.SSN.Where(char.IsDigit).ToArray());
 
-            if (digitsOnly.Length != 9)
-            {
-                ValidationErrors.Add("Social Security Number format must be 999-99-9999");
-                InvalidFields.Add("SSN");
-            }
-            else if (digitsOnly.Distinct().Count() == 1)
-            {
-                ValidationErrors.Add("SSN cannot be all the same character");
-                InvalidFields.Add("SSN");
-            }
-        }
-
-        // Notify parent component of validation changes (fire and forget)
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
 

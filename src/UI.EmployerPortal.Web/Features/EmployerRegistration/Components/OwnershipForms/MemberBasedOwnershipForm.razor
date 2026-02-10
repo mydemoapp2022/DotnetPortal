@@ -1,71 +1,16 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
-@using System.Linq
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Services
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@inject ISSNValidationService SSNService
 
 <div class="member-based-section">
     @if (Config.RequiresState)
     {
-        <!-- Registration State -->
-        <div class="form-group state-selection">
-            <label for="registration-state" class="form-label">
-                <span class="required-asterisk">*</span> @Config.StateLabel
-            </label>
-            <select id="registration-state"
-                    class="form-select form-select-medium @(GetFieldCssClass("RegistrationState"))"
-                    @bind="RegistrationState"
-                    @bind:after="ValidateForm">
-                <option value="">Select State</option>
-                <option value="AL">AL</option>
-                <option value="AK">AK</option>
-                <option value="AZ">AZ</option>
-                <option value="AR">AR</option>
-                <option value="CA">CA</option>
-                <option value="CO">CO</option>
-                <option value="CT">CT</option>
-                <option value="DE">DE</option>
-                <option value="FL">FL</option>
-                <option value="GA">GA</option>
-                <option value="HI">HI</option>
-                <option value="ID">ID</option>
-                <option value="IL">IL</option>
-                <option value="IN">IN</option>
-                <option value="IA">IA</option>
-                <option value="KS">KS</option>
-                <option value="KY">KY</option>
-                <option value="LA">LA</option>
-                <option value="ME">ME</option>
-                <option value="MD">MD</option>
-                <option value="MA">MA</option>
-                <option value="MI">MI</option>
-                <option value="MN">MN</option>
-                <option value="MS">MS</option>
-                <option value="MO">MO</option>
-                <option value="MT">MT</option>
-                <option value="NE">NE</option>
-                <option value="NV">NV</option>
-                <option value="NH">NH</option>
-                <option value="NJ">NJ</option>
-                <option value="NM">NM</option>
-                <option value="NY">NY</option>
-                <option value="NC">NC</option>
-                <option value="ND">ND</option>
-                <option value="OH">OH</option>
-                <option value="OK">OK</option>
-                <option value="OR">OR</option>
-                <option value="PA">PA</option>
-                <option value="RI">RI</option>
-                <option value="SC">SC</option>
-                <option value="SD">SD</option>
-                <option value="TN">TN</option>
-                <option value="TX">TX</option>
-                <option value="UT">UT</option>
-                <option value="VT">VT</option>
-                <option value="VA">VA</option>
-                <option value="WA">WA</option>
-                <option value="WV">WV</option>
-                <option value="WI">WI</option>
-                <option value="WY">WY</option>
-            </select>
-        </div>
+        <StateSelect Id="registration-state"
+                     Label="@Config.StateLabel"
+                     Value="@RegistrationState"
+                     ValueChanged="StateChanged"
+                     CssClass="@(GetFieldCssClass("RegistrationState"))" />
     }
 
     <!-- Owner Information Section -->
@@ -113,39 +58,15 @@
                                @bind:after="ValidateForm" />
                     </div>
 
-                    <div class="form-group">
-                        <label for="ssn-@index" class="form-label">
-                            <span class="required-asterisk">*</span> SSN
-                        </label>
-                        <div class="ssn-input-wrapper">
-                            <input type="text"
-                                   id="ssn-@index"
-                                   class="form-input ssn-input @(GetFieldCssClass($"Member{index}_SSN"))"
-                                   placeholder="999-99-9999"
-                                   maxlength="11"
-                                   value="@GetSSNDisplay(member.SSN)"
-                                   @oninput="@(e => HandleSSNInput(index, e.Value?.ToString() ?? string.Empty))"
-                                   @onfocus="@(() => member.IsSSNFocused = true)"
-                                   @onblur="@(() => { member.IsSSNFocused = false; ValidateForm(); })" />
-                            <button type="button"
-                                    class="ssn-toggle-btn"
-                                    @onclick="ToggleSSNVisibility"
-                                    aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    @if (ShowSSN)
-                                    {
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    }
-                                    else
-                                    {
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                        <line x1="1" y1="1" x2="23" y2="23"></line>
-                                    }
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                    <SSNInput Id="@($"ssn-{index}")"
+                              Label="SSN"
+                              Value="@member.SSN"
+                              ValueChanged="@(value => OnSSNChanged(index, value))"
+                              IsFocused="@member.IsSSNFocused"
+                              IsFocusedChanged="@(focused => OnSSNFocusChanged(index, focused))"
+                              ShowSSN="@ShowSSN"
+                              ShowSSNChanged="@(show => ShowSSN = show)"
+                              CssClass="@(GetFieldCssClass($"Member{index}_SSN"))" />
 
                     <div class="form-group">
                         <label for="ownership-percentage-@index" class="form-label">Ownership Percentage</label>
@@ -185,6 +106,7 @@
         </div>
     </div>
 </div>
+
 @code {
     [Parameter]
     public OwnershipFormConfig Config { get; set; } = new();
@@ -204,11 +126,11 @@
     private string RegistrationState { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
     private bool? MoreThanFive { get; set; } = false;
-    private List<OwnerMember> Members { get; set; } = new();
-    private List<string> ValidationErrors { get; set; } = new();
-    private HashSet<string> InvalidFields { get; set; } = new();
-    private bool _lastShouldValidate = false;
-    private bool _dataRestored = false;
+    private List<OwnerMember> Members { get; set; } = [];
+    private List<string> ValidationErrors { get; set; } = [];
+    private HashSet<string> InvalidFields { get; set; } = [];
+    private bool _lastShouldValidate;
+    private bool _dataRestored;
 
     protected override void OnInitialized()
     {
@@ -221,7 +143,6 @@
     {
         base.OnAfterRender(firstRender);
 
-        // Detect when ShouldValidate changes from false to true
         if (ShouldValidate && !_lastShouldValidate)
         {
             _lastShouldValidate = true;
@@ -233,22 +154,21 @@
         }
     }
 
-    // Example for MemberBasedOwnershipForm
     private void RestoreFromSession()
     {
-        // Only restore once and only if SavedData is provided
-        if (_dataRestored || SavedData == null) return;
+        if (_dataRestored || SavedData == null)
+        {
+            return;
+        }
 
         try
         {
             if (SavedData is OwnershipSessionData sessionData)
             {
-                Console.WriteLine($"🔄 Restoring MemberBased form data");
-
                 RegistrationState = sessionData.RegistrationState ?? string.Empty;
                 MoreThanFive = sessionData.MoreThanFive;
 
-                if (sessionData.Members != null && sessionData.Members.Any())
+                if (sessionData.Members is { Count: > 0 })
                 {
                     Members.Clear();
                     foreach (var savedMember in sessionData.Members)
@@ -263,86 +183,52 @@
                             OwnershipPercentage = savedMember.OwnershipPercentage
                         });
                     }
-                    Console.WriteLine($"✅ Restored {Members.Count} members");
                 }
 
                 _dataRestored = true;
-                StateHasChanged(); // Force UI update
             }
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"❌ Failed to restore session: {ex.Message}");
+            // Failed to restore, continue with defaults
         }
     }
 
     private void InitializeMembers()
     {
-        if (Members.Any()) return;
+        if (Members.Count > 0)
+        {
+            return;
+        }
 
         Members.Clear();
-        for (int i = 1; i <= Config.MaxEntries; i++)
+        for (var i = 1; i <= Config.MaxEntries; i++)
         {
             Members.Add(new OwnerMember { Role = $"{Config.MemberLabel} {i}" });
         }
     }
 
-    private void ToggleSSNVisibility()
+    private void StateChanged(string value)
     {
-        ShowSSN = !ShowSSN;
+        RegistrationState = value;
+        ValidateForm();
     }
 
-    private void HandleSSNInput(int memberIndex, string value)
+    private void OnSSNChanged(int index, string value)
     {
-        var member = Members[memberIndex];
-
-        // Remove all non-digit characters
-        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
-
-        // Limit to 9 digits
-        if (digitsOnly.Length > 9)
+        if (index >= 0 && index < Members.Count)
         {
-            digitsOnly = digitsOnly.Substring(0, 9);
+            Members[index].SSN = value;
+            ValidateForm();
         }
-
-        // Format with dashes
-        if (digitsOnly.Length > 5)
-        {
-            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3, 2)}-{digitsOnly.Substring(5)}";
-        }
-        else if (digitsOnly.Length > 3)
-        {
-            member.SSN = $"{digitsOnly.Substring(0, 3)}-{digitsOnly.Substring(3)}";
-        }
-        else
-        {
-            member.SSN = digitsOnly;
-        }
-
-        NotifyDataChanged();
     }
 
-    private string GetSSNDisplay(string? ssn)
+    private void OnSSNFocusChanged(int index, bool focused)
     {
-        if (string.IsNullOrWhiteSpace(ssn))
-            return string.Empty;
-
-        var member = Members.FirstOrDefault(m => m.SSN == ssn);
-        if (member?.IsSSNFocused == true || ShowSSN)
+        if (index >= 0 && index < Members.Count)
         {
-            return ssn;
+            Members[index].IsSSNFocused = focused;
         }
-
-        // Remove dashes for processing
-        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-
-        if (digitsOnly.Length >= 4)
-        {
-            var lastFour = digitsOnly.Substring(digitsOnly.Length - 4);
-            return $"***-**-{lastFour}";
-        }
-
-        return ssn;
     }
 
     private void OnMoreThanFiveChanged(bool value)
@@ -364,57 +250,63 @@
         }
 
         // Validate each member
-        for (int i = 0; i < Members.Count; i++)
+        for (var i = 0; i < Members.Count; i++)
         {
             var member = Members[i];
             var memberNumber = i + 1;
 
-            // Check if any field is filled for this member
-            bool hasAnyValue = !string.IsNullOrWhiteSpace(member.FirstName) ||
+            var hasAnyValue = !string.IsNullOrWhiteSpace(member.FirstName) ||
                              !string.IsNullOrWhiteSpace(member.MiddleInitial) ||
                              !string.IsNullOrWhiteSpace(member.LastName) ||
                              !string.IsNullOrWhiteSpace(member.SSN) ||
                              member.OwnershipPercentage.HasValue;
 
-            // Member 1 is always required
-            // Members 2-5 are required only if any field is filled
             if (i == 0 || hasAnyValue)
             {
-                // Validate First Name
                 if (string.IsNullOrWhiteSpace(member.FirstName))
                 {
                     ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} First Name is required");
                     InvalidFields.Add($"Member{i}_FirstName");
                 }
 
-                // Validate Last Name
                 if (string.IsNullOrWhiteSpace(member.LastName))
                 {
                     ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} Last Name is required");
                     InvalidFields.Add($"Member{i}_LastName");
                 }
 
-                // Validate SSN
-                if (string.IsNullOrWhiteSpace(member.SSN))
+                var ssnResult = SSNService.ValidateSSN(member.SSN, $"{Config.MemberLabel} {memberNumber}");
+                if (!ssnResult.IsValid)
                 {
-                    ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} SSN is required");
+                    ValidationErrors.Add(ssnResult.ErrorMessage);
                     InvalidFields.Add($"Member{i}_SSN");
                 }
-                else
-                {
-                    // Validate SSN format
-                    var digitsOnly = new string(member.SSN.Where(char.IsDigit).ToArray());
+            }
+        }
 
-                    if (digitsOnly.Length != 9)
-                    {
-                        ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} Social Security Number format must be 999-99-9999");
-                        InvalidFields.Add($"Member{i}_SSN");
-                    }
-                    else if (digitsOnly.Distinct().Count() == 1)
-                    {
-                        ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} SSN cannot be all the same character");
-                        InvalidFields.Add($"Member{i}_SSN");
-                    }
+        // Check for duplicate SSNs - Cast to nullable string list
+        var ssnList = Members.Select(m => (string?)m.SSN).ToList();
+        var duplicateErrors = SSNService.FindDuplicateSSNs(ssnList, i => $"{Config.MemberLabel} {i + 1}");
+
+        if (duplicateErrors.Count > 0)
+        {
+            ValidationErrors.AddRange(duplicateErrors);
+
+            // Mark duplicate SSN fields as invalid
+            var ssnGroups = Members
+                .Select((m, idx) => new { SSN = m.SSN, Index = idx })
+                .Where(x => !string.IsNullOrWhiteSpace(x.SSN))
+                .GroupBy(x =>
+                {
+                    return new string(x.SSN!.Where(char.IsDigit).ToArray());
+                })
+                .Where(g => g.Count() > 1);
+
+            foreach (var group in ssnGroups)
+            {
+                foreach (var item in group)
+                {
+                    InvalidFields.Add($"Member{item.Index}_SSN");
                 }
             }
         }
@@ -426,7 +318,6 @@
             InvalidFields.Add("MoreThanFive");
         }
 
-        // Notify parent component of validation changes (fire and forget)
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
 
@@ -458,3 +349,4 @@
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
     }
 }
+
