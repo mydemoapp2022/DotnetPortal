@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms;
-
 namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 
 /// <summary>
@@ -10,6 +9,8 @@ namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 /// </summary>
 public partial class Ownership
 {
+    [Inject]
+    private NavigationManager Nav { get; set; } = default!;
     [Inject]
     private ProtectedSessionStorage SessionStorage { get; set; } = default!;
 
@@ -313,10 +314,19 @@ public partial class Ownership
         };
     }
 
-    private async Task OnBack()
+    private void GoBack()
     {
-        await OnBackClicked.InvokeAsync();
+        Nav.NavigateTo("/employer-registration/preliminary_questions");
     }
+
+    //private async Task GoNext()
+    //{   
+    //    Nav.NavigateTo("/employer-registration/BusinessInfo");
+    //}
+    //private async Task OnBack()
+    //{
+    //    await OnBackClicked.InvokeAsync();
+    //}
 
     private async Task OnSaveAndQuit()
     {
@@ -324,7 +334,7 @@ public partial class Ownership
         await OnSaveAndQuitClicked.InvokeAsync();
     }
 
-    private async Task OnContinue()
+    private async Task GoNext()
     {
         // Trigger validation
         _shouldValidate = true;
@@ -341,9 +351,9 @@ public partial class Ownership
 
             // Save to session before continuing
             await SaveToSession();
-
+            Nav.NavigateTo("/employer-registration/BusinessInfo");
             // Navigate to next step
-            await OnContinueClicked.InvokeAsync();
+            //await OnContinueClicked.InvokeAsync();
         }
         else
         {

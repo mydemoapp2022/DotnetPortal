@@ -38,7 +38,7 @@ public partial class SideMenu : IDisposable
     private static readonly List<MenuItem> MenuItems =
     [
         new MenuItem { Id = "dashboard", Title = "Dashboard", Icon = "images/dashboard/home.svg", Url = "/employer-dashboard", HasSubmenu = false },
-        new MenuItem { Id = "employer-registration", Title = "Employer Registration", Icon = "images/dashboard/manage-account.svg", Url = "/employer-registration", HasSubmenu = false },
+        //new MenuItem { Id = "employer-registration", Title = "Employer Registration", Icon = "images/dashboard/manage-account.svg", Url = "/employer-registration-ownership", HasSubmenu = false },
         new MenuItem { Id = "eforms", Title = "eForms", Icon = "images/dashboard/eforms.svg", Url = "/eforms", HasSubmenu = false },
         new MenuItem { Id = "secure-messages", Title = "Secure Messages", Icon = "images/dashboard/secure-messages.svg", Url = "/secure-messages", HasSubmenu = false },
         new MenuItem { Id = "quarterly-tax", Title = "Quarterly Tax & Wage Reporting", Icon = "images/dashboard/quarterly-tax.svg", Url = "/quarterly-tax", HasSubmenu = true, Submenus = new List<SubMenuItem>
