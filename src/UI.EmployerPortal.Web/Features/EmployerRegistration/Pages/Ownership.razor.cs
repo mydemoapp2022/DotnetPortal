@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms;
-namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
+namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Pages;
 
 /// <summary>
 /// Ownership component for employer registration
