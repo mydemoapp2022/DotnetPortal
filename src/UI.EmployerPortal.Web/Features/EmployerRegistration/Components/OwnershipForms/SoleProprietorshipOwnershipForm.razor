@@ -50,11 +50,11 @@
                 <SSNInput Id="owner-ssn"
                           Label="SSN"
                           Value="@Owner.SSN"
-                          ValueChanged="@(value => OnSSNChanged(value))"
+                          ValueChanged="@((string value) => OnSSNChanged(value))"
                           IsFocused="@Owner.IsSSNFocused"
-                          IsFocusedChanged="@(focused => Owner.IsSSNFocused = focused)"
+                          IsFocusedChanged="@((bool focused) => Owner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
-                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           CssClass="@(GetFieldCssClass("SSN"))" />
 
                 <div class="form-group">

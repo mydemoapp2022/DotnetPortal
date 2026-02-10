@@ -45,11 +45,11 @@
                 <SSNInput Id="decedent-ssn"
                           Label="SSN"
                           Value="@Decedent.SSN"
-                          ValueChanged="@(value => OnDecedentSSNChanged(value))"
+                          ValueChanged="@((string value) => OnDecedentSSNChanged(value))"
                           IsFocused="@Decedent.IsSSNFocused"
-                          IsFocusedChanged="@(focused => Decedent.IsSSNFocused = focused)"
+                          IsFocusedChanged="@((bool focused) => Decedent.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
-                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           CssClass="@(GetFieldCssClass("Decedent_SSN"))" />
             </div>
         </div>
@@ -96,11 +96,11 @@
                 <SSNInput Id="representative-ssn"
                           Label="SSN"
                           Value="@PersonalRepresentative.SSN"
-                          ValueChanged="@(value => OnRepresentativeSSNChanged(value))"
+                          ValueChanged="@((string value) => OnRepresentativeSSNChanged(value))"
                           IsFocused="@PersonalRepresentative.IsSSNFocused"
-                          IsFocusedChanged="@(focused => PersonalRepresentative.IsSSNFocused = focused)"
+                          IsFocusedChanged="@((bool focused) => PersonalRepresentative.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
-                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           CssClass="@(GetFieldCssClass("PersonalRepresentative_SSN"))" />
             </div>
         </div>

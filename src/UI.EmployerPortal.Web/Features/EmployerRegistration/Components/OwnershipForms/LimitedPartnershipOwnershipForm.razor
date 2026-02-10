@@ -54,11 +54,11 @@
                 <SSNInput Id="general-partner-ssn"
                           Label="SSN"
                           Value="@GeneralPartner.SSN"
-                          ValueChanged="@(value => OnSSNChanged(value))"
+                          ValueChanged="@((string value) => OnSSNChanged(value))"
                           IsFocused="@GeneralPartner.IsSSNFocused"
-                          IsFocusedChanged="@(focused => GeneralPartner.IsSSNFocused = focused)"
+                          IsFocusedChanged="@((bool focused) => GeneralPartner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
-                          ShowSSNChanged="@(show => ShowSSN = show)"
+                          ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           CssClass="@(GetFieldCssClass("GeneralPartner_SSN"))" />
             </div>
         </div>

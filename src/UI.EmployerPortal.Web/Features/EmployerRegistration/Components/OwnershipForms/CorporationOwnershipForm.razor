@@ -78,11 +78,11 @@
                     <SSNInput Id="@($"ssn-{officer.Role}")"
                               Label="SSN"
                               Value="@officer.SSN"
-                              ValueChanged="@(value => OnSSNChanged(index, value))"
+                              ValueChanged="@((string value) => OnSSNChanged(index, value))"
                               IsFocused="@officer.IsSSNFocused"
-                              IsFocusedChanged="@(focused => OnSSNFocusChanged(index, focused))"
+                              IsFocusedChanged="@((bool focused) => OnSSNFocusChanged(index, focused))"
                               ShowSSN="@ShowSSN"
-                              ShowSSNChanged="@(show => ShowSSN = show)"
+                              ShowSSNChanged="@((bool show) => ShowSSN = show)"
                               CssClass="@(GetFieldCssClass($"{officer.Role}_SSN"))" />
 
                     <div class="form-group">
