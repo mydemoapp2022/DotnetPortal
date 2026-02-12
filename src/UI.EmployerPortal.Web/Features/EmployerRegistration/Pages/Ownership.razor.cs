@@ -200,6 +200,22 @@ public partial class Ownership
         }
     }
 
+    private void EnsureOwnershipTypeValidationError()
+    {
+        var requiredMessage = "Ownership Type is required.";
+        if (SelectedOwnershipType == OwnershipType.None)
+        {
+            if (!ValidationErrors.Contains(requiredMessage))
+            {
+                ValidationErrors.Insert(0, requiredMessage);
+            }
+        }
+        else
+        {
+            ValidationErrors.Remove(requiredMessage);
+        }
+    }
+
     private async Task OnOwnershipTypeChanged()
     {
         try
@@ -215,6 +231,7 @@ public partial class Ownership
 
             // Reset validation flag
             _shouldValidate = false;
+            EnsureOwnershipTypeValidationError();
             StateHasChanged();
 
             // Wait for the new DynamicComponent to render
@@ -338,10 +355,12 @@ public partial class Ownership
     {
         // Trigger validation
         _shouldValidate = true;
+        EnsureOwnershipTypeValidationError();
         StateHasChanged();
 
         // Wait for validation to complete
         await Task.Delay(100);
+        EnsureOwnershipTypeValidationError();
 
         // Check if form is valid
         if (IsFormValid())
