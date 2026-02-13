@@ -41,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Features\EmployerRegistration\Components\BusinessActivityForms\" />
     <Folder Include="Startup\WcfServiceClients\" />
   </ItemGroup>
 

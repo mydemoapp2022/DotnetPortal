@@ -1,0 +1,180 @@
+@page "/employer-registration/business-activity"
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@rendermode InteractiveServer
+
+<div class="business-activity-container">
+    <h1 class="business-activity-title">Business Activity</h1>
+    <p class="required-note">All fields are required unless noted</p>
+
+    @if (!_isSessionLoaded)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        @if (_showValidationSummary && _validationErrors.Any())
+        {
+            <div class="validation-summary">
+                <ul>
+                    @foreach (var error in _validationErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <EditForm Model="Model" OnValidSubmit="HandleContinue" FormName="businessActivityForm">
+            <DataAnnotationsValidator />
+
+            <div class="form-section">
+                <!-- Date fields - Row 1: Two columns -->
+                <div class="form-row row">
+                    <div class="form-group col-md-6">
+                        <label class="form-label" for="dateStarted">
+                            Date business started or acquired
+                            <span class="required-indicator">*</span>
+                        </label>
+                        <InputDate id="dateStarted"
+                                   @bind-Value="Model.DateBusinessStarted"
+                                   class="form-control"
+                                   DisplayName="Date business started"
+                                   @bind-Value:format="MM/dd/yyyy" />
+                        <ValidationMessage For="() => Model.DateBusinessStarted" />
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label class="form-label" for="dateFirstPaid">
+                            Date you first had paid employees working in WI
+                            <span class="required-indicator">*</span>
+                        </label>
+                        <InputDate id="dateFirstPaid"
+                                   @bind-Value="Model.DateFirstPaidEmployeesInWI"
+                                   class="form-control"
+                                   DisplayName="Date first paid employees"
+                                   @bind-Value:format="MM/dd/yyyy" />
+                        <ValidationMessage For="() => Model.DateFirstPaidEmployeesInWI" />
+                    </div>
+                </div>
+
+                <!-- Date fields - Row 2: Single column (50% width) -->
+                <div class="form-row row">
+                    <div class="form-group col-md-6">
+                        <label class="form-label" for="dateFirstWages">
+                            Date first paid wages for work performed in WI
+                            <span class="required-indicator">*</span>
+                        </label>
+                        <InputDate id="dateFirstWages"
+                                   @bind-Value="Model.DateFirstPaidWagesInWI"
+                                   class="form-control"
+                                   DisplayName="Date first paid wages"
+                                   @bind-Value:format="MM/dd/yyyy" />
+                        <ValidationMessage For="() => Model.DateFirstPaidWagesInWI" />
+                    </div>
+                </div>
+
+                <!-- Principal Business Activity -->
+                <div class="activity-section">
+                    <p class="activity-instruction">
+                        <strong>Select your principal business activity.</strong>
+                        Choose "Construction" if you are engaged in building or repair or painting of:
+                        houses or other structures, or roads, or utilities, or related activities that involve earth-moving.
+                    </p>
+
+                    <div class="form-row row">
+                        <div class="form-group col-md-12">
+                            <PrincipalBusinessActivitySelect Id="principal-activity"
+                                                             Label="Principal Business Activity"
+                                                             @bind-Value="Model.PrincipalBusinessActivity"
+                                                             @bind-Value:after="OnPrincipalActivityChanged"
+                                                             IsRequired="true" />
+                            <ValidationMessage For="() => Model.PrincipalBusinessActivity" />
+                        </div>
+                    </div>
+
+                    <!-- Construction Industry Warning -->
+                    @if (_showConstructionWarning)
+                    {
+                        <div class="construction-warning">
+                            <p>
+                                Any employer who is engaged in a construction industry who knowingly or intentionally provides
+                                false information to the department for the purpose of misclassifying an employee as a non-employee
+                                will be assessed a penalty. Additional information can be found at
+                                <a href="https://dwd.wisconsin.gov/ui201/12201.htm#employee_definition" target="_blank" rel="noopener noreferrer">
+                                    https://dwd.wisconsin.gov/ui201/12201.htm#employee_definition
+                                </a>.
+                            </p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Primary description -->
+                <div class="activity-section">
+                    <p class="activity-instruction">
+                        <strong><u>Describe your primary business activity</u></strong>, such as: Principal line of merchandise sold,
+                        Type of construction work done, Products produced, Types of services provided
+                    </p>
+
+                    <div class="form-row row">
+                        <div class="form-group col-12">
+                            <label class="form-label" for="primaryDescription">
+                                Primary Business Activity Description
+                                <span class="required-indicator">*</span>
+                            </label>
+                            <InputTextArea id="primaryDescription"
+                                           @bind-Value="Model.PrimaryBusinessActivityDescription"
+                                           class="form-control"
+                                           rows="4"
+                                           placeholder="Software consulting" />
+                            <ValidationMessage For="() => Model.PrimaryBusinessActivityDescription" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wisconsin-specific description -->
+                <div class="activity-section">
+                    <p class="activity-instruction">
+                        <strong>Describe your Wisconsin specific business activity</strong>, such as: Principal line of
+                        merchandise sold, Type of construction work done, Products produced, Types of services provided
+                    </p>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <InputCheckbox id="sameAsPrimary" @bind-Value="Model.SameAsPrimaryBusinessActivity" />
+                            <span><strong>Same as the primary business activity.</strong></span>
+                        </label>
+                    </div>
+
+                    <div class="form-row row">
+                        <div class="form-group col-12">
+                            <label class="form-label" for="wiDescription">
+                                Wisconsin Specific Business Activity
+                            </label>
+                            <InputTextArea id="wiDescription"
+                                           @bind-Value="Model.WisconsinSpecificBusinessActivity"
+                                           class="form-control"
+                                           rows="4"
+                                           disabled="@Model.SameAsPrimaryBusinessActivity" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-back" @onclick="HandleBack">
+                    <span class="btn-icon">‹</span> BACK
+                </button>
+                <div class="form-actions-right">
+                    <button type="button" class="btn btn-save" @onclick="HandleSaveAndQuit">
+                        SAVE & QUIT
+                    </button>
+                    <button type="submit" class="btn btn-continue">
+                        CONTINUE <span class="btn-icon">›</span>
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
