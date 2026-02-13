@@ -28,7 +28,7 @@ public class BusinessActivityModel
     /// <summary>
     /// Gets or sets the principal business activity type from the legacy system catalog.
     /// </summary>
-    [Required(ErrorMessage = "Principal Business Activity is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Principal Business Activity is required.")]
     public PrincipalBusinessActivityType PrincipalBusinessActivity { get; set; } = PrincipalBusinessActivityType.None;
 
     /// <summary>

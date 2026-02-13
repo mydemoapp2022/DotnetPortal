@@ -1,7 +1,7 @@
-::deep .ownership-container {
+.ownership-container {
     /*max-width: 800px;*/
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0rem 5rem;
     background-color: #fff;
 }
 

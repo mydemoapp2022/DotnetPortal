@@ -1,4 +1,6 @@
+@using System.Linq.Expressions
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="form-group">
     <label for="@Id" class="form-label">
@@ -22,6 +24,8 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
     /// <summary>
     /// Gets or sets the input element ID for accessibility.
     /// </summary>
@@ -45,6 +49,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<PrincipalBusinessActivityType> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value expression for validation.
+    /// </summary>
+    [Parameter]
+    public Expression<Func<PrincipalBusinessActivityType>>? ValueExpression { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this field is required.
@@ -71,6 +81,12 @@
     private async Task OnValueChanged()
     {
         await ValueChanged.InvokeAsync(Value);
+
+        if (EditContext != null && ValueExpression != null)
+        {
+            var field = FieldIdentifier.Create(ValueExpression);
+            EditContext.NotifyFieldChanged(field);
+        }
     }
 
     /// <summary>
