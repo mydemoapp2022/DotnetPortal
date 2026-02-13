@@ -124,12 +124,12 @@ public partial class BusinessActivity : ComponentBase
         // Save to session before continuing
         _ = SaveToSession();
 
-        Navigation.NavigateTo("/employer-registration/ui-subjectivity");
+        Navigation.NavigateTo("/employer-registration/UISubjectivity");
     }
 
     private void HandleBack()
     {
-        Navigation.NavigateTo("/employer-registration/business-contact");
+        Navigation.NavigateTo("/employer-registration/BusinessContact");
     }
 
     private async Task HandleSaveAndQuit()
