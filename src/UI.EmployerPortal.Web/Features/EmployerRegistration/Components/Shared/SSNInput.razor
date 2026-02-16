@@ -1,16 +1,21 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Services
+@using Microsoft.JSInterop
 @inject ISSNValidationService SSNService
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
 <div class="form-group">
     <label for="@Id" class="form-label">
         <span class="required-asterisk">*</span> @Label
     </label>
     <div class="ssn-input-wrapper">
-        <input type="text"
+        <input @ref="inputElement"
+               type="text"
                id="@Id"
                class="@($"form-input ssn-input {CssClass}")"
                placeholder="999-99-9999"
                maxlength="11"
+               inputmode="numeric"
                value="@DisplayValue"
                @oninput="HandleInput"
                @onfocus="OnFocus"
@@ -36,6 +41,9 @@
 </div>
 
 @code {
+    private ElementReference inputElement;
+    private IJSObjectReference? module;
+
     [Parameter]
     public string Id { get; set; } = "ssn";
 
@@ -65,6 +73,16 @@
 
     private string DisplayValue => IsFocused || ShowSSN ? Value : SSNService.MaskSSN(Value);
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./js/ssn-input.js");
+            await module.InvokeVoidAsync("attachNumericOnlyFilter", inputElement);
+        }
+    }
+
     private void HandleInput(ChangeEventArgs e)
     {
         var inputValue = e.Value?.ToString() ?? string.Empty;
@@ -85,5 +103,20 @@
     private void ToggleVisibility()
     {
         _ = ShowSSNChanged.InvokeAsync(!ShowSSN);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore - the circuit is already disconnected (e.g., page refresh)
+            }
+        }
     }
 }
