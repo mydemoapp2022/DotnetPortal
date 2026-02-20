@@ -11,7 +11,7 @@
         @Label
     </label>
     <InputSelect id="@Id"
-                 class="@($"form-control {CssClass}")"
+                 class="@GetCssClass()"
                  @bind-Value="Value"
                  @bind-Value:after="OnValueChanged"
                  disabled="@Disabled">
@@ -98,5 +98,32 @@
         return Enum.GetValues<PrincipalBusinessActivityType>()
             .Where(a => a != PrincipalBusinessActivityType.None)
             .OrderBy(a => a.GetDisplayName());
+    }
+
+    /// <summary>
+    /// Gets the CSS class including validation state.
+    /// </summary>
+    private string GetCssClass()
+    {
+        var cssClass = $"form-control {CssClass}";
+
+        if (EditContext != null && ValueExpression != null)
+        {
+            var fieldIdentifier = FieldIdentifier.Create(ValueExpression);
+            var validationMessages = EditContext.GetValidationMessages(fieldIdentifier);
+            var hasErrors = validationMessages.Any();
+
+            // Add invalid class if field has validation errors
+            if (hasErrors)
+            {
+                cssClass += " invalid";
+            }
+            else if (EditContext.IsModified(fieldIdentifier))
+            {
+                cssClass += " valid";
+            }
+        }
+
+        return cssClass.Trim();
     }
 }

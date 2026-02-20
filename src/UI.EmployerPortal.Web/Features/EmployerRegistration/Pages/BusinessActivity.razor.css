@@ -94,68 +94,51 @@
     margin-left: 0.25rem;
 }
 
-/* ── Form Controls ── */
-::deep .form-control {
+/* ── Form Inputs (matching Ownership design) ── */
+::deep .form-input {
     display: block;
     width: 100%;
     padding: 0.875rem 0.75rem;
     font-size: 1rem;
     font-weight: 400;
-    line-height: 1.5;
     color: #000;
     background-color: #fff;
-    border: 1px solid #ced4da;
+    border: 1px solid #d0d0d0;
     border-radius: 4px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    box-sizing: border-box;
+    transition: border-color 0.2s;
 }
 
-    ::deep .form-control:focus {
-        border-color: #80bdff;
-        outline: 0;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    ::deep .form-input:focus {
+        outline: none;
+        border-color: #666;
     }
 
-    ::deep .form-control:disabled {
+    ::deep .form-input:disabled {
         background-color: #e9ecef;
         opacity: 1;
         cursor: not-allowed;
     }
 
-/* ── Form Select (Dropdown) ── */
+/* ── Form Select (Dropdown) - matching Ownership design ── */
 ::deep .form-select {
-    display: block;
     width: 100%;
-    padding: 0.875rem 2.25rem 0.875rem 0.75rem;
+    padding: 0.875rem 0.75rem;
     font-size: 1rem;
     font-weight: 400;
-    line-height: 1.5;
     color: #000;
-    background-color: #fff;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 16px 12px;
-    border: 1px solid #ced4da;
+    border: 1px solid #d0d0d0;
     border-radius: 4px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    appearance: none;
+    background-color: #fff;
+    transition: border-color 0.2s;
 }
 
     ::deep .form-select:focus {
-        border-color: #80bdff;
-        outline: 0;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    ::deep .form-select:disabled {
-        background-color: #e9ecef;
-        opacity: 1;
-        cursor: not-allowed;
+        outline: none;
+        border-color: #666;
     }
 
 /* Ensure date inputs render consistently */
-::deep input[type="date"].form-control {
+::deep input[type="date"].form-input {
     min-height: 38px;
     padding: 0.875rem 0.75rem;
 }
@@ -187,6 +170,17 @@
 
     ::deep .activity-instruction u {
         color: #0056b3;
+    }
+
+/* Add after the existing validation styles */
+::deep .form-control.invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+    ::deep .form-control.invalid:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
     }
 
 /* ── Checkbox ── */
@@ -288,6 +282,17 @@
     font-size: 1.2rem;
     font-weight: 700;
 }
+
+/* ── Input Validation Error (matching Ownership design) ── */
+::deep .input-validation-error {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+    ::deep .input-validation-error:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
 
 /* ── Responsive ── */
 @media (max-width: 992px) {

@@ -25,7 +25,7 @@
             </div>
         }
 
-        <EditForm Model="Model" OnValidSubmit="HandleContinue" FormName="businessActivityForm">
+        <EditForm Model="Model" OnValidSubmit="HandleContinue" OnInvalidSubmit="HandleInvalidSubmit" FormName="businessActivityForm">
             <DataAnnotationsValidator />
 
             <div class="form-section">
@@ -38,7 +38,7 @@
                         </label>
                         <InputDate id="dateStarted"
                                    @bind-Value="Model.DateBusinessStarted"
-                                   class="form-control"
+                                   class="form-input"
                                    DisplayName="Date business started"
                                    @bind-Value:format="MM/dd/yyyy" />
                         <ValidationMessage For="() => Model.DateBusinessStarted" />
@@ -51,7 +51,7 @@
                         </label>
                         <InputDate id="dateFirstPaid"
                                    @bind-Value="Model.DateFirstPaidEmployeesInWI"
-                                   class="form-control"
+                                   class="form-input"
                                    DisplayName="Date first paid employees"
                                    @bind-Value:format="MM/dd/yyyy" />
                         <ValidationMessage For="() => Model.DateFirstPaidEmployeesInWI" />
@@ -67,7 +67,7 @@
                         </label>
                         <InputDate id="dateFirstWages"
                                    @bind-Value="Model.DateFirstPaidWagesInWI"
-                                   class="form-control"
+                                   class="form-input"
                                    DisplayName="Date first paid wages"
                                    @bind-Value:format="MM/dd/yyyy" />
                         <ValidationMessage For="() => Model.DateFirstPaidWagesInWI" />
@@ -77,9 +77,7 @@
                 <!-- Principal Business Activity -->
                 <div class="activity-section">
                     <p class="activity-instruction">
-                        <strong>Select your principal business activity.</strong>
-                        Choose "Construction" if you are engaged in building or repair or painting of:
-                        houses or other structures, or roads, or utilities, or related activities that involve earth-moving.
+                        Select your principal business activity from the list below.
                     </p>
 
                     <div class="form-row row">
@@ -124,7 +122,7 @@
                             </label>
                             <InputTextArea id="primaryDescription"
                                            @bind-Value="Model.PrimaryBusinessActivityDescription"
-                                           class="form-control"
+                                           class="form-input"
                                            rows="4"
                                            placeholder="Software consulting" />
                             <ValidationMessage For="() => Model.PrimaryBusinessActivityDescription" />
@@ -153,7 +151,7 @@
                             </label>
                             <InputTextArea id="wiDescription"
                                            @bind-Value="Model.WisconsinSpecificBusinessActivity"
-                                           class="form-control"
+                                           class="form-input"
                                            rows="4"
                                            disabled="@Model.SameAsPrimaryBusinessActivity" />
                         </div>

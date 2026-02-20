@@ -127,6 +127,37 @@ public partial class BusinessActivity : ComponentBase
         Navigation.NavigateTo("/employer-registration/UISubjectivity");
     }
 
+    private void HandleInvalidSubmit()
+    {
+        _validationErrors.Clear();
+        _showValidationSummary = true;
+
+        // Collect validation errors (optional - add custom logic here)
+        if (!Model.DateBusinessStarted.HasValue)
+        {
+            _validationErrors.Add("Date business started is required");
+        }
+            
+
+        if (!Model.DateFirstPaidEmployeesInWI.HasValue)
+        {
+            _validationErrors.Add("Date you first had paid employees in WI is required");
+        }
+
+
+        if (!Model.DateFirstPaidWagesInWI.HasValue)
+        {
+            _validationErrors.Add("Date first paid wages in WI is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.PrimaryBusinessActivityDescription))
+        {
+            _validationErrors.Add("Primary Business Activity Description is required");
+        }   
+
+        StateHasChanged();
+    }
+
     private void HandleBack()
     {
         Navigation.NavigateTo("/employer-registration/BusinessContact");
