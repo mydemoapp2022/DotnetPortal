@@ -13,7 +13,6 @@
                      CssClass="@(GetFieldCssClass("RegistrationState"))" />
     }
 
-    <!-- Owner Information Section -->
     <div class="owner-info-section">
         <h2 class="section-subtitle">Owner Information</h2>
 
@@ -66,6 +65,7 @@
                               IsFocusedChanged="@((bool focused) => OnSSNFocusChanged(index, focused))"
                               ShowSSN="@ShowSSN"
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
+                              IsRequired="@(!IsOutsideUSA)"
                               CssClass="@(GetFieldCssClass($"Member{index}_SSN"))" />
 
                     <div class="form-group">
@@ -82,7 +82,6 @@
             </div>
         }
 
-        <!-- More than five radio buttons -->
         <div class="more-than-five-group @(GetFieldCssClass("MoreThanFive"))">
             <label class="more-label">
                 <span class="required-asterisk">*</span> More than five?
@@ -121,6 +120,9 @@
     public bool ShouldValidate { get; set; }
 
     [Parameter]
+    public bool IsOutsideUSA { get; set; }
+
+    [Parameter]
     public object? SavedData { get; set; }
 
     private string RegistrationState { get; set; } = string.Empty;
@@ -131,13 +133,24 @@
     private HashSet<string> InvalidFields { get; set; } = [];
     private bool _lastShouldValidate;
     private bool _dataRestored;
+    private bool _previousIsOutsideUSA;
     private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
+        _previousIsOutsideUSA = IsOutsideUSA;
         InitializeMembers();
         RestoreFromSession();
         ValidateForm();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_previousIsOutsideUSA != IsOutsideUSA)
+        {
+            _previousIsOutsideUSA = IsOutsideUSA;
+            ValidateForm();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -243,14 +256,12 @@
         ValidationErrors.Clear();
         InvalidFields.Clear();
 
-        // Validate Registration State if required
         if (Config.RequiresState && string.IsNullOrWhiteSpace(RegistrationState))
         {
             ValidationErrors.Add($"{Config.StateLabel} is required");
             InvalidFields.Add("RegistrationState");
         }
 
-        // Validate each member
         for (var i = 0; i < Members.Count; i++)
         {
             var member = Members[i];
@@ -276,16 +287,19 @@
                     InvalidFields.Add($"Member{i}_LastName");
                 }
 
-                var ssnResult = ssnInput?.ValidateSSN(member.SSN, $"{Config.MemberLabel} {memberNumber}");
-                if (ssnResult != null && !ssnResult.IsValid)
+                if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(member.SSN))
                 {
-                    ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
-                    InvalidFields.Add($"Member{i}_SSN");
+                    var ssnResult = ssnInput?.ValidateSSN(member.SSN, $"{Config.MemberLabel} {memberNumber}");
+                    if (ssnResult != null && !ssnResult.IsValid)
+                    {
+                        ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
+                        InvalidFields.Add($"Member{i}_SSN");
+                    }
                 }
             }
         }
 
-        // Check for duplicate SSNs - Cast to nullable string list
+        // Always enforce no-duplicate rule even when SSN is optional
         var ssnList = Members.Select(m => (string?)m.SSN).ToList();
         var duplicateErrors = ssnInput?.FindDuplicateSSNs(ssnList, i => $"{Config.MemberLabel} {i + 1}");
 
@@ -293,14 +307,10 @@
         {
             ValidationErrors.AddRange(duplicateErrors);
 
-            // Mark duplicate SSN fields as invalid
             var ssnGroups = Members
                 .Select((m, idx) => new { SSN = m.SSN, Index = idx })
                 .Where(x => !string.IsNullOrWhiteSpace(x.SSN))
-                .GroupBy(x =>
-                {
-                    return new string(x.SSN!.Where(char.IsDigit).ToArray());
-                })
+                .GroupBy(x => new string(x.SSN!.Where(char.IsDigit).ToArray()))
                 .Where(g => g.Count() > 1);
 
             foreach (var group in ssnGroups)
@@ -312,7 +322,6 @@
             }
         }
 
-        // Validate "More than five?" selection
         if (MoreThanFive == null)
         {
             ValidationErrors.Add("More than five? selection is required");
@@ -350,4 +359,3 @@
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
     }
 }
-

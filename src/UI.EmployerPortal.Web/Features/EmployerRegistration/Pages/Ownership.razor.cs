@@ -264,8 +264,8 @@ public partial class Ownership
             parameters.Add("Config", config);
             parameters.Add("OnValidationChanged", EventCallback.Factory.Create<List<string>>(this, OnChildValidationChanged));
             parameters.Add("ShouldValidate", _shouldValidate);
+            parameters.Add("IsOutsideUSA", IsOutsideUSA);
 
-            // Create correctly-typed EventCallback to match each child component's parameter type
             switch (SelectedOwnershipType)
             {
                 case OwnershipType.LLC:
@@ -298,7 +298,6 @@ public partial class Ownership
                     break;
             }
 
-            // Pass saved data uniformly as SavedData for all component types
             if (_savedSessionData != null && _savedSessionData.OwnershipType == SelectedOwnershipType)
             {
                 parameters.Add("SavedData", _savedSessionData);

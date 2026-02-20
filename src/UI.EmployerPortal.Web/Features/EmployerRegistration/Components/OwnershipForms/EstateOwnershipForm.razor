@@ -3,7 +3,6 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 
 <div class="estate-section">
-    <!-- Decedent Section -->
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Decedent</h3>
@@ -49,12 +48,12 @@
                           IsFocusedChanged="@((bool focused) => Decedent.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
+                          IsRequired="@(!IsOutsideUSA)"
                           CssClass="@(GetFieldCssClass("Decedent_SSN"))" />
             </div>
         </div>
     </div>
 
-    <!-- Personal Representative Section -->
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Personal Representative</h3>
@@ -100,6 +99,7 @@
                           IsFocusedChanged="@((bool focused) => PersonalRepresentative.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
+                          IsRequired="@(!IsOutsideUSA)"
                           CssClass="@(GetFieldCssClass("PersonalRepresentative_SSN"))" />
             </div>
         </div>
@@ -120,6 +120,9 @@
     public bool ShouldValidate { get; set; }
 
     [Parameter]
+    public bool IsOutsideUSA { get; set; }
+
+    [Parameter]
     public object? SavedData { get; set; }
 
     private OwnerMember Decedent { get; set; } = new() { Role = "Decedent" };
@@ -129,14 +132,25 @@
     private HashSet<string> InvalidFields { get; set; } = [];
     private bool _lastShouldValidate;
     private bool _dataRestored;
+    private bool _previousIsOutsideUSA;
     private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
+        _previousIsOutsideUSA = IsOutsideUSA;
         Decedent = new OwnerMember { Role = "Decedent" };
         PersonalRepresentative = new OwnerMember { Role = "Personal Representative" };
         RestoreFromSession();
         ValidateForm();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_previousIsOutsideUSA != IsOutsideUSA)
+        {
+            _previousIsOutsideUSA = IsOutsideUSA;
+            ValidateForm();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -215,7 +229,6 @@
         ValidationErrors.Clear();
         InvalidFields.Clear();
 
-        // Validate Decedent
         if (string.IsNullOrWhiteSpace(Decedent.FirstName))
         {
             ValidationErrors.Add("Decedent First Name is required");
@@ -228,14 +241,16 @@
             InvalidFields.Add("Decedent_LastName");
         }
 
-        var decedentSsnResult = ssnInput?.ValidateSSN(Decedent.SSN, "Decedent");        
-        if (decedentSsnResult != null && !decedentSsnResult.IsValid)
+        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(Decedent.SSN))
         {
-            ValidationErrors.Add(decedentSsnResult.ErrorMessage ?? "Validation error occurred");
-            InvalidFields.Add("Decedent_SSN");
+            var decedentSsnResult = ssnInput?.ValidateSSN(Decedent.SSN, "Decedent");
+            if (decedentSsnResult != null && !decedentSsnResult.IsValid)
+            {
+                ValidationErrors.Add(decedentSsnResult.ErrorMessage ?? "Validation error occurred");
+                InvalidFields.Add("Decedent_SSN");
+            }
         }
 
-        // Validate Personal Representative
         if (string.IsNullOrWhiteSpace(PersonalRepresentative.FirstName))
         {
             ValidationErrors.Add("Personal Representative First Name is required");
@@ -248,14 +263,17 @@
             InvalidFields.Add("PersonalRepresentative_LastName");
         }
 
-        var representativeSsnResult = ssnInput?.ValidateSSN(PersonalRepresentative.SSN, "PersonalRepresentative");
-        if (representativeSsnResult != null && !representativeSsnResult.IsValid)
+        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(PersonalRepresentative.SSN))
         {
-            ValidationErrors.Add(representativeSsnResult.ErrorMessage ?? "SSN Required");
-            InvalidFields.Add("PersonalRepresentative_SSN");
+            var representativeSsnResult = ssnInput?.ValidateSSN(PersonalRepresentative.SSN, "PersonalRepresentative");
+            if (representativeSsnResult != null && !representativeSsnResult.IsValid)
+            {
+                ValidationErrors.Add(representativeSsnResult.ErrorMessage ?? "SSN Required");
+                InvalidFields.Add("PersonalRepresentative_SSN");
+            }
         }
 
-        // Check for duplicate SSNs between Decedent and Personal Representative
+        // Always enforce no-duplicate rule even when SSN is optional
         var ssnList = new List<string?> { Decedent.SSN, PersonalRepresentative.SSN };
         var duplicateErrors = ssnInput?.FindDuplicateSSNs(ssnList, i => i == 0 ? "Decedent" : "Personal Representative");
         if (duplicateErrors != null && duplicateErrors.Count > 0)

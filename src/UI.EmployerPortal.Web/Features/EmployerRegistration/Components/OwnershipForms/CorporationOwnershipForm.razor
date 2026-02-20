@@ -83,6 +83,7 @@
                               IsFocusedChanged="@((bool focused) => OnSSNFocusChanged(index, focused))"
                               ShowSSN="@ShowSSN"
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
+                              IsRequired="@(!IsOutsideUSA)"
                               CssClass="@(GetFieldCssClass($"{officer.Role}_SSN"))" />
 
                     <div class="form-group">
@@ -114,6 +115,12 @@
     [Parameter]
     public bool ShouldValidate { get; set; }
 
+    /// <summary>
+    /// When true, Corporate Officer SSN is optional (business headquartered outside the USA).
+    /// </summary>
+    [Parameter]
+    public bool IsOutsideUSA { get; set; }
+
     [Parameter]
     public object? SavedData { get; set; }
 
@@ -125,13 +132,28 @@
     private HashSet<string> InvalidFields { get; set; } = [];
     private bool _lastShouldValidate;
     private bool _dataRestored;
+    private bool _previousIsOutsideUSA;
     private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
+        _previousIsOutsideUSA = IsOutsideUSA;
         InitializeOfficers();
         RestoreFromSession();
         ValidateForm();
+    }
+
+    /// <summary>
+    /// Re-run validation whenever IsOutsideUSA is toggled so SSN errors
+    /// are cleared/raised immediately without waiting for a field change.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (_previousIsOutsideUSA != IsOutsideUSA)
+        {
+            _previousIsOutsideUSA = IsOutsideUSA;
+            ValidateForm();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -290,16 +312,21 @@
                         InvalidFields.Add($"{officer.Role}_LastName");
                     }
 
-                    var ssnResult = ssnInput?.ValidateSSN(officer.SSN, officer.Role);
-                    if (ssnResult != null && !ssnResult.IsValid)
+                    // When IsOutsideUSA is true, SSN is optional.
+                    // Skip the required check if SSN is empty, but still validate format if a value was entered.
+                    if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(officer.SSN))
                     {
-                        ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
-                        InvalidFields.Add($"{officer.Role}_SSN");
+                        var ssnResult = ssnInput?.ValidateSSN(officer.SSN, officer.Role);
+                        if (ssnResult != null && !ssnResult.IsValid)
+                        {
+                            ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
+                            InvalidFields.Add($"{officer.Role}_SSN");
+                        }
                     }
                 }
             }
 
-            // Check for duplicate SSNs
+            // Always enforce no-duplicate rule, even when SSN is optional
             var ssnList = Officers.Select(o => (string?)o.SSN).ToList();
             var duplicateErrors = ssnInput?.FindDuplicateSSNs(ssnList, i => Officers[i].Role);
 
@@ -310,10 +337,7 @@
                 var ssnGroups = Officers
                     .Select((o, idx) => new { SSN = o.SSN, Role = o.Role, Index = idx })
                     .Where(x => !string.IsNullOrWhiteSpace(x.SSN))
-                    .GroupBy(x =>
-                    {
-                        return new string(x.SSN!.Where(char.IsDigit).ToArray());
-                    })
+                    .GroupBy(x => new string(x.SSN!.Where(char.IsDigit).ToArray()))
                     .Where(g => g.Count() > 1);
 
                 foreach (var group in ssnGroups)

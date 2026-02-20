@@ -4,7 +4,11 @@
 
 <div class="form-group">
     <label for="@Id" class="form-label">
-        <span class="required-asterisk">*</span> @Label
+        @if (IsRequired)
+        {
+            <span class="required-asterisk">*</span>
+        }
+        @Label
     </label>
     <div class="ssn-input-wrapper">
         <input @ref="inputElement"
@@ -68,6 +72,12 @@
 
     [Parameter]
     public EventCallback<bool> ShowSSNChanged { get; set; }
+
+    /// <summary>
+    /// Controls whether the required asterisk (*) is shown. Defaults to true.
+    /// </summary>
+    [Parameter]
+    public bool IsRequired { get; set; } = true;
 
     private string DisplayValue => IsFocused || ShowSSN ? Value : MaskSSN(Value);
 

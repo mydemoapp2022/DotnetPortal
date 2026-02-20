@@ -3,14 +3,12 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 
 <div class="limited-partnership-section">
-    <!-- Registration State -->
     <StateSelect Id="registration-state"
                  Label="Registration State"
                  Value="@RegistrationState"
                  ValueChanged="StateChanged"
                  CssClass="@(GetFieldCssClass("RegistrationState"))" />
 
-    <!-- General Partner Section -->
     <div class="general-partner-section">
         <h2 class="section-subtitle">General Partner Information</h2>
 
@@ -58,12 +56,12 @@
                           IsFocusedChanged="@((bool focused) => GeneralPartner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
+                          IsRequired="@(!IsOutsideUSA)"
                           CssClass="@(GetFieldCssClass("GeneralPartner_SSN"))" />
             </div>
         </div>
     </div>
     <br />
-    <!-- Limited Partnership Name -->
     <div class="form-group">
         <label for="partnership-name" class="form-label">
             <span class="required-asterisk">*</span> Limited Partnership Name
@@ -90,6 +88,9 @@
     public bool ShouldValidate { get; set; }
 
     [Parameter]
+    public bool IsOutsideUSA { get; set; }
+
+    [Parameter]
     public object? SavedData { get; set; }
 
     private string RegistrationState { get; set; } = string.Empty;
@@ -100,13 +101,24 @@
     private HashSet<string> InvalidFields { get; set; } = [];
     private bool _lastShouldValidate;
     private bool _dataRestored;
+    private bool _previousIsOutsideUSA;
     private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
+        _previousIsOutsideUSA = IsOutsideUSA;
         GeneralPartner = new OwnerMember { Role = "General Partner" };
         RestoreFromSession();
         ValidateForm();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_previousIsOutsideUSA != IsOutsideUSA)
+        {
+            _previousIsOutsideUSA = IsOutsideUSA;
+            ValidateForm();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -200,11 +212,14 @@
             InvalidFields.Add("GeneralPartner_LastName");
         }
 
-        var ssnResult = ssnInput?.ValidateSSN(GeneralPartner.SSN, "General Partner");
-        if (ssnResult != null && !ssnResult.IsValid)
+        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
         {
-            ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
-            InvalidFields.Add("GeneralPartner_SSN");
+            var ssnResult = ssnInput?.ValidateSSN(GeneralPartner.SSN, "General Partner");
+            if (ssnResult != null && !ssnResult.IsValid)
+            {
+                ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
+                InvalidFields.Add("GeneralPartner_SSN");
+            }
         }
 
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);

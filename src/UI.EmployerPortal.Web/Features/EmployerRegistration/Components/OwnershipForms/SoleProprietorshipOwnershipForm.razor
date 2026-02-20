@@ -3,11 +3,9 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 
 <div class="sole-proprietorship-section">
-    <!-- Owner Information Section -->
     <div class="owner-info-section">
         <h2 class="section-subtitle">Owner Information</h2>
 
-        <!-- Member Card -->
         <div class="member-card">
             <h3 class="member-title">Member 1</h3>
 
@@ -24,9 +22,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="middle-initial" class="form-label">
-                        Middle Initial
-                    </label>
+                    <label for="middle-initial" class="form-label">Middle Initial</label>
                     <input type="text"
                            id="middle-initial"
                            class="form-input"
@@ -54,6 +50,7 @@
                           IsFocusedChanged="@((bool focused) => Owner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
+                          IsRequired="@(!IsOutsideUSA)"
                           CssClass="@(GetFieldCssClass("SSN"))" />
 
                 <div class="form-group">
@@ -85,6 +82,9 @@
     public bool ShouldValidate { get; set; }
 
     [Parameter]
+    public bool IsOutsideUSA { get; set; }
+
+    [Parameter]
     public object? SavedData { get; set; }
 
     private OwnerMember Owner { get; set; } = new();
@@ -93,13 +93,24 @@
     private HashSet<string> InvalidFields { get; set; } = [];
     private bool _lastShouldValidate;
     private bool _dataRestored;
+    private bool _previousIsOutsideUSA;
     private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
+        _previousIsOutsideUSA = IsOutsideUSA;
         Owner = new OwnerMember();
         RestoreFromSession();
         ValidateForm();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_previousIsOutsideUSA != IsOutsideUSA)
+        {
+            _previousIsOutsideUSA = IsOutsideUSA;
+            ValidateForm();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -170,11 +181,14 @@
             InvalidFields.Add("LastName");
         }
 
-        var ssnResult = ssnInput?.ValidateSSN(Owner.SSN, "SSN");
-        if (ssnResult != null && !ssnResult.IsValid)
+        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(Owner.SSN))
         {
-            ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
-            InvalidFields.Add("SSN");
+            var ssnResult = ssnInput?.ValidateSSN(Owner.SSN, "SSN");
+            if (ssnResult != null && !ssnResult.IsValid)
+            {
+                ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
+                InvalidFields.Add("SSN");
+            }
         }
 
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
