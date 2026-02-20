@@ -113,12 +113,12 @@
         _ = ShowSSNChanged.InvokeAsync(!ShowSSN);
     }
 
-    // ===== Embedded SSN Logic (previously in SSNValidationService) =====
+    // ===== SSN Logic — static so no @ref is required =====
 
     /// <summary>
-    /// Validates an SSN and returns validation result
+    /// Validates an SSN and returns a validation result.
     /// </summary>
-    public SSNValidationResult ValidateSSN(string? ssn, string fieldLabel = "SSN")
+    public static SSNValidationResult ValidateSSN(string? ssn, string fieldLabel = "SSN")
     {
         var result = new SSNValidationResult { IsValid = true };
 
@@ -156,9 +156,9 @@
     }
 
     /// <summary>
-    /// Formats SSN with dashes
+    /// Formats an SSN string with dashes (XXX-XX-XXXX).
     /// </summary>
-    public string FormatSSN(string value)
+    public static string FormatSSN(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -180,9 +180,9 @@
     }
 
     /// <summary>
-    /// Masks SSN for display (shows only last 4 digits)
+    /// Masks an SSN for display, showing only the last 4 digits.
     /// </summary>
-    public string MaskSSN(string? ssn)
+    public static string MaskSSN(string? ssn)
     {
         if (string.IsNullOrWhiteSpace(ssn))
         {
@@ -201,9 +201,9 @@
     }
 
     /// <summary>
-    /// Checks for duplicate SSNs in a list
+    /// Checks for duplicate SSNs across a list and returns error messages.
     /// </summary>
-    public List<string> FindDuplicateSSNs(List<string?> ssnList, Func<int, string> getLabelForIndex)
+    public static List<string> FindDuplicateSSNs(List<string?> ssnList, Func<int, string> getLabelForIndex)
     {
         var errors = new List<string>();
         var ssnDict = new Dictionary<string, List<int>>();
@@ -211,19 +211,13 @@
         for (var i = 0; i < ssnList.Count; i++)
         {
             var ssn = ssnList[i];
-            if (string.IsNullOrWhiteSpace(ssn))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(ssn)) continue;
 
             var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-
             if (digitsOnly.Length == 9)
             {
                 if (!ssnDict.ContainsKey(digitsOnly))
-                {
                     ssnDict[digitsOnly] = [];
-                }
                 ssnDict[digitsOnly].Add(i);
             }
         }
@@ -233,6 +227,7 @@
             var indices = string.Join(", ", kvp.Value.Select(i => getLabelForIndex(i)));
             errors.Add($"Duplicate SSN found for: {indices}");
         }
+
         return errors;
     }
 
@@ -253,9 +248,6 @@
 
     // ===== Supporting Models =====
 
-    /// <summary>
-    /// SSN validation result
-    /// </summary>
     public class SSNValidationResult
     {
         public bool IsValid { get; set; }

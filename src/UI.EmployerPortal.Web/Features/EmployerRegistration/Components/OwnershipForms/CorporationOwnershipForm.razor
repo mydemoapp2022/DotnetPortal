@@ -76,7 +76,6 @@
 
                     <SSNInput Id="@($"ssn-{officer.Role}")"
                               Label="SSN"
-                              @ref="ssnInput"
                               Value="@officer.SSN"
                               ValueChanged="@((string value) => OnSSNChanged(index, value))"
                               IsFocused="@officer.IsSSNFocused"
@@ -133,7 +132,6 @@
     private bool _lastShouldValidate;
     private bool _dataRestored;
     private bool _previousIsOutsideUSA;
-    private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
@@ -316,7 +314,7 @@
                     // Skip the required check if SSN is empty, but still validate format if a value was entered.
                     if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(officer.SSN))
                     {
-                        var ssnResult = ssnInput?.ValidateSSN(officer.SSN, officer.Role);
+                        var ssnResult = SSNInput.ValidateSSN(officer.SSN, officer.Role);
                         if (ssnResult != null && !ssnResult.IsValid)
                         {
                             ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
@@ -328,7 +326,7 @@
 
             // Always enforce no-duplicate rule, even when SSN is optional
             var ssnList = Officers.Select(o => (string?)o.SSN).ToList();
-            var duplicateErrors = ssnInput?.FindDuplicateSSNs(ssnList, i => Officers[i].Role);
+            var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => Officers[i].Role);
 
             if (duplicateErrors != null && duplicateErrors.Count > 0)
             {

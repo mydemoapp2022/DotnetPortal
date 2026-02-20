@@ -93,8 +93,7 @@
     private HashSet<string> InvalidFields { get; set; } = [];
     private bool _lastShouldValidate;
     private bool _dataRestored;
-    private bool _previousIsOutsideUSA;
-    private SSNInput? ssnInput;
+    private bool _previousIsOutsideUSA;    
 
     protected override void OnInitialized()
     {
@@ -183,7 +182,7 @@
 
         if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(Owner.SSN))
         {
-            var ssnResult = ssnInput?.ValidateSSN(Owner.SSN, "SSN");
+            var ssnResult = SSNInput.ValidateSSN(Owner.SSN, "SSN");
             if (ssnResult != null && !ssnResult.IsValid)
             {
                 ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");

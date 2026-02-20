@@ -102,7 +102,6 @@
     private bool _lastShouldValidate;
     private bool _dataRestored;
     private bool _previousIsOutsideUSA;
-    private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
@@ -214,7 +213,7 @@
 
         if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
         {
-            var ssnResult = ssnInput?.ValidateSSN(GeneralPartner.SSN, "General Partner");
+            var ssnResult = SSNInput.ValidateSSN(GeneralPartner.SSN, "General Partner");
             if (ssnResult != null && !ssnResult.IsValid)
             {
                 ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");

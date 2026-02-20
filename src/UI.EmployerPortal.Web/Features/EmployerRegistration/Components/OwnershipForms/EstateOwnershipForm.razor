@@ -133,7 +133,6 @@
     private bool _lastShouldValidate;
     private bool _dataRestored;
     private bool _previousIsOutsideUSA;
-    private SSNInput? ssnInput;
 
     protected override void OnInitialized()
     {
@@ -243,7 +242,7 @@
 
         if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(Decedent.SSN))
         {
-            var decedentSsnResult = ssnInput?.ValidateSSN(Decedent.SSN, "Decedent");
+            var decedentSsnResult = SSNInput.ValidateSSN(Decedent.SSN, "Decedent");
             if (decedentSsnResult != null && !decedentSsnResult.IsValid)
             {
                 ValidationErrors.Add(decedentSsnResult.ErrorMessage ?? "Validation error occurred");
@@ -265,7 +264,7 @@
 
         if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(PersonalRepresentative.SSN))
         {
-            var representativeSsnResult = ssnInput?.ValidateSSN(PersonalRepresentative.SSN, "PersonalRepresentative");
+            var representativeSsnResult = SSNInput.ValidateSSN(PersonalRepresentative.SSN, "PersonalRepresentative");
             if (representativeSsnResult != null && !representativeSsnResult.IsValid)
             {
                 ValidationErrors.Add(representativeSsnResult.ErrorMessage ?? "SSN Required");
@@ -275,7 +274,7 @@
 
         // Always enforce no-duplicate rule even when SSN is optional
         var ssnList = new List<string?> { Decedent.SSN, PersonalRepresentative.SSN };
-        var duplicateErrors = ssnInput?.FindDuplicateSSNs(ssnList, i => i == 0 ? "Decedent" : "Personal Representative");
+        var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => i == 0 ? "Decedent" : "Personal Representative");
         if (duplicateErrors != null && duplicateErrors.Count > 0)
         {
             ValidationErrors.AddRange(duplicateErrors);
