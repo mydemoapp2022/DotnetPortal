@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI.EmployerPortal.Web", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI.EmployerPortal.Razor.SharedComponents", "src\UI.EmployerPortal.Razor.SharedComponents\UI.EmployerPortal.Razor.SharedComponents.csproj", "{1A564014-8A0E-4D02-9753-1B2F957F0A0E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.UI.EmployerPortal.Razor.SharedComponents", "test\Test.UI.EmployerPortal.Razor.SharedComponents\Test.UI.EmployerPortal.Razor.SharedComponents.csproj", "{7EDA5527-039A-4996-9F43-31CC52355E20}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{1A564014-8A0E-4D02-9753-1B2F957F0A0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A564014-8A0E-4D02-9753-1B2F957F0A0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A564014-8A0E-4D02-9753-1B2F957F0A0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7EDA5527-039A-4996-9F43-31CC52355E20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EDA5527-039A-4996-9F43-31CC52355E20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EDA5527-039A-4996-9F43-31CC52355E20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EDA5527-039A-4996-9F43-31CC52355E20}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +70,7 @@ Global
 		{060E8D1C-8AC1-B516-953F-8FE36F45FE8C} = {28EC78D6-0340-40F2-9236-2014AA5A6E20}
 		{A1EB203A-A2B2-C4B7-338F-81E32EA173CF} = {2807FAAE-0694-44DC-8B5E-40146FE89D76}
 		{1A564014-8A0E-4D02-9753-1B2F957F0A0E} = {2807FAAE-0694-44DC-8B5E-40146FE89D76}
+		{7EDA5527-039A-4996-9F43-31CC52355E20} = {807726CF-D864-4749-BEE5-4026EF7B5F97}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A5C11275-995A-43EC-AD25-8181BE1F8C4E}
