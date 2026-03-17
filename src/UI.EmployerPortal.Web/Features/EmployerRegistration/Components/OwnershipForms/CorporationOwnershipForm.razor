@@ -21,8 +21,8 @@
                         Value="@ForeignCountry"
                         ValueChanged="@(v => { ForeignCountry = v; OnForeignCountryChanged(); })"
                         Disabled="@(!string.IsNullOrWhiteSpace(IncorporationState))"
-                        HasError="@InvalidFields.Contains("ForeignCountry")"
-                        ErrorMessage="@GetErrorForField("ForeignCountry")"
+                        HasError="@FieldErrors.ContainsKey("ForeignCountry")"
+                        ErrorMessage="@FieldErrors.GetValueOrDefault("ForeignCountry")"
                         OnBlur="ValidateForm" />
     </div>
 
@@ -45,8 +45,8 @@
                                     ValueChanged="@(v => officer.FirstName = v)"
                                     MaxLength="64"
                                     Width="106"
-                                    HasError="@InvalidFields.Contains($"{officer.Role}_FirstName")"
-                                    ErrorMessage="@GetErrorForField($"{officer.Role}_FirstName")"
+                                    HasError="@FieldErrors.ContainsKey($"{officer.Role}_FirstName")"
+                                    ErrorMessage="@FieldErrors.GetValueOrDefault($"{officer.Role}_FirstName")"
                                     OnBlur="ValidateForm" />
 
                     <ValidatedInput Id="@($"middle-initial-{officer.Role}")"
@@ -62,8 +62,8 @@
                                     ValueChanged="@(v => officer.LastName = v)"
                                     MaxLength="64"
                                     Width="103"
-                                    HasError="@InvalidFields.Contains($"{officer.Role}_LastName")"
-                                    ErrorMessage="@GetErrorForField($"{officer.Role}_LastName")"
+                                    HasError="@FieldErrors.ContainsKey($"{officer.Role}_LastName")"
+                                    ErrorMessage="@FieldErrors.GetValueOrDefault($"{officer.Role}_LastName")"
                                     OnBlur="ValidateForm" />
 
                     <SSNInput Id="@($"ssn-{officer.Role}")"
@@ -75,6 +75,8 @@
                               ShowSSN="@ShowSSN"
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
                               IsRequired="@(!ISOutsideUSA)"
+                              HasError="@FieldErrors.ContainsKey($"{officer.Role}_SSN")"
+                              ErrorMessage="@FieldErrors.GetValueOrDefault($"{officer.Role}_SSN")"
                               CssClass="@(GetFieldCssClass($"{officer.Role}_SSN"))" />
 
                     <ValidatedInput Id="@($"ownership-percentage-{officer.Role}")"
@@ -86,8 +88,8 @@
                                     Max="100"
                                     Step="0.01"
                                     Width="130"
-                                    HasError="@InvalidFields.Contains($"{officer.Role}_OwnershipPercentage")"
-                                    ErrorMessage="@GetErrorForField($"{officer.Role}_OwnershipPercentage")"
+                                    HasError="@FieldErrors.ContainsKey($"{officer.Role}_OwnershipPercentage")"
+                                    ErrorMessage="@FieldErrors.GetValueOrDefault($"{officer.Role}_OwnershipPercentage")"
                                     OnBlur="ValidateForm" />
                 </div>
             </div>
@@ -120,6 +122,7 @@
     private List<OwnerMember> Officers { get; set; } = [];
     private List<string> ValidationErrors { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
+    private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
     private bool _previousISOutsideUSA;
 
@@ -219,16 +222,24 @@
             Officers[index].IsSSNFocused = focused;
     }
 
+    private void AddFieldError(string fieldKey, string message)
+    {
+        ValidationErrors.Add(message);
+        InvalidFields.Add(fieldKey);
+        FieldErrors[fieldKey] = message;
+    }
+
     private void ValidateForm()
     {
         ValidationErrors.Clear();
         InvalidFields.Clear();
+        FieldErrors.Clear();
 
         if (string.IsNullOrWhiteSpace(IncorporationState) && string.IsNullOrWhiteSpace(ForeignCountry))
         {
-            ValidationErrors.Add($"{Config.StateLabel} or Foreign Country is required");
-            InvalidFields.Add("IncorporationState");
-            InvalidFields.Add("ForeignCountry");
+            var msg = $"{Config.StateLabel} or Foreign Country is required";
+            AddFieldError("IncorporationState", msg);
+            AddFieldError("ForeignCountry", msg);
         }
 
         var hasAnyOfficerData = Officers.Any(o =>
@@ -255,24 +266,20 @@
 
                 if (string.IsNullOrWhiteSpace(officer.FirstName))
                 {
-                    ValidationErrors.Add($"{officer.Role} First Name is required");
-                    InvalidFields.Add($"{officer.Role}_FirstName");
+                    AddFieldError($"{officer.Role}_FirstName", $"{officer.Role} First Name is required");
                 }
                 else if (officer.FirstName.Length > 64)
                 {
-                    ValidationErrors.Add($"{officer.Role} First Name must not exceed 64 characters");
-                    InvalidFields.Add($"{officer.Role}_FirstName");
+                    AddFieldError($"{officer.Role}_FirstName", $"{officer.Role} First Name must not exceed 64 characters");
                 }
 
                 if (string.IsNullOrWhiteSpace(officer.LastName))
                 {
-                    ValidationErrors.Add($"{officer.Role} Last Name is required");
-                    InvalidFields.Add($"{officer.Role}_LastName");
+                    AddFieldError($"{officer.Role}_LastName", $"{officer.Role} Last Name is required");
                 }
                 else if (officer.LastName.Length > 64)
                 {
-                    ValidationErrors.Add($"{officer.Role} Last Name must not exceed 64 characters");
-                    InvalidFields.Add($"{officer.Role}_LastName");
+                    AddFieldError($"{officer.Role}_LastName", $"{officer.Role} Last Name must not exceed 64 characters");
                 }
 
                 if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(officer.SSN))
@@ -280,8 +287,7 @@
                     var ssnResult = SSNInput.ValidateSSN(officer.SSN, officer.Role);
                     if (ssnResult != null && !ssnResult.IsValid)
                     {
-                        ValidationErrors.Add(ssnResult.ErrorMessage);
-                        InvalidFields.Add($"{officer.Role}_SSN");
+                        AddFieldError($"{officer.Role}_SSN", ssnResult.ErrorMessage);
                     }
                 }
 
@@ -289,13 +295,11 @@
                 {
                     if (officer.OwnershipPercentage < 0 || officer.OwnershipPercentage > 100)
                     {
-                        ValidationErrors.Add($"{officer.Role} Ownership Percentage must be between 0 and 100.00");
-                        InvalidFields.Add($"{officer.Role}_OwnershipPercentage");
+                        AddFieldError($"{officer.Role}_OwnershipPercentage", $"{officer.Role} Ownership Percentage must be between 0 and 100.00");
                     }
                     else if (decimal.Round(officer.OwnershipPercentage.Value, 2) != officer.OwnershipPercentage.Value)
                     {
-                        ValidationErrors.Add($"{officer.Role} Ownership Percentage must not exceed 2 decimal places");
-                        InvalidFields.Add($"{officer.Role}_OwnershipPercentage");
+                        AddFieldError($"{officer.Role}_OwnershipPercentage", $"{officer.Role} Ownership Percentage must not exceed 2 decimal places");
                     }
                 }
             }
@@ -306,9 +310,13 @@
 
             if (totalPercentage > 0 && Math.Round(totalPercentage, 2) != 100)
             {
-                ValidationErrors.Add("Total Ownership Percentage must equal 100.00");
+                var msg = "Total Ownership Percentage must equal 100.00";
+                ValidationErrors.Add(msg);
                 foreach (var o in Officers.Where(o => o.OwnershipPercentage.HasValue))
+                {
                     InvalidFields.Add($"{o.Role}_OwnershipPercentage");
+                    FieldErrors.TryAdd($"{o.Role}_OwnershipPercentage", msg);
+                }
             }
 
             var ssnList = Officers.Select(o => (string?)o.SSN).ToList();
@@ -324,8 +332,14 @@
                     .Where(g => g.Count() > 1);
 
                 foreach (var group in ssnGroups)
+                {
+                    var dupMsg = $"Duplicate SSN found for: {string.Join(", ", group.Select(x => x.Role))}";
                     foreach (var item in group)
+                    {
                         InvalidFields.Add($"{item.Role}_SSN");
+                        FieldErrors.TryAdd($"{item.Role}_SSN", dupMsg);
+                    }
+                }
             }
         }
 
@@ -354,25 +368,4 @@
 
     private string GetFieldCssClass(string fieldName) =>
         InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
-
-    private string? GetErrorForField(string fieldKey)
-    {
-        if (!InvalidFields.Contains(fieldKey))
-            return null;
-
-        var sep = fieldKey.LastIndexOf('_');
-        if (sep < 0)
-        {
-            var lbl = System.Text.RegularExpressions.Regex.Replace(fieldKey, "(?<=[a-z])(?=[A-Z])", " ");
-            return ValidationErrors.FirstOrDefault(e => e.Contains(lbl, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var prefixLabel = System.Text.RegularExpressions.Regex.Replace(fieldKey[..sep], "(?<=[a-z])(?=[A-Z])", " ");
-        var fieldLabel = System.Text.RegularExpressions.Regex.Replace(fieldKey[(sep + 1)..], "(?<=[a-z])(?=[A-Z])", " ");
-
-        return ValidationErrors.FirstOrDefault(e =>
-            e.Contains(prefixLabel, StringComparison.OrdinalIgnoreCase) &&
-            e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase))
-            ?? ValidationErrors.FirstOrDefault(e => e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase));
-    }
 }

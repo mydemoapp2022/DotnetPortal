@@ -16,8 +16,8 @@
                                 ValueChanged="@(v => Owner.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@InvalidFields.Contains("FirstName")"
-                                ErrorMessage="@GetErrorForField("FirstName")"
+                                HasError="@FieldErrors.ContainsKey("FirstName")"
+                                ErrorMessage="@FieldErrors.GetValueOrDefault("FirstName")"
                                 OnBlur="ValidateForm" />
 
                 <ValidatedInput Id="middle-initial"
@@ -33,8 +33,8 @@
                                 ValueChanged="@(v => Owner.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@InvalidFields.Contains("LastName")"
-                                ErrorMessage="@GetErrorForField("LastName")"
+                                HasError="@FieldErrors.ContainsKey("LastName")"
+                                ErrorMessage="@FieldErrors.GetValueOrDefault("LastName")"
                                 OnBlur="ValidateForm" />
 
                 <SSNInput Id="owner-ssn"
@@ -46,6 +46,8 @@
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="@(!ISOutsideUSA)"
+                          HasError="@FieldErrors.ContainsKey("SSN")"
+                          ErrorMessage="@FieldErrors.GetValueOrDefault("SSN")"
                           CssClass="@(GetFieldCssClass("SSN"))" />
 
                 <ValidatedInput Id="ownership-percentage"
@@ -57,8 +59,8 @@
                                 Max="100"
                                 Step="0.01"
                                 Width="130"
-                                HasError="@InvalidFields.Contains("OwnershipPercentage")"
-                                ErrorMessage="@GetErrorForField("OwnershipPercentage")"
+                                HasError="@FieldErrors.ContainsKey("OwnershipPercentage")"
+                                ErrorMessage="@FieldErrors.GetValueOrDefault("OwnershipPercentage")"
                                 OnBlur="ValidateForm" />
             </div>
         </div>
@@ -88,6 +90,7 @@
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
+    private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
     private bool _previousISOutsideUSA;
 
@@ -140,31 +143,35 @@
         ValidateForm();
     }
 
+    private void AddFieldError(string fieldKey, string message)
+    {
+        ValidationErrors.Add(message);
+        InvalidFields.Add(fieldKey);
+        FieldErrors[fieldKey] = message;
+    }
+
     private void ValidateForm()
     {
         ValidationErrors.Clear();
         InvalidFields.Clear();
+        FieldErrors.Clear();
 
         if (string.IsNullOrWhiteSpace(Owner.FirstName))
         {
-            ValidationErrors.Add("First Name is required");
-            InvalidFields.Add("FirstName");
+            AddFieldError("FirstName", "First Name is required");
         }
         else if (Owner.FirstName.Length > 64)
         {
-            ValidationErrors.Add("First Name must not exceed 64 characters");
-            InvalidFields.Add("FirstName");
+            AddFieldError("FirstName", "First Name must not exceed 64 characters");
         }
 
         if (string.IsNullOrWhiteSpace(Owner.LastName))
         {
-            ValidationErrors.Add("Last Name is required");
-            InvalidFields.Add("LastName");
+            AddFieldError("LastName", "Last Name is required");
         }
         else if (Owner.LastName.Length > 64)
         {
-            ValidationErrors.Add("Last Name must not exceed 64 characters");
-            InvalidFields.Add("LastName");
+            AddFieldError("LastName", "Last Name must not exceed 64 characters");
         }
 
         if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(Owner.SSN))
@@ -172,8 +179,7 @@
             var ssnResult = SSNInput.ValidateSSN(Owner.SSN, "SSN");
             if (ssnResult != null && !ssnResult.IsValid)
             {
-                ValidationErrors.Add(ssnResult.ErrorMessage);
-                InvalidFields.Add("SSN");
+                AddFieldError("SSN", ssnResult.ErrorMessage);
             }
         }
 
@@ -181,13 +187,11 @@
         {
             if (Owner.OwnershipPercentage < 0 || Owner.OwnershipPercentage > 100)
             {
-                ValidationErrors.Add("Ownership Percentage must be between 0 and 100.00");
-                InvalidFields.Add("OwnershipPercentage");
+                AddFieldError("OwnershipPercentage", "Ownership Percentage must be between 0 and 100.00");
             }
             else if (decimal.Round(Owner.OwnershipPercentage.Value, 2) != Owner.OwnershipPercentage.Value)
             {
-                ValidationErrors.Add("Ownership Percentage must not exceed 2 decimal places");
-                InvalidFields.Add("OwnershipPercentage");
+                AddFieldError("OwnershipPercentage", "Ownership Percentage must not exceed 2 decimal places");
             }
         }
 
@@ -200,25 +204,4 @@
 
     private string GetFieldCssClass(string fieldName) =>
         InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
-
-    private string? GetErrorForField(string fieldKey)
-    {
-        if (!InvalidFields.Contains(fieldKey))
-            return null;
-
-        var sep = fieldKey.LastIndexOf('_');
-        if (sep < 0)
-        {
-            var lbl = System.Text.RegularExpressions.Regex.Replace(fieldKey, "(?<=[a-z])(?=[A-Z])", " ");
-            return ValidationErrors.FirstOrDefault(e => e.Contains(lbl, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var prefixLabel = System.Text.RegularExpressions.Regex.Replace(fieldKey[..sep], "(?<=[a-z])(?=[A-Z])", " ");
-        var fieldLabel = System.Text.RegularExpressions.Regex.Replace(fieldKey[(sep + 1)..], "(?<=[a-z])(?=[A-Z])", " ");
-
-        return ValidationErrors.FirstOrDefault(e =>
-            e.Contains(prefixLabel, StringComparison.OrdinalIgnoreCase) &&
-            e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase))
-            ?? ValidationErrors.FirstOrDefault(e => e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase));
-    }
 }

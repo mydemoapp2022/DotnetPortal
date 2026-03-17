@@ -22,8 +22,8 @@
                                 ValueChanged="@(v => GeneralPartner.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@InvalidFields.Contains("GeneralPartner_FirstName")"
-                                ErrorMessage="@GetErrorForField("GeneralPartner_FirstName")"
+                                HasError="@FieldErrors.ContainsKey("GeneralPartner_FirstName")"
+                                ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_FirstName")"
                                 OnBlur="ValidateForm" />
 
                 <ValidatedInput Id="middle-initial"
@@ -39,8 +39,8 @@
                                 ValueChanged="@(v => GeneralPartner.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@InvalidFields.Contains("GeneralPartner_LastName")"
-                                ErrorMessage="@GetErrorForField("GeneralPartner_LastName")"
+                                HasError="@FieldErrors.ContainsKey("GeneralPartner_LastName")"
+                                ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_LastName")"
                                 OnBlur="ValidateForm" />
 
                 <SSNInput Id="general-partner-ssn"
@@ -52,6 +52,8 @@
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="@(!ISOutsideUSA)"
+                          HasError="@FieldErrors.ContainsKey("GeneralPartner_SSN")"
+                          ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_SSN")"
                           CssClass="@(GetFieldCssClass("GeneralPartner_SSN"))" />
             </div>
         </div>
@@ -62,8 +64,8 @@
                     Label="Limited Partnership Name"
                     Value="@LimitedPartnershipName"
                     ValueChanged="@(v => LimitedPartnershipName = v)"
-                    HasError="@InvalidFields.Contains("LimitedPartnershipName")"
-                    ErrorMessage="@GetErrorForField("LimitedPartnershipName")"
+                    HasError="@FieldErrors.ContainsKey("LimitedPartnershipName")"
+                    ErrorMessage="@FieldErrors.GetValueOrDefault("LimitedPartnershipName")"
                     OnBlur="ValidateForm" />
 </div>
 
@@ -92,6 +94,7 @@
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
+    private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
     private bool _previousISOutsideUSA;
 
@@ -154,57 +157,57 @@
         ValidateForm();
     }
 
+    private void AddFieldError(string fieldKey, string message)
+    {
+        ValidationErrors.Add(message);
+        InvalidFields.Add(fieldKey);
+        FieldErrors[fieldKey] = message;
+    }
+
     private void ValidateForm()
     {
         ValidationErrors.Clear();
         InvalidFields.Clear();
+        FieldErrors.Clear();
 
         if (string.IsNullOrWhiteSpace(RegistrationState))
         {
-            ValidationErrors.Add("Registration State is required");
-            InvalidFields.Add("RegistrationState");
+            AddFieldError("RegistrationState", "Registration State is required");
         }
 
         if (string.IsNullOrWhiteSpace(LimitedPartnershipName))
         {
-            ValidationErrors.Add("Limited Partnership Name is required");
-            InvalidFields.Add("LimitedPartnershipName");
+            AddFieldError("LimitedPartnershipName", "Limited Partnership Name is required");
         }
         else if (LimitedPartnershipName.Length > 128)
         {
-            ValidationErrors.Add("Limited Partnership Name must not exceed 128 characters");
-            InvalidFields.Add("LimitedPartnershipName");
+            AddFieldError("LimitedPartnershipName", "Limited Partnership Name must not exceed 128 characters");
         }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.FirstName))
         {
-            ValidationErrors.Add("General Partner First Name is required");
-            InvalidFields.Add("GeneralPartner_FirstName");
+            AddFieldError("GeneralPartner_FirstName", $"{GeneralPartner.Role} First Name is required");
         }
         else if (GeneralPartner.FirstName.Length > 64)
         {
-            ValidationErrors.Add("General Partner First Name must not exceed 64 characters");
-            InvalidFields.Add("GeneralPartner_FirstName");
+            AddFieldError("GeneralPartner_FirstName", $"{GeneralPartner.Role} First Name must not exceed 64 characters");
         }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.LastName))
         {
-            ValidationErrors.Add("General Partner Last Name is required");
-            InvalidFields.Add("GeneralPartner_LastName");
+            AddFieldError("GeneralPartner_LastName", $"{GeneralPartner.Role} Last Name is required");
         }
         else if (GeneralPartner.LastName.Length > 64)
         {
-            ValidationErrors.Add("General Partner Last Name must not exceed 64 characters");
-            InvalidFields.Add("GeneralPartner_LastName");
+            AddFieldError("GeneralPartner_LastName", $"{GeneralPartner.Role} Last Name must not exceed 64 characters");
         }
 
         if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
         {
-            var ssnResult = SSNInput.ValidateSSN(GeneralPartner.SSN, "General Partner");
+            var ssnResult = SSNInput.ValidateSSN(GeneralPartner.SSN, GeneralPartner.Role);
             if (ssnResult != null && !ssnResult.IsValid)
             {
-                ValidationErrors.Add(ssnResult.ErrorMessage);
-                InvalidFields.Add("GeneralPartner_SSN");
+                AddFieldError("GeneralPartner_SSN", ssnResult.ErrorMessage);
             }
         }
 
@@ -225,32 +228,4 @@
 
     private string GetFieldCssClass(string fieldName) =>
         InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
-
-    private string? GetErrorForField(string fieldKey)
-    {
-        if (!InvalidFields.Contains(fieldKey))
-            return null;
-
-        var sep = fieldKey.LastIndexOf('_');
-        if (sep < 0)
-        {
-            // No underscore — simple key like "LimitedPartnershipName" or "RegistrationState"
-            var lbl = System.Text.RegularExpressions.Regex.Replace(
-                fieldKey, "(?<=[a-z])(?=[A-Z])", " ");
-            return ValidationErrors.FirstOrDefault(e =>
-                e.Contains(lbl, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // "GeneralPartner_FirstName" → prefix="General Partner", field="First Name"
-        var prefixLabel = System.Text.RegularExpressions.Regex.Replace(
-            fieldKey[..sep], "(?<=[a-z])(?=[A-Z])", " ");
-        var fieldLabel = System.Text.RegularExpressions.Regex.Replace(
-            fieldKey[(sep + 1)..], "(?<=[a-z])(?=[A-Z])", " ");
-
-        return ValidationErrors.FirstOrDefault(e =>
-            e.Contains(prefixLabel, StringComparison.OrdinalIgnoreCase) &&
-            e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase))
-            ?? ValidationErrors.FirstOrDefault(e =>
-                e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase));
-    }
 }
