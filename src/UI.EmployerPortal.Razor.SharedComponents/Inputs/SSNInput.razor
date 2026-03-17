@@ -2,19 +2,25 @@
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
-<div class="form-group master-text-field @(InvalidFields.Contains($"Member{Index}_SSN") ? "master-text-field--error" : "")">
-    <label for="@Id" class="form-label @(InvalidFields.Contains($"Member{Index}_SSN") ? "master-label--error" : "")">
-        @* @if (IsRequired)
-        {
-            <span class="required-asterisk">*</span>
-        } *@
+@{
+    var showError = HasError || InvalidFields.Contains($"Member{Index}_SSN");
+    var displayMessage = !string.IsNullOrWhiteSpace(ErrorMessage)
+        ? ErrorMessage
+        : ValidationErrors.FirstOrDefault(p =>
+            !string.IsNullOrWhiteSpace(MemberRole) &&
+            p.Contains(MemberRole, StringComparison.OrdinalIgnoreCase) &&
+            p.Contains("SSN", StringComparison.OrdinalIgnoreCase));
+}
+
+<div class="form-group master-text-field @(showError ? "master-text-field--error" : "")">
+    <label for="@Id" class="form-label @(showError ? "master-label--error" : "")">
         @Label
     </label>
     <div class="ssn-input-wrapper">
         <input @ref="inputElement"
                type="text"
                id="@Id"
-               class="@($"form-input ssn-input {CssClass}") master-input @(InvalidFields.Contains($"Member{Index}_SSN") ? "master-input--error" : "")"
+               class="@($"form-input ssn-input {CssClass}") master-input @(showError ? "master-input--error" : "")"
                placeholder="X*X-XX-XXXX"
                maxlength="11"
                inputmode="numeric"
@@ -41,7 +47,7 @@
             </svg>
         </button>
     </div>
-    @if (InvalidFields.Contains($"Member{Index}_SSN"))
+    @if (showError && !string.IsNullOrWhiteSpace(displayMessage))
     {
         <div class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -55,7 +61,7 @@
                 </g>
             </svg>
 
-            <span>@(ValidationErrors.FirstOrDefault(p => p.Contains($"{MemberRole}")))</span>
+            <span>@displayMessage</span>
         </div>
     }
 </div>
@@ -99,6 +105,13 @@
 
     [Parameter]
     public bool HasError { get; set; } = false;
+
+    /// <summary>
+    /// Explicit error message from parent. When provided, takes precedence over
+    /// the legacy InvalidFields / ValidationErrors lookup.
+    /// </summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
 
     [Parameter]
     public HashSet<string> InvalidFields { get; set; } = [];
