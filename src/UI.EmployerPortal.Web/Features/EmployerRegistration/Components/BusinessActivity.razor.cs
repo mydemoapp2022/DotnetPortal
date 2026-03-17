@@ -1,8 +1,8 @@
-using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 
-namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Pages;
+namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 
 /// <summary>
 /// BusinessActivity page component
@@ -15,6 +15,7 @@ public partial class BusinessActivity : ComponentBase
     private BusinessActivityModel Model { get; set; } = new();
 
     private bool _showValidationSummary = false;
+    private bool IsContinueEnabled => IsFormValid();
     private readonly List<string> _validationErrors = new();
     private bool _isSessionLoaded = false;
     private bool _showConstructionWarning = false;
@@ -123,8 +124,6 @@ public partial class BusinessActivity : ComponentBase
 
         // Save to session before continuing
         _ = SaveToSession();
-
-        Navigation.NavigateTo("/employer-registration/UISubjectivity");
     }
 
     private void HandleInvalidSubmit()
@@ -132,12 +131,15 @@ public partial class BusinessActivity : ComponentBase
         _validationErrors.Clear();
         _showValidationSummary = true;
 
-        // Collect validation errors (optional - add custom logic here)
+        if (Model.PrincipalBusinessActivity == PrincipalBusinessActivityType.None)
+        {
+            _validationErrors.Add("Principal Business Activity Type is required");
+        }
+
         if (!Model.DateBusinessStarted.HasValue)
         {
             _validationErrors.Add("Date business started is required");
         }
-            
 
         if (!Model.DateFirstPaidEmployeesInWI.HasValue)
         {
@@ -153,24 +155,11 @@ public partial class BusinessActivity : ComponentBase
         if (string.IsNullOrWhiteSpace(Model.PrimaryBusinessActivityDescription))
         {
             _validationErrors.Add("Primary Business Activity Description is required");
-        }   
+        }
 
         StateHasChanged();
     }
 
-    private void HandleBack()
-    {
-        Navigation.NavigateTo("/employer-registration/BusinessContact");
-    }
-
-    private async Task HandleSaveAndQuit()
-    {
-        // Save current form state to session
-        await SaveToSession();
-
-        // Redirect to dashboard
-        Navigation.NavigateTo("/");
-    }
 
     /// <summary>
     /// Clear business activity data from session (call after successful submission)
@@ -185,5 +174,71 @@ public partial class BusinessActivity : ComponentBase
         {
             Console.WriteLine($"Error clearing storage: {ex.Message}");
         }
+    }
+
+    private bool IsFormValid()
+    {
+        // Basic validation - ownership type must be selected
+        if (Model.PrincipalBusinessActivity == PrincipalBusinessActivityType.None)
+        {
+            return false;
+        }
+
+        // Check if there are any validation errors from child component
+        return !_validationErrors.Any();
+    }
+
+    /// <summary>
+    /// Called by wizard to  trigger validation externally
+    /// </summary>
+    ///
+    public async Task<bool> Validate()
+    {
+        _validationErrors.Clear();
+        _showValidationSummary = false;
+
+        //Copy primary description if checkbox is checked
+        if (Model.SameAsPrimaryBusinessActivity)
+        {
+            Model.WisconsinSpecificBusinessActivity = Model.PrimaryBusinessActivityDescription;
+        }
+
+
+        //Run the same checks as HandleInvalidSubmit
+        if (Model.PrincipalBusinessActivity == PrincipalBusinessActivityType.None)
+        {
+            _validationErrors.Add("Principal Business Activity Type is required");
+        }
+
+        if (!Model.DateBusinessStarted.HasValue)
+        {
+            _validationErrors.Add("Date business started is required");
+        }
+
+        if (!Model.DateFirstPaidEmployeesInWI.HasValue)
+        {
+            _validationErrors.Add("Date you first had paid employees in WI is required");
+        }
+
+
+        if (!Model.DateFirstPaidWagesInWI.HasValue)
+        {
+            _validationErrors.Add("Date first paid wages in WI is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.PrimaryBusinessActivityDescription))
+        {
+            _validationErrors.Add("Primary Business Activity Description is required");
+        }
+
+        if (_validationErrors.Any())
+        {
+            _showValidationSummary = true;
+            await InvokeAsync(StateHasChanged);
+            return false;
+        }
+        await SaveToSession();
+        await InvokeAsync(StateHasChanged);
+        return true;
     }
 }

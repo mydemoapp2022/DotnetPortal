@@ -1,18 +1,23 @@
+@using System.ComponentModel.DataAnnotations
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
-@using UI.EmployerPortal.Razor.SharedComponents
-
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using System.Linq.Expressions
 <div class="member-based-section">
     @if (Config.RequiresState)
     {
         <StateSelect Id="registration-state"
                      Label="@Config.StateLabel"
-                     Value="@RegistrationState"
-                     ValueChanged="StateChanged"
-                     CssClass="@(GetFieldCssClass("RegistrationState"))" />
+                     Value="@RegistrationState"                     
+                     InvalidFields="InvalidFields"
+                     ValidationErrors="ValidationErrors"
+                     CssClass="@(GetFieldCssClass("RegistrationState"))"/>
+
+        @* ValueChanged = "StateChanged" *@
     }
 
+    <!-- Owner Information Section -->
     <div class="owner-info-section">
         <h2 class="section-subtitle">Owner Information</h2>
 
@@ -24,39 +29,38 @@
             <div class="member-card">
                 <h3 class="member-title">@member.Role</h3>
 
-                <div class="member-fields">
-                    <div class="form-group">
-                        <label for="first-name-@index" class="form-label">
-                            <span class="required-asterisk">*</span> First Name
-                        </label>
-                        <input type="text"
-                               id="first-name-@index"
-                               class="form-input @(GetFieldCssClass($"Member{index}_FirstName"))"
-                               @bind="member.FirstName"
-                               @bind:after="ValidateForm" />
-                    </div>
+                                <div class="member-fields">
+                    <!-- First Name -->
+                    <ValidatedInput Id="@($"first-name-{index}")"
+                                    Label="First Name"
+                                    Value="@member.FirstName"
+                                    ValueChanged="@(v => member.FirstName = v)"
+                                    MaxLength="64"
+                                    Width="106"
+                                    HasError="@InvalidFields.Contains($"Member{index}_FirstName")"
+                                    ErrorMessage="@GetErrorForField($"Member{index}_FirstName")"
+                                    OnBlur="ValidateForm" />
 
-                    <div class="form-group form-field-small">
-                        <label for="middle-initial-@index" class="form-label">Middle Initial</label>
-                        <input type="text"
-                               id="middle-initial-@index"
-                               class="form-input"
-                               maxlength="1"
-                               @bind="member.MiddleInitial"
-                               @bind:after="ValidateForm" />
-                    </div>
+                    <!-- Middle Initial -->
+                    <ValidatedInput Id="@($"middle-initial-{index}")"
+                                    Label="Middle Initial"
+                                    Value="@member.MiddleInitial"
+                                    ValueChanged="@(v => member.MiddleInitial = v)"
+                                    MaxLength="1"
+                                    Width="114" />
 
-                    <div class="form-group">
-                        <label for="last-name-@index" class="form-label">
-                            <span class="required-asterisk">*</span> Last Name
-                        </label>
-                        <input type="text"
-                               id="last-name-@index"
-                               class="form-input @(GetFieldCssClass($"Member{index}_LastName"))"
-                               @bind="member.LastName"
-                               @bind:after="ValidateForm" />
-                    </div>
+                    <!-- Last Name -->
+                    <ValidatedInput Id="@($"last-name-{index}")"
+                                    Label="Last Name"
+                                    Value="@member.LastName"
+                                    ValueChanged="@(v => member.LastName = v)"
+                                    MaxLength="64"
+                                    Width="103"
+                                    HasError="@InvalidFields.Contains($"Member{index}_LastName")"
+                                    ErrorMessage="@GetErrorForField($"Member{index}_LastName")"
+                                    OnBlur="ValidateForm" />
 
+                    <!-- SSN (existing component — unchanged) -->
                     <SSNInput Id="@($"ssn-{index}")"
                               Label="SSN"
                               Value="@member.SSN"
@@ -65,27 +69,34 @@
                               IsFocusedChanged="@((bool focused) => OnSSNFocusChanged(index, focused))"
                               ShowSSN="@ShowSSN"
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                              IsRequired="@(!IsOutsideUSA)"
+                              IsRequired="@(!ISOutsideUSA)"
+                              Width="175"
+                              InvalidFields="InvalidFields"
+                              ValidationErrors="ValidationErrors"
+                              Index="index"
+                              MemberRole="@member.Role"
                               CssClass="@(GetFieldCssClass($"Member{index}_SSN"))" />
 
-                    <div class="form-group">
-                        <label for="ownership-percentage-@index" class="form-label">Ownership Percentage</label>
-                        <input type="number"
-                               id="ownership-percentage-@index"
-                               class="form-input"
-                               min="0"
-                               max="100"
-                               @bind="member.OwnershipPercentage"
-                               @bind:after="ValidateForm" />
-                    </div>
+                    <!-- Ownership Percentage -->
+                    <ValidatedInput Id="@($"ownership-percentage-{index}")"
+                                    Label="Ownership (%)"
+                                    InputType="number"
+                                    Value="@(member.OwnershipPercentage?.ToString("0.##"))"
+                                    ValueChanged="@(v => member.OwnershipPercentage = decimal.TryParse(v, out var n) ? n : null)"
+                                    Min="0"
+                                    Max="100"
+                                    Step="0.01"
+                                    Width="130"
+                                    HasError="@InvalidFields.Contains($"Member{index}_OwnershipPercentage")"
+                                    ErrorMessage="@GetErrorForField($"Member{index}_OwnershipPercentage")"
+                                    OnBlur="ValidateForm" />
                 </div>
             </div>
         }
 
+        <!-- More than five radio buttons -->
         <div class="more-than-five-group @(GetFieldCssClass("MoreThanFive"))">
-            <label class="more-label">
-                <span class="required-asterisk">*</span> More than five?
-            </label>
+            <label class="more-label">More than five?</label>
             <label class="radio-label">
                 <input type="radio"
                        name="more-than-five"
@@ -116,14 +127,16 @@
     [Parameter]
     public EventCallback<List<string>> OnValidationChanged { get; set; }
 
-    [Parameter]
-    public bool ShouldValidate { get; set; }
+    // [Parameter]
+    // public bool ShouldValidate { get; set; }
 
     [Parameter]
-    public bool IsOutsideUSA { get; set; }
+    public bool ISOutsideUSA { get; set; }
 
     [Parameter]
     public object? SavedData { get; set; }
+
+    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private string RegistrationState { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
@@ -131,41 +144,43 @@
     private List<OwnerMember> Members { get; set; } = [];
     private List<string> ValidationErrors { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
-    private bool _lastShouldValidate;
+    //private bool _lastShouldValidate;
     private bool _dataRestored;
-    private bool _previousIsOutsideUSA;
+    private bool _previousISOutsideUSA;
+    private bool HasError { get; set; } = false;
 
     protected override void OnInitialized()
     {
-        _previousIsOutsideUSA = IsOutsideUSA;
+        _previousISOutsideUSA = ISOutsideUSA;
         InitializeMembers();
         RestoreFromSession();
-        ValidateForm();
+        //ValidateForm();
+        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
     }
 
     protected override void OnParametersSet()
     {
-        if (_previousIsOutsideUSA != IsOutsideUSA)
+        if (_previousISOutsideUSA != ISOutsideUSA)
         {
-            _previousIsOutsideUSA = IsOutsideUSA;
-            ValidateForm();
+            _previousISOutsideUSA = ISOutsideUSA;
+            //ValidateForm();
         }
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        base.OnAfterRender(firstRender);
+    // protected override void OnAfterRender(bool firstRender)
+    // {
+    //     base.OnAfterRender(firstRender);
 
-        if (ShouldValidate && !_lastShouldValidate)
-        {
-            _lastShouldValidate = true;
-            ValidateForm();
-        }
-        else if (!ShouldValidate)
-        {
-            _lastShouldValidate = false;
-        }
-    }
+    //     if (ShouldValidate && !_lastShouldValidate)
+    //     {
+    //         _lastShouldValidate = true;
+    //         ValidateForm();
+    //     }
+    //     else if (!ShouldValidate)
+    //     {
+    //         _lastShouldValidate = false;
+    //     }
+    // }
 
     private void RestoreFromSession()
     {
@@ -255,16 +270,19 @@
         ValidationErrors.Clear();
         InvalidFields.Clear();
 
+        // Validate Registration State if required
         if (Config.RequiresState && string.IsNullOrWhiteSpace(RegistrationState))
         {
             ValidationErrors.Add($"{Config.StateLabel} is required");
             InvalidFields.Add("RegistrationState");
         }
 
+        // Validate each member
         for (var i = 0; i < Members.Count; i++)
         {
             var member = Members[i];
             var memberNumber = i + 1;
+            var label = $"{Config.MemberLabel} {memberNumber}";
 
             var hasAnyValue = !string.IsNullOrWhiteSpace(member.FirstName) ||
                              !string.IsNullOrWhiteSpace(member.MiddleInitial) ||
@@ -276,29 +294,69 @@
             {
                 if (string.IsNullOrWhiteSpace(member.FirstName))
                 {
-                    ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} First Name is required");
+                    ValidationErrors.Add($"{label} First Name is required");
+                    InvalidFields.Add($"Member{i}_FirstName");
+                }
+                else if (member.FirstName.Length > 64)
+                {
+                    ValidationErrors.Add($"{label} First Name must not exceed 64 characters");
                     InvalidFields.Add($"Member{i}_FirstName");
                 }
 
                 if (string.IsNullOrWhiteSpace(member.LastName))
                 {
-                    ValidationErrors.Add($"{Config.MemberLabel} {memberNumber} Last Name is required");
+                    ValidationErrors.Add($"{label} Last Name is required");
+                    InvalidFields.Add($"Member{i}_LastName");
+                }
+                else if (member.FirstName.Length > 64)
+                {
+                    ValidationErrors.Add($"{label} Last Name must not exceed 64 characters");
                     InvalidFields.Add($"Member{i}_LastName");
                 }
 
-                if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(member.SSN))
+                if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(member.SSN))
                 {
-                    var ssnResult = SSNInput.ValidateSSN(member.SSN, $"{Config.MemberLabel} {memberNumber}");
+                    var ssnResult = SSNInput.ValidateSSN(member.SSN, $"{label}");
                     if (ssnResult != null && !ssnResult.IsValid)
                     {
-                        ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
+                        ValidationErrors.Add(ssnResult.ErrorMessage);
                         InvalidFields.Add($"Member{i}_SSN");
+                    }
+                }
+
+                // Ownership Percentage: 0 – 100.00, max 2 decimal places
+                if (member.OwnershipPercentage.HasValue)
+                {
+                    if (member.OwnershipPercentage < 0 || member.OwnershipPercentage > 100)
+                    {
+                        ValidationErrors.Add($"{label} Ownership Percentage must be between 0 and 100.00");
+                        InvalidFields.Add($"Member{i}_OwnershipPercentage");
+                    }
+                    else if (decimal.Round(member.OwnershipPercentage.Value, 2) != member.OwnershipPercentage.Value)
+                    {
+                        ValidationErrors.Add($"{label} Ownership Percentage must not exceed 2 decimal places");
+                        InvalidFields.Add($"Member{i}_OwnershipPercentage");
                     }
                 }
             }
         }
 
-        // Always enforce no-duplicate rule even when SSN is optional
+        // Total must equal exactly 100.00 — use Math.Round to avoid floating-point drift
+        var totalPercentage = Members
+            .Where(m => m.OwnershipPercentage.HasValue)
+            .Sum(m => m.OwnershipPercentage!.Value);
+
+        if (totalPercentage > 0 && Math.Round(totalPercentage, 2) != 100)
+        {
+            ValidationErrors.Add("Total Ownership Percentage must equal 100.00");
+            for (var i = 0; i < Members.Count; i++)
+            {
+                if (Members[i].OwnershipPercentage.HasValue)
+                    InvalidFields.Add($"Member{i}_OwnershipPercentage");
+            }
+        }
+
+        // Check for duplicate SSNs - Cast to nullable string list
         var ssnList = Members.Select(m => (string?)m.SSN).ToList();
         var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => $"{Config.MemberLabel} {i + 1}");
 
@@ -306,10 +364,14 @@
         {
             ValidationErrors.AddRange(duplicateErrors);
 
+            // Mark duplicate SSN fields as invalid
             var ssnGroups = Members
                 .Select((m, idx) => new { SSN = m.SSN, Index = idx })
                 .Where(x => !string.IsNullOrWhiteSpace(x.SSN))
-                .GroupBy(x => new string(x.SSN!.Where(char.IsDigit).ToArray()))
+                .GroupBy(x =>
+                {
+                    return new string(x.SSN!.Where(char.IsDigit).ToArray());
+                })
                 .Where(g => g.Count() > 1);
 
             foreach (var group in ssnGroups)
@@ -321,15 +383,17 @@
             }
         }
 
+        // Validate "More than five?" selection
         if (MoreThanFive == null)
         {
             ValidationErrors.Add("More than five? selection is required");
             InvalidFields.Add("MoreThanFive");
         }
 
+        HasError = ValidationErrors.Any() ? true : false;
+        StateHasChanged();
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
-
         StateHasChanged();
     }
 
@@ -357,4 +421,21 @@
     {
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
     }
+
+    private string? GetErrorForField(string fieldKey)
+    {
+        if (!InvalidFields.Contains(fieldKey))
+            return null;
+
+        var parts = fieldKey.Split('_');
+        if (parts.Length < 2)
+            return ValidationErrors.FirstOrDefault();
+
+        var fieldLabel = System.Text.RegularExpressions.Regex.Replace(parts[1], "(?<=[a-z])(?=[A-Z])", " ");
+        return ValidationErrors.FirstOrDefault(e => e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase));
+    }
+
+    
+
+
 }

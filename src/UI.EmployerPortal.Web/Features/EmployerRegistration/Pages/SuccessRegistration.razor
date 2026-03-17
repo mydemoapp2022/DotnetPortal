@@ -1,0 +1,58 @@
+@inject IJSRuntime JS
+@page "/employer-registration/success-registration"
+
+<button class="btn btn-primary" @onclick="DownloadPdf">Open PDF</button>
+
+@code {
+    public async Task DownloadPdf()
+    {
+        // var fileStream = await GetPdfStream();
+        // if (fileStream != null)
+        // {
+        //     using var streamRef = new DotNetStreamReference(stream: fileStream);
+        //     var fileName = Path.GetFileName(GetPdfFilePath());
+        //     await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        // }
+
+        string pdfFilePath = GetPdfFilePath();
+        var fileName = Path.GetFileName(GetPdfFilePath());
+        await using var fileStream = File.OpenRead(pdfFilePath);
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+
+    public async Task OpenPdfInNewTab()
+    {
+        var fileStream = await GetPdfStream();
+        if (fileStream != null)
+        {
+            using var streamRef = new DotNetStreamReference(stream: fileStream);
+            await JS.InvokeVoidAsync("openFileInNewTab", "InitialDetermination.pdf", streamRef);
+        }
+    }
+
+    private async Task<FileStream?> GetPdfStream()
+    {
+        // var request = new PortalCorrespondenceIDRequest()
+        // {
+        //     EmployerSK = 10021412,
+        //     GenerationSK = 2329436,
+        //     SecureUserSK = 10021114
+        // };
+
+        // var empRegServices = await EmployerRegistrationServices.GeneratePDFIDForRegistration(request);
+        // var pdfFilePath = empRegServices.PDFFilePath;
+        //string pdfFilePath = "/Download/InitialDetermination.pdf";
+        string pdfFilePath = GetPdfFilePath();
+        if (!string.IsNullOrEmpty(pdfFilePath) && File.Exists(pdfFilePath))
+        {
+            return File.OpenRead(pdfFilePath);
+        }
+        return null;
+    }
+
+    private string GetPdfFilePath()
+    {
+        return @"D:\Projects\KB\Employee Portal\1754406311812.pdf";
+    }
+}

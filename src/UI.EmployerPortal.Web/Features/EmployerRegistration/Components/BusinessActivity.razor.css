@@ -1,3 +1,87 @@
+.page_wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.bi-page-content {
+    display: flex;
+    flex-direction: column;
+    width: 684px;
+    max-width: 100%;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    box-sizing: border-box;
+    font-family: Verdana, sans-serif;
+    font-size: 16px;
+    gap: 24px;
+}
+
+.page-title {
+    font-family: Verdana, sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 116%;
+    color: #000000;
+    margin: 0;
+}
+
+.page-subtitle {
+    font-family: Verdana, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 25.6px;
+    color: #000000;
+    margin: 0;
+}
+
+.empreg-page-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60%;
+    max-width: 100%;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    box-sizing: border-box;
+    color: var(--color-black);
+    font: var(--font-primary);
+    font-size: var(--font-size-md);
+    gap: var(--spacing-lg);
+}
+
+    .empreg-page-content h1 {
+        font-size: 32px;
+        text-align: center;
+        font-weight: var(--font-weight-normal);
+        line-height: 116%;
+        letter-spacing: 0%;
+        text-align: center;
+    }
+
+    .empreg-page-content h4 {
+        font-family: Verdana;
+        font-weight: var(--font-weight-bold);
+        font-size: 22px;
+        line-height: 123%;
+        letter-spacing: 0%;
+        text-align: center;
+    }
+
+.empreg-link {
+    color: #0D6EFD;
+}
+
+@media (max-width: 575px) {
+    .empreg-page-content {
+        padding: var(--spacing-sm);
+        align-items: flex-start;
+    }
+
+        .empreg-page-content h2 {
+            font-size: var(--font-size-lg);
+        }
+}
+
 /* ── Container ── */
 .business-activity-container {
     margin: 0 auto;
@@ -78,7 +162,7 @@
 ::deep .form-label {
     position: absolute;
     top: -0.5rem;
-    left: 0.75rem;
+    left: 1.5rem;
     font-size: 0.75rem;
     font-weight: 400;
     color: #666;
@@ -94,51 +178,76 @@
     margin-left: 0.25rem;
 }
 
-/* ── Form Inputs (matching Ownership design) ── */
-::deep .form-input {
+/*::deep .form-group:has(.invalid) .form-label {
+    color: #dc3545;
+}
+
+::deep .form-group:has(.invalid) .required-indicator {
+    color: #dc3545;
+}*/
+
+/* ── Form Controls ── */
+::deep .form-control {
     display: block;
     width: 100%;
     padding: 0.875rem 0.75rem;
     font-size: 1rem;
     font-weight: 400;
+    line-height: 1.5;
     color: #000;
     background-color: #fff;
-    border: 1px solid #d0d0d0;
+    border: 1px solid #ced4da;
     border-radius: 4px;
-    transition: border-color 0.2s;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    box-sizing: border-box;
 }
 
-    ::deep .form-input:focus {
-        outline: none;
-        border-color: #666;
+    ::deep .form-control:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
 
-    ::deep .form-input:disabled {
+    ::deep .form-control:disabled {
         background-color: #e9ecef;
         opacity: 1;
         cursor: not-allowed;
     }
 
-/* ── Form Select (Dropdown) - matching Ownership design ── */
+/* ── Form Select (Dropdown) ── */
 ::deep .form-select {
+    display: block;
     width: 100%;
-    padding: 0.875rem 0.75rem;
+    padding: 0.875rem 2.25rem 0.875rem 0.75rem;
     font-size: 1rem;
     font-weight: 400;
+    line-height: 1.5;
     color: #000;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
     background-color: #fff;
-    transition: border-color 0.2s;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    appearance: none;
 }
 
     ::deep .form-select:focus {
-        outline: none;
-        border-color: #666;
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    ::deep .form-select:disabled {
+        background-color: #e9ecef;
+        opacity: 1;
+        cursor: not-allowed;
     }
 
 /* Ensure date inputs render consistently */
-::deep input[type="date"].form-input {
+::deep input[type="date"].form-control {
     min-height: 38px;
     padding: 0.875rem 0.75rem;
 }
@@ -171,18 +280,6 @@
     ::deep .activity-instruction u {
         color: #0056b3;
     }
-
-/* Add after the existing validation styles */
-::deep .form-control.invalid {
-    border-color: #dc3545 !important;
-    background-color: #fff5f5;
-}
-
-    ::deep .form-control.invalid:focus {
-        border-color: #dc3545 !important;
-        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-    }
-
 /* ── Checkbox ── */
 ::deep .checkbox-group {
     margin-bottom: 1rem;
@@ -203,7 +300,6 @@
         cursor: pointer;
         flex-shrink: 0;
     }
-
 /* ── Validation Messages ── */
 ::deep .validation-message {
     color: #dc3545;
@@ -211,7 +307,6 @@
     margin-top: 0.25rem;
     display: block;
 }
-
 /* ── Form Actions ── */
 ::deep .form-actions {
     display: flex;
@@ -228,7 +323,6 @@
     gap: 1rem;
     align-items: center;
 }
-
 /* ── Buttons ── */
 ::deep .btn {
     padding: 0.75rem 2rem;
@@ -282,18 +376,6 @@
     font-size: 1.2rem;
     font-weight: 700;
 }
-
-/* ── Input Validation Error (matching Ownership design) ── */
-::deep .input-validation-error {
-    border-color: #dc3545 !important;
-    background-color: #fff5f5;
-}
-
-    ::deep .input-validation-error:focus {
-        border-color: #dc3545 !important;
-        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-    }
-
 /* ── Responsive ── */
 @media (max-width: 992px) {
     .business-activity-container {

@@ -1,0 +1,14 @@
+<button type="@Type"
+        class="btn-component @VariantClass @SizeClass @(!ShowBorder ? "btn-no-border" : "")"
+        disabled="@Disabled"
+        @onclick="HandleClick"
+        aria-label="@AriaLabel">
+    @if (ChildContent != null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        @Text
+    }
+</button>

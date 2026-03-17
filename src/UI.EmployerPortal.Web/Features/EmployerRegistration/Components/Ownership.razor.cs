@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
+using Microsoft.JSInterop;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms;
-namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Pages;
+using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
+namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 
 /// <summary>
 /// Ownership component for employer registration
@@ -13,6 +14,7 @@ public partial class Ownership
     private NavigationManager Nav { get; set; } = default!;
     [Inject]
     private ProtectedSessionStorage SessionStorage { get; set; } = default!;
+    private IJSRuntime JSRuntime { get; set; } = default!;
 
     //[Inject]
     //private ProtectedLocalStorage LocalStorage { get; set; } = default!;
@@ -38,12 +40,31 @@ public partial class Ownership
     private OwnershipType SelectedOwnershipType { get; set; } = OwnershipType.None;
     private bool IsOutsideUSA { get; set; }
     private List<string> ValidationErrors { get; set; } = new();
-    private bool _shouldValidate = false;
+    //private bool _shouldValidate = false;
     private bool _showValidationSummary = false;
-    private bool IsContinueEnabled => IsFormValid();
+    //private bool IsContinueEnabled = true;>// IsFormValid();
     private object? _currentFormData;
     private OwnershipSessionData? _savedSessionData;
     private bool _isSessionLoaded;
+
+    /// <summary>
+    /// Called by parent wizard for validation
+    /// </summary>
+    public async Task<bool> Validate()
+    {
+        //_shouldValidate = true;
+        _showValidationSummary = true;
+        EnsureOwnershipTypeValidationError();
+        if (_validateCallback != null)
+        {
+            ValidationErrors = _validateCallback();
+            EnsureOwnershipTypeValidationError();
+        }
+        //await InvokeAsync(("RegisterValidate", (Action<Func<List<string>>>) RegisterValidateCallback);
+        _showValidationSummary = !IsFormValid();
+        await InvokeAsync(StateHasChanged);
+        return IsFormValid();
+    }
 
     // Component mapping dictionary
     private readonly Dictionary<OwnershipType, Type> _ownershipComponentMap = new()
@@ -220,6 +241,7 @@ public partial class Ownership
     {
         try
         {
+
             // Clear validation errors and hide validation summary when ownership type changes
             ValidationErrors.Clear();
             _showValidationSummary = false;
@@ -228,18 +250,14 @@ public partial class Ownership
             // This prevents passing incompatible data to the new component
             _savedSessionData = null;
             _currentFormData = null;
-
+            _validateCallback = null;
             // Reset validation flag
-            _shouldValidate = false;
-            EnsureOwnershipTypeValidationError();
+            //_shouldValidate = false;
+
             StateHasChanged();
 
             // Wait for the new DynamicComponent to render
             await Task.Delay(100);
-
-            // Trigger validation on the new component
-            _shouldValidate = true;
-            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -263,9 +281,10 @@ public partial class Ownership
         {
             parameters.Add("Config", config);
             parameters.Add("OnValidationChanged", EventCallback.Factory.Create<List<string>>(this, OnChildValidationChanged));
-            parameters.Add("ShouldValidate", _shouldValidate);
+            //parameters.Add("ShouldValidate", _shouldValidate);
             parameters.Add("IsOutsideUSA", IsOutsideUSA);
-
+            parameters.Add("RegisterValidate", (Action<Func<List<string>>>) RegisterValidateCallback);
+            // Create correctly-typed EventCallback to match each child component's parameter type
             switch (SelectedOwnershipType)
             {
                 case OwnershipType.LLC:
@@ -298,6 +317,7 @@ public partial class Ownership
                     break;
             }
 
+            // Pass saved data uniformly as SavedData for all component types
             if (_savedSessionData != null && _savedSessionData.OwnershipType == SelectedOwnershipType)
             {
                 parameters.Add("SavedData", _savedSessionData);
@@ -328,57 +348,6 @@ public partial class Ownership
             OwnershipType.Corporation or OwnershipType.LLCCorporation => "• Sole Proprietor First Name is required • Sole Proprietor Last Name is required • SSN is required",
             _ => "All fields are required unless noted"
         };
-    }
-
-    private void GoBack()
-    {
-        Nav.NavigateTo("/employer-registration/preliminary_questions");
-    }
-
-    //private async Task GoNext()
-    //{   
-    //    Nav.NavigateTo("/employer-registration/BusinessInfo");
-    //}
-    //private async Task OnBack()
-    //{
-    //    await OnBackClicked.InvokeAsync();
-    //}
-
-    private async Task OnSaveAndQuit()
-    {
-        await SaveToSession();
-        await OnSaveAndQuitClicked.InvokeAsync();
-    }
-
-    private async Task GoNext()
-    {
-        // Trigger validation
-        _shouldValidate = true;
-        EnsureOwnershipTypeValidationError();
-        StateHasChanged();
-
-        // Wait for validation to complete
-        await Task.Delay(100);
-        EnsureOwnershipTypeValidationError();
-
-        // Check if form is valid
-        if (IsFormValid())
-        {
-            // Hide validation summary if there were any previous errors
-            _showValidationSummary = false;
-
-            // Save to session before continuing
-            await SaveToSession();
-            Nav.NavigateTo("/employer-registration/BusinessInfo");
-            // Navigate to next step
-            //await OnContinueClicked.InvokeAsync();
-        }
-        else
-        {
-            // Show validation summary
-            _showValidationSummary = true;
-            StateHasChanged();
-        }
     }
 
     private async Task SaveToSession()
@@ -480,5 +449,14 @@ public partial class Ownership
             Console.WriteLine($"Error clearing storage: {ex.Message}");
         }
     }
-}
 
+    private Func<List<string>>? _validateCallback;
+    ///// <summary>
+    ///// RegisterValidateCallback
+    ///// </summary>
+    ///// <param name="callback"></param>
+    private void RegisterValidateCallback(Func<List<string>> callback)
+    {
+        _validateCallback = callback;
+    }
+}

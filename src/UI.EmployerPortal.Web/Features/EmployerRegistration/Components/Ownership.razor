@@ -1,8 +1,10 @@
-@* @rendermode InteractiveServer *@
-@page "/employer-registration/ownership"
+@page "/employer-registration/Ownership"
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@using UI.EmployerPortal.Razor.SharedComponents
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
 
 <div class="ownership-container">
     <h1 class="ownership-title">Ownership</h1>
@@ -16,25 +18,25 @@
         <!-- Validation Error Summary -->
         @if (_showValidationSummary && ValidationErrors.Any())
         {
-            <div class="validation-summary">
-                <ul>
-                    @foreach (var error in ValidationErrors)
-                    {
-                        <li>@error</li>
-                    }
-                </ul>
-            </div>
+            <NotificationBanner NotificationType="NotificationType.Alert"
+                    MessageStyle="MessageStyle.MultiLine"
+                    Messages="ValidationErrors"
+                    DismissButton="false">
+            </NotificationBanner>
+            <br />
+            <br />
         }
-
-        <form>
+        
+        <EditForm Model="SessionStorage" FormName="OwnershipForm">
             <div class="form-section">
-                <!-- Ownership Type -->                
+                <!-- Ownership Type -->
                 <OwnershipTypeSelect Id="ownership-type"
                                      Label="Ownership Type"
-                                     @bind-Value="SelectedOwnershipType"
+                                     @bind-Value="SelectedOwnershipType"                                     
+                                     IsRequired="true"
+                                     ValidationErrors="ValidationErrors"
                                      @bind-Value:after="OnOwnershipTypeChanged"
-                                     IsRequired="true" />
-
+                                     CssClass="@(SelectedOwnershipType == OwnershipType.None ? "input-validation-error" : string.Empty)" />
                 <!-- Headquartered Outside USA Checkbox -->
                 <div class="checkbox-group">
                     <label class="checkbox-label">
@@ -50,23 +52,6 @@
                                       Parameters="@GetComponentParameters()" />
                 }
             </div>
-
-            <!-- Navigation Buttons -->
-            <div class="form-actions">
-                <button type="button" class="btn btn-back" @onclick="GoBack">
-                    <span class="btn-icon">‹</span> BACK
-                </button>
-                <div class="form-actions-right">
-                    <button type="button" class="btn btn-save" @onclick="OnSaveAndQuit">
-                        SAVE & QUIT
-                    </button>
-                    <button type="button"
-                            class="btn btn-continue"
-                            @onclick="GoNext">
-                        CONTINUE <span class="btn-icon">›</span>
-                    </button>
-                </div>
-            </div>
-        </form>
+        </EditForm>
     }
 </div>

@@ -1,0 +1,267 @@
+@* 
+ ButtonBar Component
+ -------------------
+ Reusable button bar for Employer Registration flow.
+ Responsibilities:
+ - Display Back and Continue (Next) actions
+ - Align buttons left/right using Bootstrap utilities
+ - Integrate with EditForm via submit button
+ - Support conditional visibility and disabled states
+ - Remain UI-only (no navigation logic inside)
+ - Fully accessible with ARIA labels and keyboard navigation
+ - Responsive: stacks vertically on mobile screens
+   Layout (Desktop):
+    | [< BACK] [CANCEL]  ...spacer...  [SAVE & QUIT] [CONTINUE >] |
+    Layout (Mobile - stacked, primary action first):
+    | [CONTINUE >]  |
+    | [SAVE & QUIT]  |
+    | [CANCEL]       |
+    | [< BACK]       |
+
+- Usage:
+            <ButtonBar ShowBack="true"
+                       ShowContinue="true"
+                       ShowCancel ="false"
+                       ShowSaveAndQuit="false"
+                       OnBack="GoBack"
+                       ContinueText="NEXT">
+            </ButtonBar>
+
+@* ----------------------------------------------------------------
+   Button bar container
+   - role="navigation" identifies this as a navigation landmark
+   - aria-label provides screen readers with a descriptive name
+   - d-flex + align-items-center for horizontal layout on desktop
+   - mt-auto pushes bar to bottom of parent flex container
+   ---------------------------------------------------------------- *@
+<nav class="button-bar d-flex align-items-center mt-auto pt-3"
+     role="navigation"
+     aria-label="Form navigation actions">
+    @* ============================================== *@
+    @* LEFT-ALIGNED BUTTONS (Back + Cancel)           *@
+    @* Group these so screen readers announce them     *@
+    @* together as "Secondary actions"                 *@
+    @* ============================================== *@
+    <div class="button-bar-left d-flex align-items-center"
+         role="group"
+         aria-label="Secondary actions">
+        @* ---- Back button (secondary action) ---- *@
+        @* Navigates to the previous step in the flow. *@
+        @* Hidden on the first step via ShowBack=false. *@
+        @if (ShowBack)
+        {
+            <button type="button"
+                    class="btn-outline-secondary no-flex-grow"
+                    disabled="@BackDisabled"
+                    aria-label="@($"Go back: {BackText}")"
+                    aria-disabled="@BackDisabled.ToString().ToLower()"
+                    @onclick="() => OnBack.InvokeAsync(null)">
+                <!--Back icon(left arrow) - decorative, so alt = ""-->
+                <img src="/icons/button-previous.svg"
+                     alt=""
+                     role="presentation"
+                     class="button-icon" />
+                <span class="btn-secondary-label">
+                    @BackText
+                </span>
+            </button>
+        }
+        @* ---- Cancel button (secondary action) ---- *@
+        @* Discards unsaved changes and exits the flow. *@
+        @* Typically shown on steps where data entry has begun. *@
+        @if (ShowCancel)
+        {
+            <button type="button"
+                    class="btn-cancel no-flex-grow"
+                    disabled="@CancelDisabled"
+                    aria-label="@($"Cancel registration: {CancelText}")"
+                    aria-disabled="@CancelDisabled.ToString().ToLower()"
+                    @onclick="() => OnCancel.InvokeAsync(null)">
+                <span class="btn-cancel-label">
+                    @CancelText
+                </span>
+            </button>
+        }
+    </div>
+ 
+    @* ---- Spacer ---- *@
+    @* Pushes right-aligned buttons to the far right using flex-grow *@
+    <div class="flex-grow-1" />
+ 
+    @* ============================================== *@
+    @* RIGHT-ALIGNED BUTTONS (Save & Quit + Continue) *@
+    @* Group these so screen readers announce them     *@
+    @* together as "Primary actions"                   *@
+    @* ============================================== *@
+    <div class="button-bar-right d-flex align-items-center"
+         role="group"
+         aria-label="Primary actions">
+ 
+        @* ---- Save & Quit button (tertiary action) ---- *@
+        @* Saves the current progress and exits the flow.  *@
+        @* Allows the user to resume registration later.   *@
+        @if (ShowSaveAndQuit)
+        {
+            <button type="button"
+                    class="btn-save-quit no-flex-grow"
+                    disabled="@SaveAndQuitDisabled"
+                    aria-label="@($"Save progress and exit: {SaveAndQuitText}")"
+                    aria-disabled="@SaveAndQuitDisabled.ToString().ToLower()"
+                    @onclick="() => OnSaveAndQuit.InvokeAsync(null)">
+                <span class="btn-save-quit-label">
+                    @SaveAndQuitText
+                </span>
+            </button>
+        }
+        @* ---- Continue / Next button (primary action) ---- *@
+        @* IMPORTANT:                                         *@
+        @* type="submit" allows this button to trigger        *@
+        @* EditForm validation and OnValidSubmit in the       *@
+        @* parent page. Do NOT change to type="button".       *@
+        @if (ShowContinue)
+        {
+            <button type="submit"
+                    class="btn-outline-primary no-flex-grow"
+                    disabled="@(!ContinueEnabled)"
+                    style="@GetButtonStyle()"
+                    aria-label="@($"Proceed to next step: {ContinueText}")"
+                    aria-disabled="@((!ContinueEnabled).ToString().ToLower())">
+                <span class="btn-primary-label">
+                    @ContinueText
+                </span>
+                <!--Next icon(right arrow) - decorative, so alt = ""-->
+                <img src="/icons/button-next.svg"
+                     alt=""
+                     role="presentation"
+                     class="button-icon primary" />
+            </button>
+        }
+    </div>
+</nav>
+ 
+@code {
+    // ----------------------
+    // Visibility controls
+    // ----------------------
+ 
+    /// <summary>
+    /// Controls visibility of the Back button.
+    /// Used to hide Back on the first step of the flow.
+    /// </summary>
+    [Parameter] public bool ShowBack { get; set; } = true;
+ 
+    /// <summary>
+    /// Controls visibility of the Continue (Next) button.
+    /// Allows steps that only navigate backward.
+    /// </summary>
+    [Parameter] public bool ShowContinue { get; set; } = true;
+ 
+    /// <summary>
+    /// Controls visibility of the Cancel button.
+    /// Typically shown on steps where the user can discard changes.
+    /// </summary>
+    [Parameter] public bool ShowCancel { get; set; } = false;
+ 
+    /// <summary>
+    /// Controls visibility of the Save &amp; Quit button.
+    /// Shown on steps where partial progress can be saved.
+    /// </summary>
+    [Parameter] public bool ShowSaveAndQuit { get; set; } = false;
+ 
+    // ----------------------
+    // State controls
+    // ----------------------
+ 
+    /// <summary>
+    /// Enables or disables the Continue button.
+    /// Typically bound to form validation state.
+    /// </summary>
+    [Parameter] public bool ContinueEnabled { get; set; } = true;
+ 
+    /// <summary>
+    /// Enables or disables the Back button.
+    /// Useful during async operations or navigation.
+    /// </summary>
+    [Parameter] public bool BackDisabled { get; set; } = false;
+ 
+    /// <summary>
+    /// Enables or disables the Cancel button.
+    /// Useful during async operations to prevent accidental cancellation.
+    /// </summary>
+    [Parameter] public bool CancelDisabled { get; set; } = false;
+ 
+    /// <summary>
+    /// Enables or disables the Save &amp; Quit button.
+    /// Useful during async save operations to prevent double-clicks.
+    /// </summary>
+    [Parameter] public bool SaveAndQuitDisabled { get; set; } = false;
+ 
+    // ----------------------
+    // Text customization
+    // ----------------------
+ 
+    /// <summary>
+    /// Display text for the Back button.
+    /// Defaults to "BACK".
+    /// </summary>
+    [Parameter] public string BackText { get; set; } = "BACK";
+ 
+    /// <summary>
+    /// Display text for the Continue button.
+    /// Defaults to "NEXT". Can be overridden per step
+    /// (e.g., "PROCEED TO REGISTRATION", "SUBMIT").
+    /// </summary>
+    [Parameter] public string ContinueText { get; set; } = "NEXT";
+ 
+    /// <summary>
+    /// Display text for the Cancel button.
+    /// Defaults to "CANCEL".
+    /// </summary>
+    [Parameter] public string CancelText { get; set; } = "CANCEL";
+ 
+    /// <summary>
+    /// Display text for the Save &amp; Quit button.
+    /// Defaults to "SAVE &amp; QUIT".
+    /// </summary>
+    [Parameter] public string SaveAndQuitText { get; set; } = "SAVE & QUIT";
+ 
+    // ----------------------
+    // Events
+    // ----------------------
+ 
+    /// <summary>
+    /// Callback invoked when Back button is clicked.
+    /// Navigation logic must be handled by the parent page.
+    /// </summary>
+    [Parameter] public EventCallback OnBack { get; set; }
+ 
+    /// <summary>
+    /// Callback invoked when Cancel button is clicked.
+    /// Parent page should handle confirmation dialog and navigation.
+    /// </summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+ 
+    /// <summary>
+    /// Callback invoked when Save &amp; Quit button is clicked.
+    /// Parent page should handle saving partial progress and navigation.
+    /// </summary>
+    [Parameter] public EventCallback OnSaveAndQuit { get; set; }
+ 
+    // ----------------------
+    // Styling
+    // ----------------------
+ 
+    /// <summary>
+    /// Optional width override for the Continue button.
+    /// Defaults to "112px". Set to null or empty to use auto width.
+    /// Useful for longer button text like "PROCEED TO REGISTRATION".
+    /// </summary>
+    [Parameter] public string? ButtonWidth { get; set; } = "112px";
+ 
+    /// <summary>
+    /// Computes inline style for the Continue button width.
+    /// Returns empty string if ButtonWidth is null/empty (auto sizing).
+    /// </summary>
+    private string GetButtonStyle()
+        => string.IsNullOrWhiteSpace(ButtonWidth) ? string.Empty : $"width: {ButtonWidth};";
+}

@@ -1,0 +1,61 @@
+<div class="form-group @ContainerCssClass">
+    <label for="@Id" class="form-label">
+        @if (IsRequired)
+        {
+            <span class="required-asterisk">*</span>
+        }
+        @Label
+    </label>
+    <input type="text"
+           id="@Id"
+           class="form-input @CssClass"
+           maxlength="@MaxLength"
+           value="@Value"
+           @onchange="HandleChange" />
+
+           <span>This is required</span>
+</div>
+
+@code {
+    /// <summary>The HTML id attribute for the input element.</summary>
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>Label text displayed above the input.</summary>
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>The current value of the input.</summary>
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    /// <summary>Fires when the input value changes (on blur).</summary>
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Shows the required asterisk (*) when true.</summary>
+    [Parameter]
+    public bool IsRequired { get; set; }
+
+    /// <summary>HTML maxlength attribute. Defaults to 64.</summary>
+    [Parameter]
+    public int MaxLength { get; set; } = 64;
+
+    /// <summary>CSS class applied to the input element (e.g. validation error class).</summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    /// <summary>CSS class applied to the outer form-group div (e.g. "form-field-small").</summary>
+    [Parameter]
+    public string ContainerCssClass { get; set; } = string.Empty;
+
+    /// <summary>Fires after ValueChanged — use this to trigger parent validation.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        await ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty);
+        await OnChanged.InvokeAsync();
+    }
+}

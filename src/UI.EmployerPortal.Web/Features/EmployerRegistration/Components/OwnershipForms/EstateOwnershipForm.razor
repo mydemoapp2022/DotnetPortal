@@ -3,42 +3,38 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 
 <div class="estate-section">
+    <!-- Decedent Section -->
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Decedent</h3>
 
             <div class="member-fields">
-                <div class="form-group">
-                    <label for="decedent-first-name" class="form-label">
-                        <span class="required-asterisk">*</span> First Name
-                    </label>
-                    <input type="text"
-                           id="decedent-first-name"
-                           class="form-input @(GetFieldCssClass("Decedent_FirstName"))"
-                           @bind="Decedent.FirstName"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="decedent-first-name"
+                                Label="First Name"
+                                Value="@Decedent.FirstName"
+                                ValueChanged="@(v => Decedent.FirstName = v)"
+                                MaxLength="64"
+                                Width="106"
+                                HasError="@InvalidFields.Contains("Decedent_FirstName")"
+                                ErrorMessage="@GetErrorForField("Decedent_FirstName")"
+                                OnBlur="ValidateForm" />
 
-                <div class="form-group form-field-small">
-                    <label for="decedent-middle-initial" class="form-label">Middle Initial</label>
-                    <input type="text"
-                           id="decedent-middle-initial"
-                           class="form-input"
-                           maxlength="1"
-                           @bind="Decedent.MiddleInitial"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="decedent-middle-initial"
+                                Label="Middle Initial"
+                                Value="@Decedent.MiddleInitial"
+                                ValueChanged="@(v => Decedent.MiddleInitial = v)"
+                                MaxLength="1"
+                                Width="114" />
 
-                <div class="form-group">
-                    <label for="decedent-last-name" class="form-label">
-                        <span class="required-asterisk">*</span> Last Name
-                    </label>
-                    <input type="text"
-                           id="decedent-last-name"
-                           class="form-input @(GetFieldCssClass("Decedent_LastName"))"
-                           @bind="Decedent.LastName"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="decedent-last-name"
+                                Label="Last Name"
+                                Value="@Decedent.LastName"
+                                ValueChanged="@(v => Decedent.LastName = v)"
+                                MaxLength="64"
+                                Width="103"
+                                HasError="@InvalidFields.Contains("Decedent_LastName")"
+                                ErrorMessage="@GetErrorForField("Decedent_LastName")"
+                                OnBlur="ValidateForm" />
 
                 <SSNInput Id="decedent-ssn"
                           Label="SSN"
@@ -48,48 +44,44 @@
                           IsFocusedChanged="@((bool focused) => Decedent.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!IsOutsideUSA)"
+                          IsRequired="@(!ISOutsideUSA)"
                           CssClass="@(GetFieldCssClass("Decedent_SSN"))" />
             </div>
         </div>
     </div>
 
+    <!-- Personal Representative Section -->
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Personal Representative</h3>
 
             <div class="member-fields">
-                <div class="form-group">
-                    <label for="representative-first-name" class="form-label">
-                        <span class="required-asterisk">*</span> First Name
-                    </label>
-                    <input type="text"
-                           id="representative-first-name"
-                           class="form-input @(GetFieldCssClass("PersonalRepresentative_FirstName"))"
-                           @bind="PersonalRepresentative.FirstName"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="representative-first-name"
+                                Label="First Name"
+                                Value="@PersonalRepresentative.FirstName"
+                                ValueChanged="@(v => PersonalRepresentative.FirstName = v)"
+                                MaxLength="64"
+                                Width="106"
+                                HasError="@InvalidFields.Contains("PersonalRepresentative_FirstName")"
+                                ErrorMessage="@GetErrorForField("PersonalRepresentative_FirstName")"
+                                OnBlur="ValidateForm" />
 
-                <div class="form-group form-field-small">
-                    <label for="representative-middle-initial" class="form-label">Middle Initial</label>
-                    <input type="text"
-                           id="representative-middle-initial"
-                           class="form-input"
-                           maxlength="1"
-                           @bind="PersonalRepresentative.MiddleInitial"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="representative-middle-initial"
+                                Label="Middle Initial"
+                                Value="@PersonalRepresentative.MiddleInitial"
+                                ValueChanged="@(v => PersonalRepresentative.MiddleInitial = v)"
+                                MaxLength="1"
+                                Width="114" />
 
-                <div class="form-group">
-                    <label for="representative-last-name" class="form-label">
-                        <span class="required-asterisk">*</span> Last Name
-                    </label>
-                    <input type="text"
-                           id="representative-last-name"
-                           class="form-input @(GetFieldCssClass("PersonalRepresentative_LastName"))"
-                           @bind="PersonalRepresentative.LastName"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="representative-last-name"
+                                Label="Last Name"
+                                Value="@PersonalRepresentative.LastName"
+                                ValueChanged="@(v => PersonalRepresentative.LastName = v)"
+                                MaxLength="64"
+                                Width="103"
+                                HasError="@InvalidFields.Contains("PersonalRepresentative_LastName")"
+                                ErrorMessage="@GetErrorForField("PersonalRepresentative_LastName")"
+                                OnBlur="ValidateForm" />
 
                 <SSNInput Id="representative-ssn"
                           Label="SSN"
@@ -99,7 +91,7 @@
                           IsFocusedChanged="@((bool focused) => PersonalRepresentative.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!IsOutsideUSA)"
+                          IsRequired="@(!ISOutsideUSA)"
                           CssClass="@(GetFieldCssClass("PersonalRepresentative_SSN"))" />
             </div>
         </div>
@@ -117,69 +109,49 @@
     public EventCallback<List<string>> OnValidationChanged { get; set; }
 
     [Parameter]
-    public bool ShouldValidate { get; set; }
-
-    [Parameter]
-    public bool IsOutsideUSA { get; set; }
+    public bool ISOutsideUSA { get; set; }
 
     [Parameter]
     public object? SavedData { get; set; }
+
+    [Parameter]
+    public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private OwnerMember Decedent { get; set; } = new() { Role = "Decedent" };
     private OwnerMember PersonalRepresentative { get; set; } = new() { Role = "Personal Representative" };
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
-    private bool _lastShouldValidate;
     private bool _dataRestored;
-    private bool _previousIsOutsideUSA;
+    private bool _previousISOutsideUSA;
 
     protected override void OnInitialized()
     {
-        _previousIsOutsideUSA = IsOutsideUSA;
+        _previousISOutsideUSA = ISOutsideUSA;
         Decedent = new OwnerMember { Role = "Decedent" };
         PersonalRepresentative = new OwnerMember { Role = "Personal Representative" };
         RestoreFromSession();
-        ValidateForm();
+        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
     }
 
     protected override void OnParametersSet()
     {
-        if (_previousIsOutsideUSA != IsOutsideUSA)
+        if (_previousISOutsideUSA != ISOutsideUSA)
         {
-            _previousIsOutsideUSA = IsOutsideUSA;
-            ValidateForm();
-        }
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        base.OnAfterRender(firstRender);
-
-        if (ShouldValidate && !_lastShouldValidate)
-        {
-            _lastShouldValidate = true;
-            ValidateForm();
-        }
-        else if (!ShouldValidate)
-        {
-            _lastShouldValidate = false;
+            _previousISOutsideUSA = ISOutsideUSA;
         }
     }
 
     private void RestoreFromSession()
     {
         if (_dataRestored || SavedData == null)
-        {
             return;
-        }
 
         try
         {
             if (SavedData is OwnershipSessionData sessionData)
             {
                 if (sessionData.Decedent != null)
-                {
                     Decedent = new OwnerMember
                     {
                         Role = "Decedent",
@@ -188,10 +160,8 @@
                         LastName = sessionData.Decedent.LastName,
                         SSN = sessionData.Decedent.SSN
                     };
-                }
 
                 if (sessionData.PersonalRepresentative != null)
-                {
                     PersonalRepresentative = new OwnerMember
                     {
                         Role = "Personal Representative",
@@ -200,7 +170,6 @@
                         LastName = sessionData.PersonalRepresentative.LastName,
                         SSN = sessionData.PersonalRepresentative.SSN
                     };
-                }
 
                 _dataRestored = true;
             }
@@ -228,9 +197,15 @@
         ValidationErrors.Clear();
         InvalidFields.Clear();
 
+        // Decedent
         if (string.IsNullOrWhiteSpace(Decedent.FirstName))
         {
             ValidationErrors.Add("Decedent First Name is required");
+            InvalidFields.Add("Decedent_FirstName");
+        }
+        else if (Decedent.FirstName.Length > 64)
+        {
+            ValidationErrors.Add("Decedent First Name must not exceed 64 characters");
             InvalidFields.Add("Decedent_FirstName");
         }
 
@@ -239,20 +214,31 @@
             ValidationErrors.Add("Decedent Last Name is required");
             InvalidFields.Add("Decedent_LastName");
         }
-
-        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(Decedent.SSN))
+        else if (Decedent.LastName.Length > 64)
         {
-            var decedentSsnResult = SSNInput.ValidateSSN(Decedent.SSN, "Decedent");
-            if (decedentSsnResult != null && !decedentSsnResult.IsValid)
+            ValidationErrors.Add("Decedent Last Name must not exceed 64 characters");
+            InvalidFields.Add("Decedent_LastName");
+        }
+
+        if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(Decedent.SSN))
+        {
+            var ssnResult = SSNInput.ValidateSSN(Decedent.SSN, "Decedent");
+            if (ssnResult != null && !ssnResult.IsValid)
             {
-                ValidationErrors.Add(decedentSsnResult.ErrorMessage ?? "Validation error occurred");
+                ValidationErrors.Add(ssnResult.ErrorMessage ?? "Decedent SSN is invalid");
                 InvalidFields.Add("Decedent_SSN");
             }
         }
 
+        // Personal Representative
         if (string.IsNullOrWhiteSpace(PersonalRepresentative.FirstName))
         {
             ValidationErrors.Add("Personal Representative First Name is required");
+            InvalidFields.Add("PersonalRepresentative_FirstName");
+        }
+        else if (PersonalRepresentative.FirstName.Length > 64)
+        {
+            ValidationErrors.Add("Personal Representative First Name must not exceed 64 characters");
             InvalidFields.Add("PersonalRepresentative_FirstName");
         }
 
@@ -261,21 +247,25 @@
             ValidationErrors.Add("Personal Representative Last Name is required");
             InvalidFields.Add("PersonalRepresentative_LastName");
         }
-
-        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(PersonalRepresentative.SSN))
+        else if (PersonalRepresentative.LastName.Length > 64)
         {
-            var representativeSsnResult = SSNInput.ValidateSSN(PersonalRepresentative.SSN, "PersonalRepresentative");
-            if (representativeSsnResult != null && !representativeSsnResult.IsValid)
+            ValidationErrors.Add("Personal Representative Last Name must not exceed 64 characters");
+            InvalidFields.Add("PersonalRepresentative_LastName");
+        }
+
+        if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(PersonalRepresentative.SSN))
+        {
+            var ssnResult = SSNInput.ValidateSSN(PersonalRepresentative.SSN, "Personal Representative");
+            if (ssnResult != null && !ssnResult.IsValid)
             {
-                ValidationErrors.Add(representativeSsnResult.ErrorMessage ?? "SSN Required");
+                ValidationErrors.Add(ssnResult.ErrorMessage);
                 InvalidFields.Add("PersonalRepresentative_SSN");
             }
         }
 
-        // Always enforce no-duplicate rule even when SSN is optional
         var ssnList = new List<string?> { Decedent.SSN, PersonalRepresentative.SSN };
         var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => i == 0 ? "Decedent" : "Personal Representative");
-        if (duplicateErrors != null && duplicateErrors.Count > 0)
+        if (duplicateErrors is { Count: > 0 })
         {
             ValidationErrors.AddRange(duplicateErrors);
             InvalidFields.Add("Decedent_SSN");
@@ -284,7 +274,6 @@
 
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
-
         StateHasChanged();
     }
 
@@ -297,8 +286,27 @@
         });
     }
 
-    private string GetFieldCssClass(string fieldName)
+    private string GetFieldCssClass(string fieldName) =>
+        InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+
+    private string? GetErrorForField(string fieldKey)
     {
-        return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+        if (!InvalidFields.Contains(fieldKey))
+            return null;
+
+        var sep = fieldKey.LastIndexOf('_');
+        if (sep < 0)
+        {
+            var lbl = System.Text.RegularExpressions.Regex.Replace(fieldKey, "(?<=[a-z])(?=[A-Z])", " ");
+            return ValidationErrors.FirstOrDefault(e => e.Contains(lbl, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var prefixLabel = System.Text.RegularExpressions.Regex.Replace(fieldKey[..sep], "(?<=[a-z])(?=[A-Z])", " ");
+        var fieldLabel = System.Text.RegularExpressions.Regex.Replace(fieldKey[(sep + 1)..], "(?<=[a-z])(?=[A-Z])", " ");
+
+        return ValidationErrors.FirstOrDefault(e =>
+            e.Contains(prefixLabel, StringComparison.OrdinalIgnoreCase) &&
+            e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase))
+            ?? ValidationErrors.FirstOrDefault(e => e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase));
     }
 }

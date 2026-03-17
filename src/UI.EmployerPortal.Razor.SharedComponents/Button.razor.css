@@ -1,0 +1,74 @@
+.btn-component {
+    font-family: Verdana, sans-serif;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+}
+
+    .btn-component:focus {
+        outline: 2px solid #258cfb;
+        outline-offset: 2px;
+    }
+
+    .btn-component:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+.btn-primary-variant {
+    background-color: #003663;
+    color: #ffffff;
+    border: 2px solid #003663;
+}
+
+    .btn-primary-variant:hover:not(:disabled) {
+        background-color: #ffffff;
+        color: #003663;
+    }
+
+    .btn-primary-variant ::deep img {
+        filter: brightness(0) invert(1);
+    }
+
+    .btn-primary-variant:hover:not(:disabled) ::deep img {
+        filter: none;
+    }
+
+.btn-secondary-variant:hover:not(:disabled) ::deep img {
+    filter: brightness(0) invert(1);
+}
+
+.btn-secondary-variant {
+    background-color: #ffffff;
+    color: #003663;
+    border: 2px solid #003663;
+}
+
+    .btn-secondary-variant:hover:not(:disabled) {
+        background-color: #003663;
+        color: #ffffff;
+    }
+
+.btn-component.btn-no-border {
+    border: none;
+}
+
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.btn-md {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-lg {
+    padding: 12px 24px;
+    font-size: 16px;
+}

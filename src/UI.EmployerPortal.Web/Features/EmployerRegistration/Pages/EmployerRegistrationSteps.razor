@@ -1,0 +1,52 @@
+@page "/employer-registration/steps"
+@using UI.EmployerPortal.Razor.SharedComponents
+@using UI.EmployerPortal.Razor.SharedComponents.Wizards
+@using UI.EmployerPortal.Razor.SharedComponents.Helpers
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components
+@inject NavigationManager Nav;
+
+
+<div class="page-content">
+
+    <Wizard Steps="@_wizardSteps"
+            @bind-CurrentStep="@_currentStep"
+            ShowCancelButton="false"
+            OnBackClick="HandleBackClick"
+            OnActionClick="HandleActionClick"
+            AutoNavigateOnAction="false"
+            DisableBackOnFirstStep="false">
+
+        @if (_currentStep == 1)
+        {
+            <PreliminaryQuestions @ref="_preliminaryQuestionsRef"
+                                Model="@ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel"/>
+        }
+
+        @if (_currentStep == 2)
+        {
+            <Ownership @ref="_ownershipRef" />
+        }
+        @if (_currentStep == 3)
+        {
+            <BusinessInformation @ref="_businessInformationRef" />
+        }
+        @if (_currentStep == 4)
+        {
+            <BusinessContact @ref="_businessContactRef" />
+        }
+        @if (_currentStep == 5)
+        {
+            <BusinessActivity @ref="_businessActivityRef" />
+        }
+        @if (_currentStep == 6)
+        {
+            <UISubjectivity @ref="_uiSubjectivityRef" />
+        }
+        else if (_currentStep == 7)
+        {
+            <Verification @ref="_verificationRef" />
+
+        }
+
+    </Wizard>
+</div>

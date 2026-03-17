@@ -1,0 +1,84 @@
+@using static UI.EmployerPortal.Razor.SharedComponents.Button
+@if (IsVisible)
+{
+    <div class="wizard-container">
+        @if (CurrentStepData != null)
+        {
+            <div class="wizard-current-step">
+                <div class="step-indicator-single">
+                    <div class="step-circle-large">
+                        @if (!string.IsNullOrWhiteSpace(CurrentStepData.Icon))
+                        {
+                            @if (CurrentStepData.Icon.EndsWith(".svg"))
+                            {
+                                <img src="@Assets[CurrentStepData.Icon]" class="" alt="Step @CurrentStep" />
+                                
+                            }
+                        }
+                        else
+                        {
+                            <span class="step-number-large">@CurrentStep</span>
+                        }                      
+                    </div>                   
+                </div>               
+            </div>
+          
+        }
+
+        <div class="css-line"></div>
+
+        @if (ChildContent != null)
+        {
+            <div class="wizard-content">
+                @ChildContent
+            </div>
+        }
+
+        @if (ShowNavigationButtons)
+        {
+            <div class="wizard-navigation">
+                <div class="wizard-navigation-left">
+                    @if (ShowBackButton)
+                    {
+                        <Button Variant="ButtonVariant.Secondary"
+                                Onclick="HandleBackClick"
+                                disabled="@(DisableBackOnFirstStep && CurrentStep <= 1)">
+                            @if (ResolvedShowBackButtonIcon)
+                            {
+                                <img src="@(Assets["icons/chevron-left.svg"])" alt="" />
+                            }
+                            @ResolvedBackButtonText
+                        </Button>
+                    }
+                    @if (ShowCancelButton)
+                    {
+                        <Button Text="@ResolvedCancelButtonText"
+                                Variant="ButtonVariant.Secondary"
+                                ShowBorder="ResolvedShowCancelButtonBorder"
+                                Onclick="HandleCancelClick" />
+                    }
+                </div>
+
+                <div class="wizard-navigation-right">
+                    @if (ShowSaveAndQuitButton)
+                    {
+                        <Button Text="@ResolvedSaveAndQuitButtonText"
+                                Variant="ButtonVariant.Secondary"
+                                ShowBorder="ResolvedShowSaveAndQuitButtonBorder"
+                                Onclick="HandleSaveAndQuitClick" />
+                    }
+                    @if (ShowActionButton)
+                    {
+                        <Button Onclick="HandleActionClick">
+                            @ResolvedActionButtonText
+                            @if(ResolvedShowActionButtonIcon)
+                            {
+                                <img src="@(Assets["icons/chevron-right.svg"])" alt="" />
+                            }
+                        </Button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -16,37 +16,32 @@
             <h3 class="member-title">General Partner</h3>
 
             <div class="member-fields">
-                <div class="form-group">
-                    <label for="first-name" class="form-label">
-                        <span class="required-asterisk">*</span> First Name
-                    </label>
-                    <input type="text"
-                           id="first-name"
-                           class="form-input @(GetFieldCssClass("GeneralPartner_FirstName"))"
-                           @bind="GeneralPartner.FirstName"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="first-name"
+                                Label="First Name"
+                                Value="@GeneralPartner.FirstName"
+                                ValueChanged="@(v => GeneralPartner.FirstName = v)"
+                                MaxLength="64"
+                                Width="106"
+                                HasError="@InvalidFields.Contains("GeneralPartner_FirstName")"
+                                ErrorMessage="@GetErrorForField("GeneralPartner_FirstName")"
+                                OnBlur="ValidateForm" />
 
-                <div class="form-group form-field-small">
-                    <label for="middle-initial" class="form-label">Middle Initial</label>
-                    <input type="text"
-                           id="middle-initial"
-                           class="form-input"
-                           maxlength="1"
-                           @bind="GeneralPartner.MiddleInitial"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="middle-initial"
+                                Label="Middle Initial"
+                                Value="@GeneralPartner.MiddleInitial"
+                                ValueChanged="@(v => GeneralPartner.MiddleInitial = v)"
+                                MaxLength="1"
+                                Width="114" />
 
-                <div class="form-group">
-                    <label for="last-name" class="form-label">
-                        <span class="required-asterisk">*</span> Last Name
-                    </label>
-                    <input type="text"
-                           id="last-name"
-                           class="form-input @(GetFieldCssClass("GeneralPartner_LastName"))"
-                           @bind="GeneralPartner.LastName"
-                           @bind:after="ValidateForm" />
-                </div>
+                <ValidatedInput Id="last-name"
+                                Label="Last Name"
+                                Value="@GeneralPartner.LastName"
+                                ValueChanged="@(v => GeneralPartner.LastName = v)"
+                                MaxLength="64"
+                                Width="103"
+                                HasError="@InvalidFields.Contains("GeneralPartner_LastName")"
+                                ErrorMessage="@GetErrorForField("GeneralPartner_LastName")"
+                                OnBlur="ValidateForm" />
 
                 <SSNInput Id="general-partner-ssn"
                           Label="SSN"
@@ -56,22 +51,20 @@
                           IsFocusedChanged="@((bool focused) => GeneralPartner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!IsOutsideUSA)"
+                          IsRequired="@(!ISOutsideUSA)"
                           CssClass="@(GetFieldCssClass("GeneralPartner_SSN"))" />
             </div>
         </div>
     </div>
-    <br />
-    <div class="form-group">
-        <label for="partnership-name" class="form-label">
-            <span class="required-asterisk">*</span> Limited Partnership Name
-        </label>
-        <input type="text"
-               id="partnership-name"
-               class="form-input @(GetFieldCssClass("LimitedPartnershipName"))"
-               @bind="LimitedPartnershipName"
-               @bind:after="ValidateForm" />
-    </div>
+
+    <!-- Limited Partnership Name -->
+    <ValidatedInput Id="partnership-name"
+                    Label="Limited Partnership Name"
+                    Value="@LimitedPartnershipName"
+                    ValueChanged="@(v => LimitedPartnershipName = v)"
+                    HasError="@InvalidFields.Contains("LimitedPartnershipName")"
+                    ErrorMessage="@GetErrorForField("LimitedPartnershipName")"
+                    OnBlur="ValidateForm" />
 </div>
 
 @code {
@@ -85,13 +78,13 @@
     public EventCallback<List<string>> OnValidationChanged { get; set; }
 
     [Parameter]
-    public bool ShouldValidate { get; set; }
-
-    [Parameter]
-    public bool IsOutsideUSA { get; set; }
+    public bool ISOutsideUSA { get; set; }
 
     [Parameter]
     public object? SavedData { get; set; }
+
+    [Parameter]
+    public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private string RegistrationState { get; set; } = string.Empty;
     private string LimitedPartnershipName { get; set; } = string.Empty;
@@ -99,48 +92,29 @@
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
-    private bool _lastShouldValidate;
     private bool _dataRestored;
-    private bool _previousIsOutsideUSA;
+    private bool _previousISOutsideUSA;
 
     protected override void OnInitialized()
     {
-        _previousIsOutsideUSA = IsOutsideUSA;
+        _previousISOutsideUSA = ISOutsideUSA;
         GeneralPartner = new OwnerMember { Role = "General Partner" };
         RestoreFromSession();
-        ValidateForm();
+        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
     }
 
     protected override void OnParametersSet()
     {
-        if (_previousIsOutsideUSA != IsOutsideUSA)
+        if (_previousISOutsideUSA != ISOutsideUSA)
         {
-            _previousIsOutsideUSA = IsOutsideUSA;
-            ValidateForm();
-        }
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        base.OnAfterRender(firstRender);
-
-        if (ShouldValidate && !_lastShouldValidate)
-        {
-            _lastShouldValidate = true;
-            ValidateForm();
-        }
-        else if (!ShouldValidate)
-        {
-            _lastShouldValidate = false;
+            _previousISOutsideUSA = ISOutsideUSA;
         }
     }
 
     private void RestoreFromSession()
     {
         if (_dataRestored || SavedData == null)
-        {
             return;
-        }
 
         try
         {
@@ -150,7 +124,6 @@
                 LimitedPartnershipName = sessionData.LimitedPartnershipName ?? string.Empty;
 
                 if (sessionData.GeneralPartner != null)
-                {
                     GeneralPartner = new OwnerMember
                     {
                         Role = "General Partner",
@@ -159,7 +132,6 @@
                         LastName = sessionData.GeneralPartner.LastName,
                         SSN = sessionData.GeneralPartner.SSN
                     };
-                }
 
                 _dataRestored = true;
             }
@@ -198,10 +170,20 @@
             ValidationErrors.Add("Limited Partnership Name is required");
             InvalidFields.Add("LimitedPartnershipName");
         }
+        else if (LimitedPartnershipName.Length > 128)
+        {
+            ValidationErrors.Add("Limited Partnership Name must not exceed 128 characters");
+            InvalidFields.Add("LimitedPartnershipName");
+        }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.FirstName))
         {
             ValidationErrors.Add("General Partner First Name is required");
+            InvalidFields.Add("GeneralPartner_FirstName");
+        }
+        else if (GeneralPartner.FirstName.Length > 64)
+        {
+            ValidationErrors.Add("General Partner First Name must not exceed 64 characters");
             InvalidFields.Add("GeneralPartner_FirstName");
         }
 
@@ -210,37 +192,65 @@
             ValidationErrors.Add("General Partner Last Name is required");
             InvalidFields.Add("GeneralPartner_LastName");
         }
+        else if (GeneralPartner.LastName.Length > 64)
+        {
+            ValidationErrors.Add("General Partner Last Name must not exceed 64 characters");
+            InvalidFields.Add("GeneralPartner_LastName");
+        }
 
-        if (!IsOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
+        if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
         {
             var ssnResult = SSNInput.ValidateSSN(GeneralPartner.SSN, "General Partner");
             if (ssnResult != null && !ssnResult.IsValid)
             {
-                ValidationErrors.Add(ssnResult.ErrorMessage ?? "SSN Required");
+                ValidationErrors.Add(ssnResult.ErrorMessage);
                 InvalidFields.Add("GeneralPartner_SSN");
             }
         }
 
         _ = OnValidationChanged.InvokeAsync(ValidationErrors);
         NotifyDataChanged();
-
         StateHasChanged();
     }
 
     private void NotifyDataChanged()
     {
-        var formData = new LimitedPartnershipFormData
+        _ = OnDataChanged.InvokeAsync(new LimitedPartnershipFormData
         {
             RegistrationState = RegistrationState,
             LimitedPartnershipName = LimitedPartnershipName,
             GeneralPartner = GeneralPartner
-        };
-
-        _ = OnDataChanged.InvokeAsync(formData);
+        });
     }
 
-    private string GetFieldCssClass(string fieldName)
+    private string GetFieldCssClass(string fieldName) =>
+        InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+
+    private string? GetErrorForField(string fieldKey)
     {
-        return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+        if (!InvalidFields.Contains(fieldKey))
+            return null;
+
+        var sep = fieldKey.LastIndexOf('_');
+        if (sep < 0)
+        {
+            // No underscore — simple key like "LimitedPartnershipName" or "RegistrationState"
+            var lbl = System.Text.RegularExpressions.Regex.Replace(
+                fieldKey, "(?<=[a-z])(?=[A-Z])", " ");
+            return ValidationErrors.FirstOrDefault(e =>
+                e.Contains(lbl, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // "GeneralPartner_FirstName" → prefix="General Partner", field="First Name"
+        var prefixLabel = System.Text.RegularExpressions.Regex.Replace(
+            fieldKey[..sep], "(?<=[a-z])(?=[A-Z])", " ");
+        var fieldLabel = System.Text.RegularExpressions.Regex.Replace(
+            fieldKey[(sep + 1)..], "(?<=[a-z])(?=[A-Z])", " ");
+
+        return ValidationErrors.FirstOrDefault(e =>
+            e.Contains(prefixLabel, StringComparison.OrdinalIgnoreCase) &&
+            e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase))
+            ?? ValidationErrors.FirstOrDefault(e =>
+                e.Contains(fieldLabel, StringComparison.OrdinalIgnoreCase));
     }
 }
