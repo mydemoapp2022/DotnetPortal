@@ -2,8 +2,8 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using Microsoft.AspNetCore.Components.Forms
 
-<div class="form-group">
-    <label for="@Id" class="form-label">
+<div class="form-group master-text-field @(HasError ? "master-text-field--error" : "")">
+    <label for="@Id" class="form-label @(HasError ? "master-label--error" : "")">
         @if (IsRequired)
         {
             <span class="required-indicator">*</span>
@@ -21,63 +21,43 @@
             <option value="@activity">@activity.GetDisplayName()</option>
         }
     </InputSelect>
+
+    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <div class="master-error" aria-live="polite">
+            <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <mask id="mask0_5694_133" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
+                    <rect y="2" width="12" height="12" fill="#D9D9D9" />
+                </mask>
+                <g mask="url(#mask0_5694_133)">
+                    <path d="M6 10.5C6.14167 10.5 6.26042 10.4521 6.35625 10.3563C6.45208 10.2604 6.5 10.1417 6.5 10C6.5 9.85833 6.45208 9.73958 6.35625 9.64375C6.26042 9.54792 6.14167 9.5 6 9.5C5.85833 9.5 5.73958 9.54792 5.64375 9.64375C5.54792 9.73958 5.5 9.85833 5.5 10C5.5 10.1417 5.54792 10.2604 5.64375 10.3563C5.73958 10.4521 5.85833 10.5 6 10.5ZM5.5 8.5H6.5V5.5H5.5V8.5ZM6 13C5.30833 13 4.65833 12.8687 4.05 12.6062C3.44167 12.3438 2.9125 11.9875 2.4625 11.5375C2.0125 11.0875 1.65625 10.5583 1.39375 9.95C1.13125 9.34167 1 8.69167 1 8C1 7.30833 1.13125 6.65833 1.39375 6.05C1.65625 5.44167 2.0125 4.9125 2.4625 4.4625C2.9125 4.0125 3.44167 3.65625 4.05 3.39375C4.65833 3.13125 5.30833 3 6 3C6.69167 3 7.34167 3.13125 7.95 3.39375C8.55833 3.65625 9.0875 4.0125 9.5375 4.4625C9.9875 4.9125 10.3438 5.44167 10.6062 6.05C10.8687 6.65833 11 7.30833 11 8C11 8.69167 10.8687 9.34167 10.6062 9.95C10.3438 10.5583 9.9875 11.0875 9.5375 11.5375C9.0875 11.9875 8.55833 12.3438 7.95 12.6062C7.34167 12.8687 6.69167 13 6 13ZM6 12C7.11667 12 8.0625 11.6125 8.8375 10.8375C9.6125 10.0625 10 9.11667 10 8C10 6.88333 9.6125 5.9375 8.8375 5.1625C8.0625 4.3875 7.11667 4 6 4C4.88333 4 3.9375 4.3875 3.1625 5.1625C2.3875 5.9375 2 6.88333 2 8C2 9.11667 2.3875 10.0625 3.1625 10.8375C3.9375 11.6125 4.88333 12 6 12Z"
+                          fill="#C82838" />
+                </g>
+            </svg>
+            <span>@ErrorMessage</span>
+        </div>
+    }
 </div>
 
 @code {
     [CascadingParameter]
     private EditContext? EditContext { get; set; }
-    /// <summary>
-    /// Gets or sets the input element ID for accessibility.
-    /// </summary>
-    [Parameter]
-    public string Id { get; set; } = "principal-activity";
 
-    /// <summary>
-    /// Gets or sets the label text displayed above the dropdown.
-    /// </summary>
-    [Parameter]
-    public string Label { get; set; } = "Principal Business Activity";
+    [Parameter] public string Id { get; set; } = "principal-activity";
+    [Parameter] public string Label { get; set; } = "Principal Business Activity";
+    [Parameter] public PrincipalBusinessActivityType Value { get; set; } = PrincipalBusinessActivityType.None;
+    [Parameter] public EventCallback<PrincipalBusinessActivityType> ValueChanged { get; set; }
+    [Parameter] public Expression<Func<PrincipalBusinessActivityType>>? ValueExpression { get; set; }
+    [Parameter] public bool IsRequired { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; } = false;
+    [Parameter] public string CssClass { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the currently selected principal business activity.
-    /// </summary>
-    [Parameter]
-    public PrincipalBusinessActivityType Value { get; set; } = PrincipalBusinessActivityType.None;
+    /// <summary>When true, applies error styling to the select element.</summary>
+    [Parameter] public bool HasError { get; set; } = false;
 
-    /// <summary>
-    /// Gets or sets the callback invoked when the selected value changes.
-    /// </summary>
-    [Parameter]
-    public EventCallback<PrincipalBusinessActivityType> ValueChanged { get; set; }
+    /// <summary>Error message displayed below the select when HasError is true.</summary>
+    [Parameter] public string? ErrorMessage { get; set; }
 
-    /// <summary>
-    /// Gets or sets the value expression for validation.
-    /// </summary>
-    [Parameter]
-    public Expression<Func<PrincipalBusinessActivityType>>? ValueExpression { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether this field is required.
-    /// When true, displays a red asterisk (*) indicator.
-    /// </summary>
-    [Parameter]
-    public bool IsRequired { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the dropdown is disabled.
-    /// </summary>
-    [Parameter]
-    public bool Disabled { get; set; } = false;
-
-    /// <summary>
-    /// Gets or sets additional CSS classes to apply to the select element.
-    /// </summary>
-    [Parameter]
-    public string CssClass { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Handles the value changed event and invokes the ValueChanged callback.
-    /// </summary>
     private async Task OnValueChanged()
     {
         await ValueChanged.InvokeAsync(Value);
@@ -89,10 +69,6 @@
         }
     }
 
-    /// <summary>
-    /// Gets all principal business activity options sorted by display name.
-    /// Excludes the None option which is shown as the default placeholder.
-    /// </summary>
     private IEnumerable<PrincipalBusinessActivityType> GetAllActivities()
     {
         return Enum.GetValues<PrincipalBusinessActivityType>()
@@ -100,28 +76,21 @@
             .OrderBy(a => a.GetDisplayName());
     }
 
-    /// <summary>
-    /// Gets the CSS class including validation state.
-    /// </summary>
     private string GetCssClass()
     {
         var cssClass = $"form-control {CssClass}";
 
-        if (EditContext != null && ValueExpression != null)
+        if (HasError)
+        {
+            cssClass += " master-input--error";
+        }
+        else if (EditContext != null && ValueExpression != null)
         {
             var fieldIdentifier = FieldIdentifier.Create(ValueExpression);
-            var validationMessages = EditContext.GetValidationMessages(fieldIdentifier);
-            var hasErrors = validationMessages.Any();
-
-            // Add invalid class if field has validation errors
-            if (hasErrors)
-            {
+            if (EditContext.GetValidationMessages(fieldIdentifier).Any())
                 cssClass += " invalid";
-            }
             else if (EditContext.IsModified(fieldIdentifier))
-            {
                 cssClass += " valid";
-            }
         }
 
         return cssClass.Trim();
