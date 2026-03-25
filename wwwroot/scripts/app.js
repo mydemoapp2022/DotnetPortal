@@ -39,15 +39,15 @@ window.openPdfInNewTab = async (contentStreamReference) => {
     const arrayBuffer = await contentStreamReference.arrayBuffer();
     const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
-    //const anchor = document.createElement('a');
-    //anchor.href = url;
-    //anchor.download = fileName ?? 'download.pdf';
-    //anchor.target = '_blank';
-    //document.body.appendChild(anchor);
-    //anchor.click();
-    //document.body.removeChild(anchor);
-    ////URL.revokeObjectURL(url);
 
     window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
+window.focusElement = function (elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+};

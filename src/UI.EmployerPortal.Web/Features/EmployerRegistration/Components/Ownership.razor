@@ -18,10 +18,10 @@
         @if (_showValidationSummary && ValidationErrors.Any())
         {
             <NotificationBanner NotificationType="NotificationType.Alert"
-                    MessageStyle="MessageStyle.MultiLine"
-                    Messages="ValidationErrors"
-                    DismissButton="false">
-            </NotificationBanner>
+                                MessageStyle="MessageStyle.MultiLine"
+                                Messages="ValidationErrors"
+                                MessageFieldIds="ValidationFieldIds"
+                                DismissButton="false" />            
             <br />
             <br />
         }

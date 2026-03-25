@@ -2,6 +2,7 @@ namespace UI.EmployerPortal.Razor.SharedComponents.NotificationBanners;
 
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 //Example usage:
 
@@ -27,6 +28,8 @@ using Microsoft.AspNetCore.Components;
 /// </summary>
 public partial class NotificationBanner
 {
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
     /// <summary>
     /// The type of notification
     /// </summary>
@@ -89,6 +92,14 @@ public partial class NotificationBanner
     public List<string> Messages { get; set; } = new();
 
     /// <summary>
+    /// Optional list of element IDs that map positionally to <see cref="Messages"/>.
+    /// When an entry is non-empty the corresponding message renders as a clickable
+    /// link that scrolls to and focuses the target field.
+    /// </summary>
+    [Parameter]
+    public List<string> MessageFieldIds { get; set; } = new();
+
+    /// <summary>
     /// Sets the maximum length for the Message part of the Notification Banner.  Once
     /// the limit is reached the message displayed will be truncated and three ellipses (...)
     /// will be added.
@@ -130,6 +141,19 @@ public partial class NotificationBanner
         return DueDate.HasValue ? $"Due: {DueDate.Value:MM/dd/yyyy}" : String.Empty;
     }
 
+    private string GetFieldId(int index)
+    {
+        return index < MessageFieldIds.Count ? MessageFieldIds[index] : string.Empty;
+    }
+
+    private async Task FocusFieldAsync(string fieldId)
+    {
+        if (!string.IsNullOrWhiteSpace(fieldId))
+        {
+            await JSRuntime.InvokeVoidAsync("focusElement", fieldId);
+        }   
+    }
+
     private MarkupString GetNotificationIcon()
     {
         return NotificationType switch
@@ -164,7 +188,6 @@ public partial class NotificationBanner
             NotificationType.Confirmation => MessageStyle == MessageStyle.SingleLine ? "nb-confirmation" : "nb-confirmation-multiline",
             _ => String.Empty,
         };
-
     }
 
     private MarkupString GetAlertNotificationIcon()

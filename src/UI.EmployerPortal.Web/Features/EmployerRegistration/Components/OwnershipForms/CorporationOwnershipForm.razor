@@ -98,29 +98,19 @@
 </div>
 
 @code {
-    [Parameter]
-    public OwnershipFormConfig Config { get; set; } = new();
-
-    [Parameter]
-    public EventCallback<CorporationFormData> OnDataChanged { get; set; }
-
-    [Parameter]
-    public EventCallback<List<string>> OnValidationChanged { get; set; }
-
-    [Parameter]
-    public object? SavedData { get; set; }
-
-    [Parameter]
-    public bool ISOutsideUSA { get; set; }
-
-    [Parameter]
-    public Action<Func<List<string>>>? RegisterValidate { get; set; }
+    [Parameter] public OwnershipFormConfig Config { get; set; } = new();
+    [Parameter] public EventCallback<CorporationFormData> OnDataChanged { get; set; }
+    [Parameter] public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
+    [Parameter] public object? SavedData { get; set; }
+    [Parameter] public bool ISOutsideUSA { get; set; }
+    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private string IncorporationState { get; set; } = string.Empty;
     private string ForeignCountry { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
     private List<OwnerMember> Officers { get; set; } = [];
     private List<string> ValidationErrors { get; set; } = [];
+    private List<ValidationItem> _validationItems = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
@@ -137,93 +127,102 @@
     protected override void OnParametersSet()
     {
         if (_previousISOutsideUSA != ISOutsideUSA)
-        {
             _previousISOutsideUSA = ISOutsideUSA;
-        }
     }
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null)
-            return;
-
+        if (_dataRestored || SavedData == null) return;
         try
         {
             if (SavedData is OwnershipSessionData sessionData)
             {
                 IncorporationState = sessionData.IncorporationState ?? string.Empty;
                 ForeignCountry = sessionData.ForeignCountry ?? string.Empty;
-
                 if (sessionData.Officers is { Count: > 0 })
                 {
                     Officers.Clear();
-                    foreach (var savedOfficer in sessionData.Officers)
-                    {
+                    foreach (var saved in sessionData.Officers)
                         Officers.Add(new OwnerMember
                         {
-                            Role = savedOfficer.Role,
-                            FirstName = savedOfficer.FirstName,
-                            MiddleInitial = savedOfficer.MiddleInitial,
-                            LastName = savedOfficer.LastName,
-                            SSN = savedOfficer.SSN,
-                            OwnershipPercentage = savedOfficer.OwnershipPercentage
+                            Role = saved.Role,
+                            FirstName = saved.FirstName,
+                            MiddleInitial = saved.MiddleInitial,
+                            LastName = saved.LastName,
+                            SSN = saved.SSN,
+                            OwnershipPercentage = saved.OwnershipPercentage
                         });
-                    }
                 }
-
                 _dataRestored = true;
             }
         }
-        catch
-        {
-            // Failed to restore, continue with defaults
-        }
+        catch { }
     }
 
     private void InitializeOfficers()
     {
-        if (Officers.Count > 0)
-            return;
-
+        if (Officers.Count > 0) return;
         Officers.Clear();
         foreach (var role in Config.PredefinedRoles)
-        {
             Officers.Add(new OwnerMember { Role = role });
-        }
     }
 
     private void OnIncorporationStateChanged(string value)
     {
         IncorporationState = value;
-        if (!string.IsNullOrWhiteSpace(IncorporationState))
-            ForeignCountry = string.Empty;
+        if (!string.IsNullOrWhiteSpace(IncorporationState)) ForeignCountry = string.Empty;
         ValidateForm();
     }
 
     private void OnForeignCountryChanged()
     {
-        if (!string.IsNullOrWhiteSpace(ForeignCountry))
-            IncorporationState = string.Empty;
+        if (!string.IsNullOrWhiteSpace(ForeignCountry)) IncorporationState = string.Empty;
         ValidateForm();
     }
 
     private void OnSSNChanged(int index, string value)
     {
-        if (index >= 0 && index < Officers.Count)
-        {
-            Officers[index].SSN = value;
-            ValidateForm();
-        }
+        if (index >= 0 && index < Officers.Count) { Officers[index].SSN = value; ValidateForm(); }
     }
 
     private void OnSSNFocusChanged(int index, bool focused)
     {
-        if (index >= 0 && index < Officers.Count)
-            Officers[index].IsSSNFocused = focused;
+        if (index >= 0 && index < Officers.Count) Officers[index].IsSSNFocused = focused;
+    }
+
+    /// <summary>
+    /// Maps a field key like "President_FirstName" or "IncorporationState"
+    /// to the HTML element ID used in the rendered markup.
+    /// Uses LastIndexOf('_') to correctly handle roles with spaces (e.g. "Vice President").
+    /// </summary>
+    private static string GetElementId(string fieldKey)
+    {
+        var sep = fieldKey.LastIndexOf('_');
+        if (sep > 0)
+        {
+            var role = fieldKey[..sep];
+            var field = fieldKey[(sep + 1)..];
+            return field switch
+            {
+                "FirstName" => $"first-name-{role}",
+                "LastName" => $"last-name-{role}",
+                "SSN" => $"ssn-{role}",
+                "OwnershipPercentage" => $"ownership-percentage-{role}",
+                _ => string.Empty
+            };
+        }
+        return fieldKey switch
+        {
+            "IncorporationState" => "incorporation-state",
+            "ForeignCountry" => "foreign-country",
+            _ => string.Empty
+        };
     }
 
     private void AddFieldError(string fieldKey, string message)
     {
+        var elementId = GetElementId(fieldKey);
+        _validationItems.Add(new ValidationItem(message, elementId));
         ValidationErrors.Add(message);
         InvalidFields.Add(fieldKey);
         FieldErrors[fieldKey] = message;
@@ -232,6 +231,7 @@
     private void ValidateForm()
     {
         ValidationErrors.Clear();
+        _validationItems.Clear();
         InvalidFields.Clear();
         FieldErrors.Clear();
 
@@ -249,6 +249,9 @@
 
         if (!hasAnyOfficerData)
         {
+            // No specific field to point to — link to first officer's first name
+            _validationItems.Add(new ValidationItem("At least one officer is required",
+                Officers.Count > 0 ? $"first-name-{Officers[0].Role}" : string.Empty));
             ValidationErrors.Add("At least one officer is required");
         }
         else
@@ -261,56 +264,41 @@
                                   !string.IsNullOrWhiteSpace(officer.LastName) ||
                                   !string.IsNullOrWhiteSpace(officer.SSN) ||
                                   officer.OwnershipPercentage.HasValue;
-
                 if (!hasAnyValue) continue;
 
                 if (string.IsNullOrWhiteSpace(officer.FirstName))
-                {
                     AddFieldError($"{officer.Role}_FirstName", $"{officer.Role} First Name is required");
-                }
                 else if (officer.FirstName.Length > 64)
-                {
                     AddFieldError($"{officer.Role}_FirstName", $"{officer.Role} First Name must not exceed 64 characters");
-                }
 
                 if (string.IsNullOrWhiteSpace(officer.LastName))
-                {
                     AddFieldError($"{officer.Role}_LastName", $"{officer.Role} Last Name is required");
-                }
                 else if (officer.LastName.Length > 64)
-                {
                     AddFieldError($"{officer.Role}_LastName", $"{officer.Role} Last Name must not exceed 64 characters");
-                }
 
                 if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(officer.SSN))
                 {
                     var ssnResult = SSNInput.ValidateSSN(officer.SSN, officer.Role);
                     if (ssnResult != null && !ssnResult.IsValid)
-                    {
                         AddFieldError($"{officer.Role}_SSN", ssnResult.ErrorMessage);
-                    }
                 }
 
                 if (officer.OwnershipPercentage.HasValue)
                 {
                     if (officer.OwnershipPercentage < 0 || officer.OwnershipPercentage > 100)
-                    {
                         AddFieldError($"{officer.Role}_OwnershipPercentage", $"{officer.Role} Ownership Percentage must be between 0 and 100.00");
-                    }
                     else if (decimal.Round(officer.OwnershipPercentage.Value, 2) != officer.OwnershipPercentage.Value)
-                    {
                         AddFieldError($"{officer.Role}_OwnershipPercentage", $"{officer.Role} Ownership Percentage must not exceed 2 decimal places");
-                    }
                 }
             }
 
-            var totalPercentage = Officers
-                .Where(o => o.OwnershipPercentage.HasValue)
-                .Sum(o => o.OwnershipPercentage!.Value);
-
+            var totalPercentage = Officers.Where(o => o.OwnershipPercentage.HasValue).Sum(o => o.OwnershipPercentage!.Value);
             if (totalPercentage > 0 && Math.Round(totalPercentage, 2) != 100)
             {
                 var msg = "Total Ownership Percentage must equal 100.00";
+                var firstOfficer = Officers.FirstOrDefault(o => o.OwnershipPercentage.HasValue);
+                _validationItems.Add(new ValidationItem(msg,
+                    firstOfficer != null ? $"ownership-percentage-{firstOfficer.Role}" : string.Empty));
                 ValidationErrors.Add(msg);
                 foreach (var o in Officers.Where(o => o.OwnershipPercentage.HasValue))
                 {
@@ -321,10 +309,8 @@
 
             var ssnList = Officers.Select(o => (string?)o.SSN).ToList();
             var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => Officers[i].Role);
-
             if (duplicateErrors is { Count: > 0 })
             {
-                ValidationErrors.AddRange(duplicateErrors);
                 var ssnGroups = Officers
                     .Select((o, idx) => new { o.SSN, o.Role, Index = idx })
                     .Where(x => !string.IsNullOrWhiteSpace(x.SSN))
@@ -334,6 +320,9 @@
                 foreach (var group in ssnGroups)
                 {
                     var dupMsg = $"Duplicate SSN found for: {string.Join(", ", group.Select(x => x.Role))}";
+                    var firstItem = group.First();
+                    _validationItems.Add(new ValidationItem(dupMsg, $"ssn-{firstItem.Role}"));
+                    ValidationErrors.Add(dupMsg);
                     foreach (var item in group)
                     {
                         InvalidFields.Add($"{item.Role}_SSN");
@@ -343,7 +332,7 @@
             }
         }
 
-        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        _ = OnValidationChanged.InvokeAsync(_validationItems);
         NotifyDataChanged();
         StateHasChanged();
     }

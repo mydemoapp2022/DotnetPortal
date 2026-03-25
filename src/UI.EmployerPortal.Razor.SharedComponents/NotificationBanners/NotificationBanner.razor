@@ -9,9 +9,19 @@
 
                     <ul style="list-style-type:disc;" class="nb-text-multiline">
 
-                        @foreach (var message in Messages)
+                        @foreach (var (message, index) in Messages.Select((m, i) => (m, i)))
                         {
-                            <li>@message</li>
+                            var fieldId = GetFieldId(index);
+                            <li>
+                                @if (!string.IsNullOrWhiteSpace(fieldId))
+                                {
+                                    <a href="#" class="nb-error-link" @onclick="() => FocusFieldAsync(fieldId)" @onclick:preventDefault>@message</a>
+                                }
+                                else
+                                {
+                                    @message
+                                }
+                            </li>
                         }
                     </ul>
                 </div>

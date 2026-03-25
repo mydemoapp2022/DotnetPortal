@@ -70,29 +70,19 @@
 </div>
 
 @code {
-    [Parameter]
-    public OwnershipFormConfig Config { get; set; } = new();
-
-    [Parameter]
-    public EventCallback<LimitedPartnershipFormData> OnDataChanged { get; set; }
-
-    [Parameter]
-    public EventCallback<List<string>> OnValidationChanged { get; set; }
-
-    [Parameter]
-    public bool ISOutsideUSA { get; set; }
-
-    [Parameter]
-    public object? SavedData { get; set; }
-
-    [Parameter]
-    public Action<Func<List<string>>>? RegisterValidate { get; set; }
+    [Parameter] public OwnershipFormConfig Config { get; set; } = new();
+    [Parameter] public EventCallback<LimitedPartnershipFormData> OnDataChanged { get; set; }
+    [Parameter] public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
+    [Parameter] public bool ISOutsideUSA { get; set; }
+    [Parameter] public object? SavedData { get; set; }
+    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private string RegistrationState { get; set; } = string.Empty;
     private string LimitedPartnershipName { get; set; } = string.Empty;
     private OwnerMember GeneralPartner { get; set; } = new() { Role = "General Partner" };
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
+    private List<ValidationItem> _validationItems = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
@@ -109,23 +99,18 @@
     protected override void OnParametersSet()
     {
         if (_previousISOutsideUSA != ISOutsideUSA)
-        {
             _previousISOutsideUSA = ISOutsideUSA;
-        }
     }
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null)
-            return;
-
+        if (_dataRestored || SavedData == null) return;
         try
         {
             if (SavedData is OwnershipSessionData sessionData)
             {
                 RegistrationState = sessionData.RegistrationState ?? string.Empty;
                 LimitedPartnershipName = sessionData.LimitedPartnershipName ?? string.Empty;
-
                 if (sessionData.GeneralPartner != null)
                     GeneralPartner = new OwnerMember
                     {
@@ -135,30 +120,29 @@
                         LastName = sessionData.GeneralPartner.LastName,
                         SSN = sessionData.GeneralPartner.SSN
                     };
-
                 _dataRestored = true;
             }
         }
-        catch
-        {
-            // Failed to restore, continue with defaults
-        }
+        catch { }
     }
 
-    private void StateChanged(string value)
-    {
-        RegistrationState = value;
-        ValidateForm();
-    }
+    private void StateChanged(string value) { RegistrationState = value; ValidateForm(); }
 
-    private void OnSSNChanged(string value)
+    private void OnSSNChanged(string value) { GeneralPartner.SSN = value; ValidateForm(); }
+
+    private static string GetElementId(string fieldKey) => fieldKey switch
     {
-        GeneralPartner.SSN = value;
-        ValidateForm();
-    }
+        "RegistrationState" => "registration-state",
+        "LimitedPartnershipName" => "partnership-name",
+        "GeneralPartner_FirstName" => "first-name",
+        "GeneralPartner_LastName" => "last-name",
+        "GeneralPartner_SSN" => "general-partner-ssn",
+        _ => string.Empty
+    };
 
     private void AddFieldError(string fieldKey, string message)
     {
+        _validationItems.Add(new ValidationItem(message, GetElementId(fieldKey)));
         ValidationErrors.Add(message);
         InvalidFields.Add(fieldKey);
         FieldErrors[fieldKey] = message;
@@ -167,51 +151,36 @@
     private void ValidateForm()
     {
         ValidationErrors.Clear();
+        _validationItems.Clear();
         InvalidFields.Clear();
         FieldErrors.Clear();
 
         if (string.IsNullOrWhiteSpace(RegistrationState))
-        {
             AddFieldError("RegistrationState", "Registration State is required");
-        }
 
         if (string.IsNullOrWhiteSpace(LimitedPartnershipName))
-        {
             AddFieldError("LimitedPartnershipName", "Limited Partnership Name is required");
-        }
         else if (LimitedPartnershipName.Length > 128)
-        {
             AddFieldError("LimitedPartnershipName", "Limited Partnership Name must not exceed 128 characters");
-        }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.FirstName))
-        {
             AddFieldError("GeneralPartner_FirstName", $"{GeneralPartner.Role} First Name is required");
-        }
         else if (GeneralPartner.FirstName.Length > 64)
-        {
             AddFieldError("GeneralPartner_FirstName", $"{GeneralPartner.Role} First Name must not exceed 64 characters");
-        }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.LastName))
-        {
             AddFieldError("GeneralPartner_LastName", $"{GeneralPartner.Role} Last Name is required");
-        }
         else if (GeneralPartner.LastName.Length > 64)
-        {
             AddFieldError("GeneralPartner_LastName", $"{GeneralPartner.Role} Last Name must not exceed 64 characters");
-        }
 
         if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
         {
             var ssnResult = SSNInput.ValidateSSN(GeneralPartner.SSN, GeneralPartner.Role);
             if (ssnResult != null && !ssnResult.IsValid)
-            {
                 AddFieldError("GeneralPartner_SSN", ssnResult.ErrorMessage);
-            }
         }
 
-        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        _ = OnValidationChanged.InvokeAsync(_validationItems);
         NotifyDataChanged();
         StateHasChanged();
     }

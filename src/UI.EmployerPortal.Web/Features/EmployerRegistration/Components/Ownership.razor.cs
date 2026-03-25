@@ -40,6 +40,7 @@ public partial class Ownership
     private OwnershipType SelectedOwnershipType { get; set; } = OwnershipType.None;
     private bool IsOutsideUSA { get; set; }
     private List<string> ValidationErrors { get; set; } = new();
+    private List<string> ValidationFieldIds { get; set; } = new();
     //private bool _shouldValidate = false;
     private bool _showValidationSummary = false;
     //private bool IsContinueEnabled = true;>// IsFormValid();
@@ -229,11 +230,20 @@ public partial class Ownership
             if (!ValidationErrors.Contains(requiredMessage))
             {
                 ValidationErrors.Insert(0, requiredMessage);
+                ValidationFieldIds.Insert(0, "ownership-type");
             }
         }
         else
         {
-            ValidationErrors.Remove(requiredMessage);
+            var idx = ValidationErrors.IndexOf(requiredMessage);
+            if (idx >= 0)
+            {
+                ValidationErrors.RemoveAt(idx);
+                if (idx < ValidationFieldIds.Count)
+                {
+                    ValidationFieldIds.RemoveAt(idx);
+                }   
+            }
         }
     }
 
@@ -242,21 +252,13 @@ public partial class Ownership
         try
         {
 
-            // Clear validation errors and hide validation summary when ownership type changes
             ValidationErrors.Clear();
+            ValidationFieldIds.Clear();
             _showValidationSummary = false;
-
-            // Clear saved session data when changing ownership type
-            // This prevents passing incompatible data to the new component
             _savedSessionData = null;
             _currentFormData = null;
             _validateCallback = null;
-            // Reset validation flag
-            //_shouldValidate = false;
-
             StateHasChanged();
-
-            // Wait for the new DynamicComponent to render
             await Task.Delay(100);
         }
         catch (Exception ex)
@@ -280,11 +282,11 @@ public partial class Ownership
         if (config != null)
         {
             parameters.Add("Config", config);
-            parameters.Add("OnValidationChanged", EventCallback.Factory.Create<List<string>>(this, OnChildValidationChanged));
-            //parameters.Add("ShouldValidate", _shouldValidate);
+            parameters.Add("OnValidationChanged",
+                EventCallback.Factory.Create<List<ValidationItem>>(this, OnChildValidationChanged));
             parameters.Add("IsOutsideUSA", IsOutsideUSA);
             parameters.Add("RegisterValidate", (Action<Func<List<string>>>) RegisterValidateCallback);
-            // Create correctly-typed EventCallback to match each child component's parameter type
+
             switch (SelectedOwnershipType)
             {
                 case OwnershipType.LLC:
@@ -327,9 +329,16 @@ public partial class Ownership
         return parameters;
     }
 
-    private void OnChildValidationChanged(List<string> errors)
+    private void OnChildValidationChanged(List<ValidationItem> items)
     {
-        ValidationErrors = errors ?? new List<string>();
+        ValidationErrors = items.Select(i =>
+        {
+            return i.Message;
+        }).ToList();
+        ValidationFieldIds = items.Select(i =>
+        {
+            return i.FieldId;
+        }).ToList();
         StateHasChanged();
     }
 

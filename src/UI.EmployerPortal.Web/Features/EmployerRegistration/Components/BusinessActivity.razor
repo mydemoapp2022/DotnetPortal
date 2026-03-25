@@ -2,6 +2,7 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
 
 <PageTitle>Business Activity</PageTitle>
 <div class="page_wrapper">
@@ -79,16 +80,11 @@
 
                     @if (_showConstructionWarning)
                     {
-                        <div class="construction-warning">
-                            <p>
-                                Any employer who is engaged in a construction industry who knowingly or intentionally provides
-                                false information to the department for the purpose of misclassifying an employee as a non-employee
-                                will be assessed a penalty. Additional information can be found at
-                                <a href="https://dwd.wisconsin.gov/ui201/t2201.htm#employee_definition" target="_blank" rel="noopener noreferrer">
-                                    https://dwd.wisconsin.gov/ui201/t2201.htm#employee_definition
-                                </a>.
-                            </p>
-                        </div>
+                        <NotificationBanner NotificationType="NotificationType.Warning"
+                                            Title="Construction Industry Notice"
+                                            Message="Any employer who is engaged in a construction industry who knowingly or intentionally provides false information to the department for the purpose of misclassifying an employee as a non-employee will be assessed a penalty. Additional information can be found at https://dwd.wisconsin.gov/ui201/t2201.htm#employee_definition"
+                                            Visible="true"
+                                            DismissButton="true" />
                     }
                 </div>
 

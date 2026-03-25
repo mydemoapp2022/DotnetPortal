@@ -7,14 +7,12 @@
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Decedent</h3>
-
             <div class="member-fields">
                 <ValidatedInput Id="decedent-first-name"
                                 Label="First Name"
                                 Value="@Decedent.FirstName"
                                 ValueChanged="@(v => Decedent.FirstName = v)"
-                                MaxLength="64"
-                                Width="106"
+                                MaxLength="64" Width="106"
                                 HasError="@FieldErrors.ContainsKey("Decedent_FirstName")"
                                 ErrorMessage="@FieldErrors.GetValueOrDefault("Decedent_FirstName")"
                                 OnBlur="ValidateForm" />
@@ -23,15 +21,13 @@
                                 Label="Middle Initial"
                                 Value="@Decedent.MiddleInitial"
                                 ValueChanged="@(v => Decedent.MiddleInitial = v)"
-                                MaxLength="1"
-                                Width="114" />
+                                MaxLength="1" Width="114" />
 
                 <ValidatedInput Id="decedent-last-name"
                                 Label="Last Name"
                                 Value="@Decedent.LastName"
                                 ValueChanged="@(v => Decedent.LastName = v)"
-                                MaxLength="64"
-                                Width="103"
+                                MaxLength="64" Width="103"
                                 HasError="@FieldErrors.ContainsKey("Decedent_LastName")"
                                 ErrorMessage="@FieldErrors.GetValueOrDefault("Decedent_LastName")"
                                 OnBlur="ValidateForm" />
@@ -56,14 +52,12 @@
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Personal Representative</h3>
-
             <div class="member-fields">
                 <ValidatedInput Id="representative-first-name"
                                 Label="First Name"
                                 Value="@PersonalRepresentative.FirstName"
                                 ValueChanged="@(v => PersonalRepresentative.FirstName = v)"
-                                MaxLength="64"
-                                Width="106"
+                                MaxLength="64" Width="106"
                                 HasError="@FieldErrors.ContainsKey("PersonalRepresentative_FirstName")"
                                 ErrorMessage="@FieldErrors.GetValueOrDefault("PersonalRepresentative_FirstName")"
                                 OnBlur="ValidateForm" />
@@ -72,15 +66,13 @@
                                 Label="Middle Initial"
                                 Value="@PersonalRepresentative.MiddleInitial"
                                 ValueChanged="@(v => PersonalRepresentative.MiddleInitial = v)"
-                                MaxLength="1"
-                                Width="114" />
+                                MaxLength="1" Width="114" />
 
                 <ValidatedInput Id="representative-last-name"
                                 Label="Last Name"
                                 Value="@PersonalRepresentative.LastName"
                                 ValueChanged="@(v => PersonalRepresentative.LastName = v)"
-                                MaxLength="64"
-                                Width="103"
+                                MaxLength="64" Width="103"
                                 HasError="@FieldErrors.ContainsKey("PersonalRepresentative_LastName")"
                                 ErrorMessage="@FieldErrors.GetValueOrDefault("PersonalRepresentative_LastName")"
                                 OnBlur="ValidateForm" />
@@ -103,28 +95,18 @@
 </div>
 
 @code {
-    [Parameter]
-    public OwnershipFormConfig Config { get; set; } = new();
-
-    [Parameter]
-    public EventCallback<EstateFormData> OnDataChanged { get; set; }
-
-    [Parameter]
-    public EventCallback<List<string>> OnValidationChanged { get; set; }
-
-    [Parameter]
-    public bool ISOutsideUSA { get; set; }
-
-    [Parameter]
-    public object? SavedData { get; set; }
-
-    [Parameter]
-    public Action<Func<List<string>>>? RegisterValidate { get; set; }
+    [Parameter] public OwnershipFormConfig Config { get; set; } = new();
+    [Parameter] public EventCallback<EstateFormData> OnDataChanged { get; set; }
+    [Parameter] public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
+    [Parameter] public bool ISOutsideUSA { get; set; }
+    [Parameter] public object? SavedData { get; set; }
+    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private OwnerMember Decedent { get; set; } = new() { Role = "Decedent" };
     private OwnerMember PersonalRepresentative { get; set; } = new() { Role = "Personal Representative" };
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
+    private List<ValidationItem> _validationItems = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
@@ -142,16 +124,12 @@
     protected override void OnParametersSet()
     {
         if (_previousISOutsideUSA != ISOutsideUSA)
-        {
             _previousISOutsideUSA = ISOutsideUSA;
-        }
     }
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null)
-            return;
-
+        if (_dataRestored || SavedData == null) return;
         try
         {
             if (SavedData is OwnershipSessionData sessionData)
@@ -159,13 +137,10 @@
                 if (sessionData.Decedent != null)
                     Decedent = new OwnerMember
                     {
-                        Role = "Decedent",
-                        FirstName = sessionData.Decedent.FirstName,
+                        Role = "Decedent", FirstName = sessionData.Decedent.FirstName,
                         MiddleInitial = sessionData.Decedent.MiddleInitial,
-                        LastName = sessionData.Decedent.LastName,
-                        SSN = sessionData.Decedent.SSN
+                        LastName = sessionData.Decedent.LastName, SSN = sessionData.Decedent.SSN
                     };
-
                 if (sessionData.PersonalRepresentative != null)
                     PersonalRepresentative = new OwnerMember
                     {
@@ -175,30 +150,29 @@
                         LastName = sessionData.PersonalRepresentative.LastName,
                         SSN = sessionData.PersonalRepresentative.SSN
                     };
-
                 _dataRestored = true;
             }
         }
-        catch
-        {
-            // Failed to restore, continue with defaults
-        }
+        catch { }
     }
 
-    private void OnDecedentSSNChanged(string value)
-    {
-        Decedent.SSN = value;
-        ValidateForm();
-    }
+    private void OnDecedentSSNChanged(string value) { Decedent.SSN = value; ValidateForm(); }
+    private void OnRepresentativeSSNChanged(string value) { PersonalRepresentative.SSN = value; ValidateForm(); }
 
-    private void OnRepresentativeSSNChanged(string value)
+    private static string GetElementId(string fieldKey) => fieldKey switch
     {
-        PersonalRepresentative.SSN = value;
-        ValidateForm();
-    }
+        "Decedent_FirstName"              => "decedent-first-name",
+        "Decedent_LastName"               => "decedent-last-name",
+        "Decedent_SSN"                    => "decedent-ssn",
+        "PersonalRepresentative_FirstName" => "representative-first-name",
+        "PersonalRepresentative_LastName"  => "representative-last-name",
+        "PersonalRepresentative_SSN"       => "representative-ssn",
+        _                                  => string.Empty
+    };
 
     private void AddFieldError(string fieldKey, string message)
     {
+        _validationItems.Add(new ValidationItem(message, GetElementId(fieldKey)));
         ValidationErrors.Add(message);
         InvalidFields.Add(fieldKey);
         FieldErrors[fieldKey] = message;
@@ -207,36 +181,27 @@
     private void ValidatePersonation(OwnerMember person, string prefix)
     {
         if (string.IsNullOrWhiteSpace(person.FirstName))
-        {
             AddFieldError($"{prefix}_FirstName", $"{person.Role} First Name is required");
-        }
         else if (person.FirstName.Length > 64)
-        {
             AddFieldError($"{prefix}_FirstName", $"{person.Role} First Name must not exceed 64 characters");
-        }
 
         if (string.IsNullOrWhiteSpace(person.LastName))
-        {
             AddFieldError($"{prefix}_LastName", $"{person.Role} Last Name is required");
-        }
         else if (person.LastName.Length > 64)
-        {
             AddFieldError($"{prefix}_LastName", $"{person.Role} Last Name must not exceed 64 characters");
-        }
 
         if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(person.SSN))
         {
             var ssnResult = SSNInput.ValidateSSN(person.SSN, person.Role);
             if (ssnResult != null && !ssnResult.IsValid)
-            {
                 AddFieldError($"{prefix}_SSN", ssnResult.ErrorMessage);
-            }
         }
     }
 
     private void ValidateForm()
     {
         ValidationErrors.Clear();
+        _validationItems.Clear();
         InvalidFields.Clear();
         FieldErrors.Clear();
 
@@ -248,15 +213,17 @@
         var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => i == 0 ? "Decedent" : "Personal Representative");
         if (duplicateErrors is { Count: > 0 })
         {
-            ValidationErrors.AddRange(duplicateErrors);
             var dupMsg = duplicateErrors[0];
+            // Point to the Decedent SSN as the first duplicate
+            _validationItems.Add(new ValidationItem(dupMsg, "decedent-ssn"));
+            ValidationErrors.Add(dupMsg);
             InvalidFields.Add("Decedent_SSN");
             InvalidFields.Add("PersonalRepresentative_SSN");
             FieldErrors.TryAdd("Decedent_SSN", dupMsg);
             FieldErrors.TryAdd("PersonalRepresentative_SSN", dupMsg);
         }
 
-        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        _ = OnValidationChanged.InvokeAsync(_validationItems);
         NotifyDataChanged();
         StateHasChanged();
     }

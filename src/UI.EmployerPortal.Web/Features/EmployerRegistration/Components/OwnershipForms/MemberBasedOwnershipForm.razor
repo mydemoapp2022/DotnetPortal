@@ -2,6 +2,8 @@
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+@using Microsoft.AspNetCore.Components.Web
+
 @using System.Linq.Expressions
 <div class="member-based-section">
     @if (Config.RequiresState)
@@ -72,7 +74,8 @@
                               Width="175"
                               HasError="@FieldErrors.ContainsKey($"Member{index}_SSN")"
                               ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_SSN")"
-                              CssClass="@(GetFieldCssClass($"Member{index}_SSN"))" />
+                              CssClass="@(GetFieldCssClass($"Member{index}_SSN"))"
+                              OnKeyUp="@((KeyboardEventArgs e) => HandleSSNKeyUp(index, e))" />
 
                     <!-- Ownership Percentage -->
                     <ValidatedInput Id="@($"ownership-percentage-{index}")"
@@ -122,7 +125,7 @@
     public EventCallback<MemberBasedFormData> OnDataChanged { get; set; }
 
     [Parameter]
-    public EventCallback<List<string>> OnValidationChanged { get; set; }
+    public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
 
     [Parameter]
     public bool ISOutsideUSA { get; set; }
@@ -137,6 +140,7 @@
     private bool? MoreThanFive { get; set; } = false;
     private List<OwnerMember> Members { get; set; } = [];
     private List<string> ValidationErrors { get; set; } = [];
+    private List<ValidationItem> _validationItems = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
@@ -242,8 +246,40 @@
         ValidateForm();
     }
 
+    /// <summary>
+    /// Maps a field key (e.g. "Member0_FirstName") to the HTML element ID
+    /// used in the rendered markup so the banner can focus the correct input.
+    /// </summary>
+    private static string GetElementId(string fieldKey)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            fieldKey, @"^Member(\d+)_(\w+)$");
+
+        if (match.Success)
+        {
+            var idx = match.Groups[1].Value;
+            return match.Groups[2].Value switch
+            {
+                "FirstName" => $"first-name-{idx}",
+                "LastName" => $"last-name-{idx}",
+                "SSN" => $"ssn-{idx}",
+                "OwnershipPercentage" => $"ownership-percentage-{idx}",
+                _ => string.Empty
+            };
+        }
+
+        return fieldKey switch
+        {
+            "RegistrationState" => "registration-state",
+            "MoreThanFive" => "more-than-five-group",
+            _ => string.Empty
+        };
+    }
+
     private void AddFieldError(string fieldKey, string message)
     {
+        var elementId = GetElementId(fieldKey);
+        _validationItems.Add(new ValidationItem(message, elementId));
         ValidationErrors.Add(message);
         InvalidFields.Add(fieldKey);
         FieldErrors[fieldKey] = message;
@@ -324,6 +360,11 @@
         if (totalPercentage > 0 && Math.Round(totalPercentage, 2) != 100)
         {
             var msg = "Total Ownership Percentage must equal 100.00";
+
+            var firstIdx = Members.FindIndex(m => m.OwnershipPercentage.HasValue);
+            var elementId = firstIdx >= 0 ? $"ownership-percentage-{firstIdx}" : string.Empty;
+            _validationItems.Add(new ValidationItem(msg, elementId));
+
             ValidationErrors.Add(msg);
             for (var i = 0; i < Members.Count; i++)
             {
@@ -352,6 +393,12 @@
             foreach (var group in ssnGroups)
             {
                 var dupMsg = $"Duplicate SSN found for: {string.Join(", ", group.Select(x => Members[x.Index].Role))}";
+
+                var firstItem = group.First();
+                var elementId = $"ssn-{firstItem.Index}";
+                _validationItems.Add(new ValidationItem(dupMsg, elementId));
+                ValidationErrors.Add(dupMsg);
+
                 foreach (var item in group)
                 {
                     InvalidFields.Add($"Member{item.Index}_SSN");
@@ -368,7 +415,7 @@
         }
 
         HasError = ValidationErrors.Count > 0;
-        _ = OnValidationChanged.InvokeAsync(ValidationErrors);
+        _ = OnValidationChanged.InvokeAsync(_validationItems);
         NotifyDataChanged();
         StateHasChanged();
     }
@@ -396,5 +443,14 @@
     private string GetFieldCssClass(string fieldName)
     {
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
+    }
+
+    private void HandleSSNKeyUp(int index, KeyboardEventArgs e)
+    {
+        // Example: validate on Enter, or trigger any logic you need
+        if (e.Key == "Enter")
+        {
+            ValidateForm();
+        }
     }
 }

@@ -28,6 +28,7 @@
                @oninput="HandleInput"
                @onfocus="OnFocus"
                @onblur="OnBlur"
+               @onkeyup="HandleKeyUp"
                style="@(Width > 0 ? "width:" + Width + "px;" : "")" />
         <button type="button"
                 class="ssn-toggle-btn"
@@ -70,60 +71,41 @@
     private ElementReference inputElement;
     private IJSObjectReference? module;
 
-    [Parameter]
-    public string Id { get; set; } = "ssn";
+    [Parameter] public string Id { get; set; } = "ssn";
 
-    [Parameter]
-    public string Label { get; set; } = "SSN";
+    [Parameter] public string Label { get; set; } = "SSN";
 
-    [Parameter]
-    public string Value { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
 
-    [Parameter]
-    public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
 
-    [Parameter]
-    public bool IsFocused { get; set; }
+    [Parameter] public bool IsFocused { get; set; }
 
-    [Parameter]
-    public EventCallback<bool> IsFocusedChanged { get; set; }
+    [Parameter] public EventCallback<bool> IsFocusedChanged { get; set; }
 
-    [Parameter]
-    public string CssClass { get; set; } = string.Empty;
+    [Parameter] public string CssClass { get; set; } = string.Empty;
 
-    [Parameter]
-    public bool ShowSSN { get; set; }
+    [Parameter] public bool ShowSSN { get; set; }
 
-    [Parameter]
-    public EventCallback<bool> ShowSSNChanged { get; set; }
+    [Parameter] public EventCallback<bool> ShowSSNChanged { get; set; }
 
-    [Parameter]
-    public bool IsRequired { get; set; } = true;
+    [Parameter] public bool IsRequired { get; set; } = true;
 
-    [Parameter]
-    public int? Width { get; set; } = null;
+    [Parameter] public int? Width { get; set; } = null;
 
-    [Parameter]
-    public bool HasError { get; set; } = false;
+    [Parameter] public bool HasError { get; set; } = false;
 
-    /// <summary>
-    /// Explicit error message from parent. When provided, takes precedence over
-    /// the legacy InvalidFields / ValidationErrors lookup.
-    /// </summary>
-    [Parameter]
-    public string? ErrorMessage { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
 
-    [Parameter]
-    public HashSet<string> InvalidFields { get; set; } = [];
+    [Parameter] public HashSet<string> InvalidFields { get; set; } = [];
 
-    [Parameter]
-    public List<string> ValidationErrors { get; set; } = [];
+    [Parameter] public List<string> ValidationErrors { get; set; } = [];
 
-    [Parameter]
-    public int? Index { get; set; } = null;
+    [Parameter] public int? Index { get; set; } = null;
 
-    [Parameter]
-    public string? MemberRole { get; set; }
+    [Parameter] public string? MemberRole { get; set; }
+
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyUp { get; set; }
 
     private string DisplayValue => IsFocused || ShowSSN ? Value : MaskSSN(Value);
 
@@ -157,6 +139,11 @@
     private void ToggleVisibility()
     {
         _ = ShowSSNChanged.InvokeAsync(!ShowSSN);
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        await OnKeyUp.InvokeAsync(e);
     }
 
     //Service logic
