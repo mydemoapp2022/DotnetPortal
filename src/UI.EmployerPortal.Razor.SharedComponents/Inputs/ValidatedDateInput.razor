@@ -1,12 +1,12 @@
-<div class="form-group master-text-field @(HasError ? "master-text-field--error" : "")">
+<div class="form-group master-text-field @(ShowError ? "master-text-field--error" : "")">
     <label for="@Id"
-           class="form-label @(HasError ? "master-label--error" : "") @CSS">
+           class="form-label @(ShowError ? "master-label--error" : "") @CSS">
         @Label
     </label>
 
     <input type="date"
            id="@Id"
-           class="form-input master-input @(HasError ? "master-input--error" : "")"
+           class="form-input master-input @(ShowError ? "master-input--error" : "")"
            style="@(Width > 0 ? $"width:{Width}px;" : "")"
            value="@FormattedValue"
            min="@FormattedMin"
@@ -15,7 +15,7 @@
            @onchange="HandleChange"
            @onblur="HandleBlur" />
 
-    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    @if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
         <div class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -69,19 +69,33 @@
     /// <summary>Style to display the input label.</summary>
     [Parameter] public string? CSS { get; set; }
 
+    /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Tracks whether the user has interacted with this field.</summary>
+    private bool _touched;
+
+    /// <summary>Returns true when the error should be displayed — matches OutlinedTextField pattern.</summary>
+    private bool ShowError => (_touched || Visible) && HasError;
+
     private string? FormattedValue => Value?.ToString("yyyy-MM-dd");
     private string? FormattedMin => Min?.ToString("yyyy-MM-dd");
     private string? FormattedMax => Max?.ToString("yyyy-MM-dd");
 
     private async Task HandleChange(ChangeEventArgs e)
     {
+        _touched = true;
         var str = e.Value?.ToString();
         DateTime? newValue = DateTime.TryParse(str, out var date) ? date : null;
         await ValueChanged.InvokeAsync(newValue);
+        // Also fire OnBlur on change — the browser's native date picker can swallow
+        // the blur event, so this ensures the parent always receives the notification.
+        await OnBlur.InvokeAsync();
     }
 
     private async Task HandleBlur()
     {
+        _touched = true;
         await OnBlur.InvokeAsync();
     }
 }

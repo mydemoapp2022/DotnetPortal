@@ -18,11 +18,17 @@ public partial class BusinessActivity : ComponentBase
     private bool _isSessionLoaded = false;
     private bool _showConstructionWarning = false;
 
+    /// <summary>
+    /// When true, forces all child inputs to display their errors regardless of
+    /// individual touch state (set on Continue / form submit).
+    /// Matches the Visible parameter pattern used by OutlinedTextField.
+    /// </summary>
+    private bool _showAllErrors = false;
+
     private List<string> ValidationErrors { get; set; } = [];
     private List<string> ValidationFieldIds { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
-    private HashSet<string> _touchedFields { get; set; } = [];
 
     [Inject]
     private NavigationManager Navigation { get; set; } = default!;
@@ -120,7 +126,6 @@ public partial class BusinessActivity : ComponentBase
     /// </summary>
     private void OnPrincipalActivityChanged()
     {
-        _touchedFields.Add("PrincipalBusinessActivity");
         CheckConstructionWarning();
         ValidateForm();
     }
@@ -131,35 +136,6 @@ public partial class BusinessActivity : ComponentBase
     private void CheckConstructionWarning()
     {
         _showConstructionWarning = Model.PrincipalBusinessActivity.IsConstructionRelated();
-    }
-
-    /// <summary>
-    /// Returns true when a field has been interacted with.
-    /// </summary>
-    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
-
-    /// <summary>
-    /// Marks all fields as touched so every error becomes visible (used on Continue click).
-    /// </summary>
-    private void TouchAllFields()
-    {
-        _touchedFields = [
-            "DateBusinessStarted",
-            "DateFirstPaidEmployeesInWI",
-            "DateFirstPaidWagesInWI",
-            "PrincipalBusinessActivity",
-            "PrimaryBusinessActivityDescription",
-            "WisconsinSpecificBusinessActivity"
-        ];
-    }
-
-    /// <summary>
-    /// Marks a single field as touched and re-validates.
-    /// </summary>
-    private void OnFieldBlur(string fieldKey)
-    {
-        _touchedFields.Add(fieldKey);
-        ValidateForm();
     }
 
     /// <summary>
@@ -238,12 +214,12 @@ public partial class BusinessActivity : ComponentBase
     /// </summary>
     public async Task<bool> Validate()
     {
-        TouchAllFields();
+        _showValidationSummary = true;
+        _showAllErrors = true;
         ValidateForm();
 
         if (ValidationErrors.Any())
         {
-            _showValidationSummary = true;
             await InvokeAsync(StateHasChanged);
             return false;
         }

@@ -34,25 +34,27 @@
                         <ValidatedDateInput Id="dateStarted"
                                             Label="Date business started or acquired"
                                             Value="@Model.DateBusinessStarted"
-                                            ValueChanged="@(v => Model.DateBusinessStarted = v)"
+                                            ValueChanged="@(v => { Model.DateBusinessStarted = v; ValidateForm(); })"
                                             Max="DateTime.Today"
                                             Width="330"
-                                            HasError="@(IsFieldTouched("DateBusinessStarted") && FieldErrors.ContainsKey("DateBusinessStarted"))"
+                                            HasError="@FieldErrors.ContainsKey("DateBusinessStarted")"
                                             ErrorMessage="@FieldErrors.GetValueOrDefault("DateBusinessStarted")"
-                                            OnBlur="@(() => OnFieldBlur("DateBusinessStarted"))" />
+                                            Visible="_showAllErrors"
+                                            OnBlur="@(() => ValidateForm())" />
                     </div>
 
                     <div class="form-group col-md-6">
                         <ValidatedDateInput Id="dateFirstPaid"
                                             Label="Date you first had paid employees working in WI"
                                             Value="@Model.DateFirstPaidEmployeesInWI"
-                                            ValueChanged="@(v => Model.DateFirstPaidEmployeesInWI = v)"
+                                            ValueChanged="@(v => { Model.DateFirstPaidEmployeesInWI = v; ValidateForm(); })"
                                             Max="DateTime.Today"
                                             Width="330"
                                             CSS="large-label"
-                                            HasError="@(IsFieldTouched("DateFirstPaidEmployeesInWI") && FieldErrors.ContainsKey("DateFirstPaidEmployeesInWI"))"
+                                            HasError="@FieldErrors.ContainsKey("DateFirstPaidEmployeesInWI")"
                                             ErrorMessage="@FieldErrors.GetValueOrDefault("DateFirstPaidEmployeesInWI")"
-                                            OnBlur="@(() => OnFieldBlur("DateFirstPaidEmployeesInWI"))" />
+                                            Visible="_showAllErrors"
+                                            OnBlur="@(() => ValidateForm())" />
                     </div>
                 </div>
 
@@ -62,12 +64,13 @@
                         <ValidatedDateInput Id="dateFirstWages"
                                             Label="Date first paid wages for work performed in WI"
                                             Value="@Model.DateFirstPaidWagesInWI"
-                                            ValueChanged="@(v => Model.DateFirstPaidWagesInWI = v)"
+                                            ValueChanged="@(v => { Model.DateFirstPaidWagesInWI = v; ValidateForm(); })"
                                             Max="DateTime.Today"
                                             Width="330"
-                                            HasError="@(IsFieldTouched("DateFirstPaidWagesInWI") && FieldErrors.ContainsKey("DateFirstPaidWagesInWI"))"
+                                            HasError="@FieldErrors.ContainsKey("DateFirstPaidWagesInWI")"
                                             ErrorMessage="@FieldErrors.GetValueOrDefault("DateFirstPaidWagesInWI")"
-                                            OnBlur="@(() => OnFieldBlur("DateFirstPaidWagesInWI"))" />
+                                            Visible="_showAllErrors"
+                                            OnBlur="@(() => ValidateForm())" />
                     </div>
                 </div>
 
@@ -82,8 +85,9 @@
                                                              @bind-Value="Model.PrincipalBusinessActivity"
                                                              @bind-Value:after="OnPrincipalActivityChanged"
                                                              IsRequired="true"
-                                                             HasError="@(IsFieldTouched("PrincipalBusinessActivity") && FieldErrors.ContainsKey("PrincipalBusinessActivity"))"
-                                                             ErrorMessage="@FieldErrors.GetValueOrDefault("PrincipalBusinessActivity")" />
+                                                             HasError="@FieldErrors.ContainsKey("PrincipalBusinessActivity")"
+                                                             ErrorMessage="@FieldErrors.GetValueOrDefault("PrincipalBusinessActivity")"
+                                                             Visible="_showAllErrors" />
                         </div>
                     </div>
 
@@ -118,12 +122,13 @@
                             <ValidatedTextArea Id="primaryDescription"
                                                Label="Primary Business Activity Description"
                                                Value="@Model.PrimaryBusinessActivityDescription"
-                                               ValueChanged="@(v => Model.PrimaryBusinessActivityDescription = v)"
+                                               ValueChanged="@(v => { Model.PrimaryBusinessActivityDescription = v; ValidateForm(); })"
                                                Rows="4"
                                                Width="684"
-                                               HasError="@(IsFieldTouched("PrimaryBusinessActivityDescription") && FieldErrors.ContainsKey("PrimaryBusinessActivityDescription"))"
+                                               HasError="@FieldErrors.ContainsKey("PrimaryBusinessActivityDescription")"
                                                ErrorMessage="@FieldErrors.GetValueOrDefault("PrimaryBusinessActivityDescription")"
-                                               OnBlur="@(() => OnFieldBlur("PrimaryBusinessActivityDescription"))" />
+                                               Visible="_showAllErrors"
+                                               OnBlur="@(() => ValidateForm())" />
                         </div>
                     </div>
                 </div>
@@ -151,12 +156,13 @@
                                 <ValidatedTextArea Id="wiDescription"
                                                    Label="Wisconsin Specific Business Activity"
                                                    Value="@Model.WisconsinSpecificBusinessActivity"
-                                                   ValueChanged="@(v => Model.WisconsinSpecificBusinessActivity = v)"
+                                                   ValueChanged="@(v => { Model.WisconsinSpecificBusinessActivity = v; ValidateForm(); })"
                                                    Rows="4"
                                                    Width="684"
-                                                   HasError="@(IsFieldTouched("WisconsinSpecificBusinessActivity") && FieldErrors.ContainsKey("WisconsinSpecificBusinessActivity"))"
+                                                   HasError="@FieldErrors.ContainsKey("WisconsinSpecificBusinessActivity")"
                                                    ErrorMessage="@FieldErrors.GetValueOrDefault("WisconsinSpecificBusinessActivity")"
-                                                   OnBlur="@(() => OnFieldBlur("WisconsinSpecificBusinessActivity"))" />
+                                                   Visible="_showAllErrors"
+                                                   OnBlur="@(() => ValidateForm())" />
                             </div>
                         </div>
                     }
