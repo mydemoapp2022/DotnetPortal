@@ -35,9 +35,9 @@
                                     ValueChanged="@(v => member.FirstName = v)"
                                     MaxLength="64"
                                     Width="106"
-                                    HasError="@FieldErrors.ContainsKey($"Member{index}_FirstName")"
+                                    HasError="@(IsFieldTouched($"Member{index}_FirstName") && FieldErrors.ContainsKey($"Member{index}_FirstName"))"
                                     ErrorMessage="First name is required"
-                                    OnKeyUp="ValidateForm" />
+                                    OnBlur="@(() => OnFieldBlur($"Member{index}_FirstName"))" />
 
                     <!-- Middle Initial -->
                     <ValidatedInput Id="@($"middle-initial-{index}")"
@@ -54,9 +54,9 @@
                                     ValueChanged="@(v => member.LastName = v)"
                                     MaxLength="64"
                                     Width="103"
-                                    HasError="@FieldErrors.ContainsKey($"Member{index}_LastName")"
+                                    HasError="@(IsFieldTouched($"Member{index}_LastName") && FieldErrors.ContainsKey($"Member{index}_LastName"))"
                                     ErrorMessage="Last name is required."
-                                    OnKeyUp="ValidateForm" />
+                                    OnBlur="@(() => OnFieldBlur($"Member{index}_LastName"))" />
 
                     <SSNInput Id="@($"ssn-{index}")"
                               Label="SSN"
@@ -68,12 +68,9 @@
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
                               IsRequired="true"
                               Width="175"
-                              HasError="@FieldErrors.ContainsKey($"Member{index}_SSN")"
+                              HasError="@(IsFieldTouched($"Member{index}_SSN") && FieldErrors.ContainsKey($"Member{index}_SSN"))"
                               ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_SSN")"
-                              CssClass="@(GetFieldCssClass($"Member{index}_SSN"))" />
-
-                    @* ShowSSN="@ShowSSN"
-                    ShowSSNChanged="@((bool show) => ShowSSN = show)" *@
+                              CssClass="@(IsFieldTouched($"Member{index}_SSN") ? GetFieldCssClass($"Member{index}_SSN") : string.Empty)" />
 
                     <!-- Ownership Percentage -->
                     <ValidatedInput Id="@($"ownership-percentage-{index}")"
@@ -85,14 +82,14 @@
                                     Max="100"
                                     Step="0.01"
                                     Width="130"
-                                    HasError="@FieldErrors.ContainsKey($"Member{index}_OwnershipPercentage")"
+                                    HasError="@(IsFieldTouched($"Member{index}_OwnershipPercentage") && FieldErrors.ContainsKey($"Member{index}_OwnershipPercentage"))"
                                     ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_OwnershipPercentage")"
-                                    OnKeyUp="ValidateForm" />
+                                    OnBlur="@(() => OnFieldBlur($"Member{index}_OwnershipPercentage"))" />
                 </div>
             </div>
         }
 
-        <br/>
+        <br />
         <div id="more-than-five-group" class="bc-question">
             <p class="bc-question-text">More than five?</p>
 
@@ -150,6 +147,7 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
+    private HashSet<string> _touchedFields { get; set; } = [];
     private bool _dataRestored;
     private bool HasError { get; set; } = false;
 
@@ -157,7 +155,28 @@
     {
         InitializeMembers();
         RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
+        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
+    }
+
+    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
+
+    private void TouchAllFields()
+    {
+        _touchedFields.Add("RegistrationState");
+        _touchedFields.Add("MoreThanFive");
+        for (var i = 0; i < Members.Count; i++)
+        {
+            _touchedFields.Add($"Member{i}_FirstName");
+            _touchedFields.Add($"Member{i}_LastName");
+            _touchedFields.Add($"Member{i}_SSN");
+            _touchedFields.Add($"Member{i}_OwnershipPercentage");
+        }
+    }
+
+    private void OnFieldBlur(string fieldKey)
+    {
+        _touchedFields.Add(fieldKey);
+        ValidateForm();
     }
 
     private void RestoreFromContinueData()
@@ -213,6 +232,7 @@
 
     private void StateChanged(string value)
     {
+        _touchedFields.Add("RegistrationState");
         RegistrationState = value;
         ValidateForm();
     }
@@ -221,6 +241,7 @@
     {
         if (index >= 0 && index < Members.Count)
         {
+            _touchedFields.Add($"Member{index}_SSN");
             Members[index].SSN = value;
             ValidateForm();
         }
@@ -236,6 +257,7 @@
 
     private void OnMoreThanFiveChanged(bool value)
     {
+        _touchedFields.Add("MoreThanFive");
         MoreThanFive = value;
         ValidateForm();
     }

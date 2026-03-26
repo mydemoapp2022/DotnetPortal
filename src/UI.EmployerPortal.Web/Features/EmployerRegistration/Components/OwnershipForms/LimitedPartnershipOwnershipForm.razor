@@ -25,9 +25,9 @@
                                 ValueChanged="@(v => GeneralPartner.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@FieldErrors.ContainsKey("GeneralPartner_FirstName")"
+                                HasError="@(IsFieldTouched("GeneralPartner_FirstName") && FieldErrors.ContainsKey("GeneralPartner_FirstName"))"
                                 ErrorMessage="Firstname is required."
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("GeneralPartner_FirstName"))" />
 
                 <ValidatedInput Id="middle-initial"
                                 Label="Middle Initial"
@@ -42,9 +42,9 @@
                                 ValueChanged="@(v => GeneralPartner.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@FieldErrors.ContainsKey("GeneralPartner_LastName")"
+                                HasError="@(IsFieldTouched("GeneralPartner_LastName") && FieldErrors.ContainsKey("GeneralPartner_LastName"))"
                                 ErrorMessage="Lastname is required."
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("GeneralPartner_LastName"))" />
 
                 <SSNInput Id="general-partner-ssn"
                           Label="SSN"
@@ -56,9 +56,9 @@
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="true"
                           Width="175"
-                          HasError="@FieldErrors.ContainsKey("GeneralPartner_SSN")"
+                          HasError="@(IsFieldTouched("GeneralPartner_SSN") && FieldErrors.ContainsKey("GeneralPartner_SSN"))"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_SSN")"
-                          CssClass="@(GetFieldCssClass("GeneralPartner_SSN"))" />
+                          CssClass="@(IsFieldTouched("GeneralPartner_SSN") ? GetFieldCssClass("GeneralPartner_SSN") : string.Empty)" />
             </div>
         </div>
     </div>
@@ -68,9 +68,9 @@
                     Label="Limited Partnership Name"
                     Value="@LimitedPartnershipName"
                     ValueChanged="@(v => LimitedPartnershipName = v)"
-                    HasError="@FieldErrors.ContainsKey("LimitedPartnershipName")"
+                    HasError="@(IsFieldTouched("LimitedPartnershipName") && FieldErrors.ContainsKey("LimitedPartnershipName"))"
                     ErrorMessage="@FieldErrors.GetValueOrDefault("LimitedPartnershipName")"
-                    OnBlur="ValidateForm" />
+                    OnBlur="@(() => OnFieldBlur("LimitedPartnershipName"))" />
 </div>
 
 @code {
@@ -100,13 +100,28 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
+    private HashSet<string> _touchedFields { get; set; } = [];
     private bool _dataRestored;
 
     protected override void OnInitialized()
     {
         GeneralPartner = new OwnerMember { Role = "General Partner" };
         //RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
+        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
+    }
+
+    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
+
+    private void TouchAllFields()
+    {
+        _touchedFields = ["RegistrationState", "LimitedPartnershipName",
+            "GeneralPartner_FirstName", "GeneralPartner_LastName", "GeneralPartner_SSN"];
+    }
+
+    private void OnFieldBlur(string fieldKey)
+    {
+        _touchedFields.Add(fieldKey);
+        ValidateForm();
     }
 
     private void RestoreFromSession()
@@ -139,12 +154,14 @@
 
     private void StateChanged(string value)
     {
+        _touchedFields.Add("RegistrationState");
         RegistrationState = value;
         ValidateForm();
     }
 
     private void OnSSNChanged(string value)
     {
+        _touchedFields.Add("GeneralPartner_SSN");
         GeneralPartner.SSN = value;
         ValidateForm();
     }

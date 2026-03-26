@@ -15,9 +15,9 @@
                                 ValueChanged="@(v => Decedent.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@FieldErrors.ContainsKey("Decedent_FirstName")"
+                                HasError="@(IsFieldTouched("Decedent_FirstName") && FieldErrors.ContainsKey("Decedent_FirstName"))"
                                 ErrorMessage="Firstname is required."
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("Decedent_FirstName"))" />
 
                 <ValidatedInput Id="decedent-middle-initial"
                                 Label="Middle Initial"
@@ -32,9 +32,9 @@
                                 ValueChanged="@(v => Decedent.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@FieldErrors.ContainsKey("Decedent_LastName")"
+                                HasError="@(IsFieldTouched("Decedent_LastName") && FieldErrors.ContainsKey("Decedent_LastName"))"
                                 ErrorMessage="Lastname is required."
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("Decedent_LastName"))" />
 
                 <SSNInput Id="decedent-ssn"
                           Label="SSN"
@@ -46,9 +46,9 @@
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="true"
                           Width="175"
-                          HasError="@FieldErrors.ContainsKey("Decedent_SSN")"
+                          HasError="@(IsFieldTouched("Decedent_SSN") && FieldErrors.ContainsKey("Decedent_SSN"))"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("Decedent_SSN")"
-                          CssClass="@(GetFieldCssClass("Decedent_SSN"))" />
+                          CssClass="@(IsFieldTouched("Decedent_SSN") ? GetFieldCssClass("Decedent_SSN") : string.Empty)" />
             </div>
         </div>
     </div>
@@ -65,9 +65,9 @@
                                 ValueChanged="@(v => PersonalRepresentative.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@FieldErrors.ContainsKey("PersonalRepresentative_FirstName")"
+                                HasError="@(IsFieldTouched("PersonalRepresentative_FirstName") && FieldErrors.ContainsKey("PersonalRepresentative_FirstName"))"
                                 ErrorMessage="Firstname is required"
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("PersonalRepresentative_FirstName"))" />
 
                 <ValidatedInput Id="representative-middle-initial"
                                 Label="Middle Initial"
@@ -82,9 +82,9 @@
                                 ValueChanged="@(v => PersonalRepresentative.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@FieldErrors.ContainsKey("PersonalRepresentative_LastName")"
+                                HasError="@(IsFieldTouched("PersonalRepresentative_LastName") && FieldErrors.ContainsKey("PersonalRepresentative_LastName"))"
                                 ErrorMessage="Lastname is required."
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("PersonalRepresentative_LastName"))" />
 
                 <SSNInput Id="representative-ssn"
                           Label="SSN"
@@ -96,9 +96,9 @@
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="true"
                           Width="175"
-                          HasError="@FieldErrors.ContainsKey("PersonalRepresentative_SSN")"
+                          HasError="@(IsFieldTouched("PersonalRepresentative_SSN") && FieldErrors.ContainsKey("PersonalRepresentative_SSN"))"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("PersonalRepresentative_SSN")"
-                          CssClass="@(GetFieldCssClass("PersonalRepresentative_SSN"))" />
+                          CssClass="@(IsFieldTouched("PersonalRepresentative_SSN") ? GetFieldCssClass("PersonalRepresentative_SSN") : string.Empty)" />
             </div>
         </div>
     </div>
@@ -130,6 +130,7 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
+    private HashSet<string> _touchedFields { get; set; } = [];
     private bool _dataRestored;
 
     protected override void OnInitialized()
@@ -137,7 +138,23 @@
         Decedent = new OwnerMember { Role = "Decedent" };
         PersonalRepresentative = new OwnerMember { Role = "Personal Representative" };
         RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
+        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
+    }
+
+    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
+
+    private void TouchAllFields()
+    {
+        _touchedFields = [
+            "Decedent_FirstName", "Decedent_LastName", "Decedent_SSN",
+            "PersonalRepresentative_FirstName", "PersonalRepresentative_LastName", "PersonalRepresentative_SSN"
+        ];
+    }
+
+    private void OnFieldBlur(string fieldKey)
+    {
+        _touchedFields.Add(fieldKey);
+        ValidateForm();
     }
 
     private void RestoreFromContinueData()
@@ -177,12 +194,14 @@
 
     private void OnDecedentSSNChanged(string value)
     {
+        _touchedFields.Add("Decedent_SSN");
         Decedent.SSN = value;
         ValidateForm();
     }
 
     private void OnRepresentativeSSNChanged(string value)
     {
+        _touchedFields.Add("PersonalRepresentative_SSN");
         PersonalRepresentative.SSN = value;
         ValidateForm();
     }

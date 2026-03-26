@@ -16,9 +16,9 @@
                                 ValueChanged="@(v => Owner.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@FieldErrors.ContainsKey("FirstName")"
+                                HasError="@(IsFieldTouched("FirstName") && FieldErrors.ContainsKey("FirstName"))"
                                 ErrorMessage="Firstname is required."
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("FirstName"))" />
 
                 <ValidatedInput Id="middle-initial"
                                 Label="Middle Initial"
@@ -33,9 +33,9 @@
                                 ValueChanged="@(v => Owner.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@FieldErrors.ContainsKey("LastName")"
+                                HasError="@(IsFieldTouched("LastName") && FieldErrors.ContainsKey("LastName"))"
                                 ErrorMessage="Lastname is required"
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("LastName"))" />
 
                 <SSNInput Id="owner-ssn"
                           Label="SSN"
@@ -47,9 +47,9 @@
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="true"
                           Width="175"
-                          HasError="@FieldErrors.ContainsKey("SSN")"
+                          HasError="@(IsFieldTouched("SSN") && FieldErrors.ContainsKey("SSN"))"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("SSN")"
-                          CssClass="@(GetFieldCssClass("SSN"))" />
+                          CssClass="@(IsFieldTouched("SSN") ? GetFieldCssClass("SSN") : string.Empty)" />
 
                 <ValidatedInput Id="ownership-percentage"
                                 Label="Ownership (%)"
@@ -60,9 +60,9 @@
                                 Max="100"
                                 Step="0.01"
                                 Width="130"
-                                HasError="@FieldErrors.ContainsKey("OwnershipPercentage")"
+                                HasError="@(IsFieldTouched("OwnershipPercentage") && FieldErrors.ContainsKey("OwnershipPercentage"))"
                                 ErrorMessage="@FieldErrors.GetValueOrDefault("OwnershipPercentage")"
-                                OnBlur="ValidateForm" />
+                                OnBlur="@(() => OnFieldBlur("OwnershipPercentage"))" />
             </div>
         </div>
     </div>
@@ -93,13 +93,27 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
+    private HashSet<string> _touchedFields { get; set; } = [];
     private bool _dataRestored;
 
     protected override void OnInitialized()
     {
         Owner = new OwnerMember();
         RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
+        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
+    }
+
+    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
+
+    private void TouchAllFields()
+    {
+        _touchedFields = ["FirstName", "LastName", "SSN", "OwnershipPercentage"];
+    }
+
+    private void OnFieldBlur(string fieldKey)
+    {
+        _touchedFields.Add(fieldKey);
+        ValidateForm();
     }
 
     private void RestoreFromContinueData()
@@ -131,6 +145,7 @@
 
     private void OnSSNChanged(string value)
     {
+        _touchedFields.Add("SSN");
         Owner.SSN = value;
         ValidateForm();
     }
