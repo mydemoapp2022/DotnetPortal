@@ -29,7 +29,6 @@ using Microsoft.JSInterop;
 public partial class NotificationBanner
 {
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-
     /// <summary>
     /// The type of notification
     /// </summary>
@@ -92,20 +91,20 @@ public partial class NotificationBanner
     public List<string> Messages { get; set; } = new();
 
     /// <summary>
-    /// Optional list of element IDs that map positionally to <see cref="Messages"/>.
-    /// When an entry is non-empty the corresponding message renders as a clickable
-    /// link that scrolls to and focuses the target field.
-    /// </summary>
-    [Parameter]
-    public List<string> MessageFieldIds { get; set; } = new();
-
-    /// <summary>
     /// Sets the maximum length for the Message part of the Notification Banner.  Once
     /// the limit is reached the message displayed will be truncated and three ellipses (...)
     /// will be added.
     /// </summary>
     [Parameter]
     public int MessageLimit { get; set; } = 200;
+
+    /// <summary>
+    /// Maps property names to their corresponding input HTML ids for anchor link navigation.
+    /// </summary>
+    [Parameter]
+    public List<string> MessageFieldIds { get; set; } = new();
+
+    //private IJSObjectReference? _module;
 
     private string GetFormattedTitle()
     {
@@ -139,19 +138,6 @@ public partial class NotificationBanner
     private string GetDueDateText()
     {
         return DueDate.HasValue ? $"Due: {DueDate.Value:MM/dd/yyyy}" : String.Empty;
-    }
-
-    private string GetFieldId(int index)
-    {
-        return index < MessageFieldIds.Count ? MessageFieldIds[index] : string.Empty;
-    }
-
-    private async Task FocusFieldAsync(string fieldId)
-    {
-        if (!string.IsNullOrWhiteSpace(fieldId))
-        {
-            await JSRuntime.InvokeVoidAsync("focusElement", fieldId);
-        }   
     }
 
     private MarkupString GetNotificationIcon()
@@ -188,6 +174,7 @@ public partial class NotificationBanner
             NotificationType.Confirmation => MessageStyle == MessageStyle.SingleLine ? "nb-confirmation" : "nb-confirmation-multiline",
             _ => String.Empty,
         };
+
     }
 
     private MarkupString GetAlertNotificationIcon()
@@ -252,5 +239,18 @@ public partial class NotificationBanner
         var altText = "BulletPoint";
 
         return new MarkupString($"<img src='{icon}' class='sort-icon' alt='{altText}' />");
+    }
+
+    private string GetFieldId(int index)
+    {
+        return index < MessageFieldIds.Count ? MessageFieldIds[index] : string.Empty;
+    }
+
+    private async Task FocusFieldAsync(string inputId)
+    {
+        if (!string.IsNullOrWhiteSpace(inputId))
+        {
+            await JSRuntime.InvokeVoidAsync("focusElement", inputId);
+        }
     }
 }

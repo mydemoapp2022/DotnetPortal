@@ -15,7 +15,9 @@
                             <li>
                                 @if (!string.IsNullOrWhiteSpace(fieldId))
                                 {
-                                    <a href="#" class="nb-error-link" @onclick="() => FocusFieldAsync(fieldId)" @onclick:preventDefault>@message</a>
+                                    <a href="#" class="nb-error-link" @onclick="() => FocusFieldAsync(fieldId)" @onclick:preventDefault>
+                                        @message
+                                    </a>
                                 }
                                 else
                                 {
@@ -34,13 +36,10 @@
                             }
                         </div>
                     </div>
-
-
                 </div>
             </div>
         }
     }
-
 
     @if (MessageStyle == MessageStyle.SingleLine)
     {
@@ -79,7 +78,6 @@
                     </div>
                 </div>
             </div>
-
             <br />
         }
         else

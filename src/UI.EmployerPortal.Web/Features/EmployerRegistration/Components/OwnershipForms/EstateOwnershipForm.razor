@@ -7,29 +7,33 @@
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Decedent</h3>
+
             <div class="member-fields">
                 <ValidatedInput Id="decedent-first-name"
                                 Label="First Name"
                                 Value="@Decedent.FirstName"
                                 ValueChanged="@(v => Decedent.FirstName = v)"
-                                MaxLength="64" Width="106"
+                                MaxLength="64"
+                                Width="106"
                                 HasError="@FieldErrors.ContainsKey("Decedent_FirstName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("Decedent_FirstName")"
+                                ErrorMessage="Firstname is required."
                                 OnBlur="ValidateForm" />
 
                 <ValidatedInput Id="decedent-middle-initial"
                                 Label="Middle Initial"
                                 Value="@Decedent.MiddleInitial"
                                 ValueChanged="@(v => Decedent.MiddleInitial = v)"
-                                MaxLength="1" Width="114" />
+                                MaxLength="1"
+                                Width="114" />
 
                 <ValidatedInput Id="decedent-last-name"
                                 Label="Last Name"
                                 Value="@Decedent.LastName"
                                 ValueChanged="@(v => Decedent.LastName = v)"
-                                MaxLength="64" Width="103"
+                                MaxLength="64"
+                                Width="103"
                                 HasError="@FieldErrors.ContainsKey("Decedent_LastName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("Decedent_LastName")"
+                                ErrorMessage="Lastname is required."
                                 OnBlur="ValidateForm" />
 
                 <SSNInput Id="decedent-ssn"
@@ -40,7 +44,8 @@
                           IsFocusedChanged="@((bool focused) => Decedent.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!ISOutsideUSA)"
+                          IsRequired="true"
+                          Width="175"
                           HasError="@FieldErrors.ContainsKey("Decedent_SSN")"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("Decedent_SSN")"
                           CssClass="@(GetFieldCssClass("Decedent_SSN"))" />
@@ -52,29 +57,33 @@
     <div class="owner-info-section">
         <div class="member-card">
             <h3 class="member-title">Personal Representative</h3>
+
             <div class="member-fields">
                 <ValidatedInput Id="representative-first-name"
                                 Label="First Name"
                                 Value="@PersonalRepresentative.FirstName"
                                 ValueChanged="@(v => PersonalRepresentative.FirstName = v)"
-                                MaxLength="64" Width="106"
+                                MaxLength="64"
+                                Width="106"
                                 HasError="@FieldErrors.ContainsKey("PersonalRepresentative_FirstName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("PersonalRepresentative_FirstName")"
+                                ErrorMessage="Firstname is required"
                                 OnBlur="ValidateForm" />
 
                 <ValidatedInput Id="representative-middle-initial"
                                 Label="Middle Initial"
                                 Value="@PersonalRepresentative.MiddleInitial"
                                 ValueChanged="@(v => PersonalRepresentative.MiddleInitial = v)"
-                                MaxLength="1" Width="114" />
+                                MaxLength="1"
+                                Width="114" />
 
                 <ValidatedInput Id="representative-last-name"
                                 Label="Last Name"
                                 Value="@PersonalRepresentative.LastName"
                                 ValueChanged="@(v => PersonalRepresentative.LastName = v)"
-                                MaxLength="64" Width="103"
+                                MaxLength="64"
+                                Width="103"
                                 HasError="@FieldErrors.ContainsKey("PersonalRepresentative_LastName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("PersonalRepresentative_LastName")"
+                                ErrorMessage="Lastname is required."
                                 OnBlur="ValidateForm" />
 
                 <SSNInput Id="representative-ssn"
@@ -85,7 +94,8 @@
                           IsFocusedChanged="@((bool focused) => PersonalRepresentative.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!ISOutsideUSA)"
+                          IsRequired="true"
+                          Width="175"
                           HasError="@FieldErrors.ContainsKey("PersonalRepresentative_SSN")"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("PersonalRepresentative_SSN")"
                           CssClass="@(GetFieldCssClass("PersonalRepresentative_SSN"))" />
@@ -95,80 +105,101 @@
 </div>
 
 @code {
-    [Parameter] public OwnershipFormConfig Config { get; set; } = new();
-    [Parameter] public EventCallback<EstateFormData> OnDataChanged { get; set; }
-    [Parameter] public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
-    [Parameter] public bool ISOutsideUSA { get; set; }
-    [Parameter] public object? SavedData { get; set; }
-    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
+    [Parameter]
+    public OwnershipFormConfig Config { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<EstateFormData> OnDataChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public object? SavedData { get; set; }
+
+    [Parameter]
+    public OwnershipSessionData ContinueData { get; set; } = default!;
+
+    [Parameter]
+    public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private OwnerMember Decedent { get; set; } = new() { Role = "Decedent" };
     private OwnerMember PersonalRepresentative { get; set; } = new() { Role = "Personal Representative" };
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
-    private List<ValidationItem> _validationItems = [];
+    private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
-    private bool _previousISOutsideUSA;
 
     protected override void OnInitialized()
     {
-        _previousISOutsideUSA = ISOutsideUSA;
         Decedent = new OwnerMember { Role = "Decedent" };
         PersonalRepresentative = new OwnerMember { Role = "Personal Representative" };
-        RestoreFromSession();
+        RestoreFromContinueData();
         RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
     }
 
-    protected override void OnParametersSet()
+    private void RestoreFromContinueData()
     {
-        if (_previousISOutsideUSA != ISOutsideUSA)
-            _previousISOutsideUSA = ISOutsideUSA;
-    }
+        if (_dataRestored || ContinueData == null)
+            return;
 
-    private void RestoreFromSession()
-    {
-        if (_dataRestored || SavedData == null) return;
         try
         {
-            if (SavedData is OwnershipSessionData sessionData)
-            {
-                if (sessionData.Decedent != null)
-                    Decedent = new OwnerMember
-                    {
-                        Role = "Decedent", FirstName = sessionData.Decedent.FirstName,
-                        MiddleInitial = sessionData.Decedent.MiddleInitial,
-                        LastName = sessionData.Decedent.LastName, SSN = sessionData.Decedent.SSN
-                    };
-                if (sessionData.PersonalRepresentative != null)
-                    PersonalRepresentative = new OwnerMember
-                    {
-                        Role = "Personal Representative",
-                        FirstName = sessionData.PersonalRepresentative.FirstName,
-                        MiddleInitial = sessionData.PersonalRepresentative.MiddleInitial,
-                        LastName = sessionData.PersonalRepresentative.LastName,
-                        SSN = sessionData.PersonalRepresentative.SSN
-                    };
-                _dataRestored = true;
-            }
+            if (ContinueData.Decedent != null)
+                Decedent = new OwnerMember
+                {
+                    Role = "Decedent",
+                    FirstName = ContinueData.Decedent.FirstName,
+                    MiddleInitial = ContinueData.Decedent.MiddleInitial,
+                    LastName = ContinueData.Decedent.LastName,
+                    SSN = ContinueData.Decedent.SSN
+                };
+
+            if (ContinueData.PersonalRepresentative != null)
+                PersonalRepresentative = new OwnerMember
+                {
+                    Role = "Personal Representative",
+                    FirstName = ContinueData.PersonalRepresentative.FirstName,
+                    MiddleInitial = ContinueData.PersonalRepresentative.MiddleInitial,
+                    LastName = ContinueData.PersonalRepresentative.LastName,
+                    SSN = ContinueData.PersonalRepresentative.SSN
+                };
+
+            _dataRestored = true;
         }
-        catch { }
+        catch
+        {
+            // Failed to restore, continue with defaults
+        }
     }
 
-    private void OnDecedentSSNChanged(string value) { Decedent.SSN = value; ValidateForm(); }
-    private void OnRepresentativeSSNChanged(string value) { PersonalRepresentative.SSN = value; ValidateForm(); }
-
-    private static string GetElementId(string fieldKey) => fieldKey switch
+    private void OnDecedentSSNChanged(string value)
     {
-        "Decedent_FirstName"              => "decedent-first-name",
-        "Decedent_LastName"               => "decedent-last-name",
-        "Decedent_SSN"                    => "decedent-ssn",
-        "PersonalRepresentative_FirstName" => "representative-first-name",
-        "PersonalRepresentative_LastName"  => "representative-last-name",
-        "PersonalRepresentative_SSN"       => "representative-ssn",
-        _                                  => string.Empty
-    };
+        Decedent.SSN = value;
+        ValidateForm();
+    }
+
+    private void OnRepresentativeSSNChanged(string value)
+    {
+        PersonalRepresentative.SSN = value;
+        ValidateForm();
+    }
+
+    private static string GetElementId(string fieldKey)
+    {
+        return fieldKey switch
+        {
+            "Decedent_FirstName" => $"decedent-first-name",
+            "Decedent_LastName" => $"decedent-last-name",
+            "Decedent_SSN" => $"decedent-ssn",
+            "PersonalRepresentative_FirstName" => $"representative-first-name",
+            "PersonalRepresentative_LastName" => $"representative-last-name",
+            "PersonalRepresentative_SSN" => $"representative-ssn",
+            _ => string.Empty
+        };
+    }
 
     private void AddFieldError(string fieldKey, string message)
     {
@@ -181,20 +212,30 @@
     private void ValidatePersonation(OwnerMember person, string prefix)
     {
         if (string.IsNullOrWhiteSpace(person.FirstName))
+        {
             AddFieldError($"{prefix}_FirstName", $"{person.Role} First Name is required");
+        }
         else if (person.FirstName.Length > 64)
+        {
             AddFieldError($"{prefix}_FirstName", $"{person.Role} First Name must not exceed 64 characters");
+        }
 
         if (string.IsNullOrWhiteSpace(person.LastName))
+        {
             AddFieldError($"{prefix}_LastName", $"{person.Role} Last Name is required");
+        }
         else if (person.LastName.Length > 64)
+        {
             AddFieldError($"{prefix}_LastName", $"{person.Role} Last Name must not exceed 64 characters");
+        }
 
-        if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(person.SSN))
+        if (!string.IsNullOrWhiteSpace(person.SSN))
         {
             var ssnResult = SSNInput.ValidateSSN(person.SSN, person.Role);
             if (ssnResult != null && !ssnResult.IsValid)
+            {
                 AddFieldError($"{prefix}_SSN", ssnResult.ErrorMessage);
+            }
         }
     }
 
@@ -214,9 +255,8 @@
         if (duplicateErrors is { Count: > 0 })
         {
             var dupMsg = duplicateErrors[0];
-            // Point to the Decedent SSN as the first duplicate
             _validationItems.Add(new ValidationItem(dupMsg, "decedent-ssn"));
-            ValidationErrors.Add(dupMsg);
+            ValidationErrors.AddRange(dupMsg);
             InvalidFields.Add("Decedent_SSN");
             InvalidFields.Add("PersonalRepresentative_SSN");
             FieldErrors.TryAdd("Decedent_SSN", dupMsg);

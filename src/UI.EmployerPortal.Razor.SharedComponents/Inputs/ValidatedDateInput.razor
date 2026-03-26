@@ -1,6 +1,6 @@
 <div class="form-group master-text-field @(HasError ? "master-text-field--error" : "")">
     <label for="@Id"
-           class="form-label @(HasError ? "master-label--error" : "")">
+           class="form-label @(HasError ? "master-label--error" : "") @CSS">
         @Label
     </label>
 
@@ -65,6 +65,9 @@
 
     /// <summary>Disables the input when true.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Style to display the input label.</summary>
+    [Parameter] public string? CSS { get; set; }
 
     private string? FormattedValue => Value?.ToString("yyyy-MM-dd");
     private string? FormattedMin => Min?.ToString("yyyy-MM-dd");

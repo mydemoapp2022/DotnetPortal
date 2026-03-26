@@ -17,7 +17,7 @@
                                 MaxLength="64"
                                 Width="106"
                                 HasError="@FieldErrors.ContainsKey("FirstName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("FirstName")"
+                                ErrorMessage="Firstname is required."
                                 OnBlur="ValidateForm" />
 
                 <ValidatedInput Id="middle-initial"
@@ -34,7 +34,7 @@
                                 MaxLength="64"
                                 Width="103"
                                 HasError="@FieldErrors.ContainsKey("LastName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("LastName")"
+                                ErrorMessage="Lastname is required"
                                 OnBlur="ValidateForm" />
 
                 <SSNInput Id="owner-ssn"
@@ -45,7 +45,8 @@
                           IsFocusedChanged="@((bool focused) => Owner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!ISOutsideUSA)"
+                          IsRequired="true"
+                          Width="175"
                           HasError="@FieldErrors.ContainsKey("SSN")"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("SSN")"
                           CssClass="@(GetFieldCssClass("SSN"))" />
@@ -68,70 +69,88 @@
 </div>
 
 @code {
-    [Parameter] public OwnershipFormConfig Config { get; set; } = new();
-    [Parameter] public EventCallback<OwnerMember> OnDataChanged { get; set; }
-    [Parameter] public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
-    [Parameter] public bool ISOutsideUSA { get; set; }
-    [Parameter] public object? SavedData { get; set; }
-    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
+    [Parameter]
+    public OwnershipFormConfig Config { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<OwnerMember> OnDataChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public object? SavedData { get; set; }
+
+    [Parameter]
+    public OwnershipSessionData ContinueData { get; set; } = default!;
+
+    [Parameter]
+    public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private OwnerMember Owner { get; set; } = new();
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
-    private List<ValidationItem> _validationItems = [];
+    private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
-    private bool _previousISOutsideUSA;
 
     protected override void OnInitialized()
     {
-        _previousISOutsideUSA = ISOutsideUSA;
         Owner = new OwnerMember();
-        RestoreFromSession();
+        RestoreFromContinueData();
         RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
     }
 
-    protected override void OnParametersSet()
+    private void RestoreFromContinueData()
     {
-        if (_previousISOutsideUSA != ISOutsideUSA)
-            _previousISOutsideUSA = ISOutsideUSA;
-    }
+        if (_dataRestored || ContinueData == null)
+            return;
 
-    private void RestoreFromSession()
-    {
-        if (_dataRestored || SavedData == null) return;
         try
         {
-            if (SavedData is OwnershipSessionData sessionData && sessionData.Owner != null)
+            if (ContinueData.Owner != null)
             {
                 Owner = new OwnerMember
                 {
-                    Role = sessionData.Owner.Role, FirstName = sessionData.Owner.FirstName,
-                    MiddleInitial = sessionData.Owner.MiddleInitial, LastName = sessionData.Owner.LastName,
-                    SSN = sessionData.Owner.SSN, OwnershipPercentage = sessionData.Owner.OwnershipPercentage
+                    Role = ContinueData.Owner.Role,
+                    FirstName = ContinueData.Owner.FirstName,
+                    MiddleInitial = ContinueData.Owner.MiddleInitial,
+                    LastName = ContinueData.Owner.LastName,
+                    SSN = ContinueData.Owner.SSN,
+                    OwnershipPercentage = ContinueData.Owner.OwnershipPercentage
                 };
                 _dataRestored = true;
             }
         }
-        catch { }
+        catch
+        {
+            // Failed to restore, continue with defaults
+        }
     }
 
-    private void OnSSNChanged(string value) { Owner.SSN = value; ValidateForm(); }
-
-    private static string GetElementId(string fieldKey) => fieldKey switch
+    private void OnSSNChanged(string value)
     {
-        "FirstName"           => "first-name",
-        "LastName"            => "last-name",
-        "SSN"                 => "owner-ssn",
-        "OwnershipPercentage" => "ownership-percentage",
-        _                     => string.Empty
-    };
+        Owner.SSN = value;
+        ValidateForm();
+    }
+
+    private static string GetElementId(string fieldKey)
+    {
+        return fieldKey switch
+        {
+            "FirstName" => $"first-name",
+            "LastName" => $"last-name",
+            "SSN" => $"owner-ssn",
+            "OwnershipPercentage" => $"ownership-percentage",
+            _ => string.Empty
+        };
+    }
 
     private void AddFieldError(string fieldKey, string message)
     {
-        _validationItems.Add(new ValidationItem(message, GetElementId(fieldKey)));
         ValidationErrors.Add(message);
+        _validationItems.Add(new ValidationItem(message, GetElementId(fieldKey)));
         InvalidFields.Add(fieldKey);
         FieldErrors[fieldKey] = message;
     }
@@ -144,28 +163,46 @@
         FieldErrors.Clear();
 
         if (string.IsNullOrWhiteSpace(Owner.FirstName))
+        {
             AddFieldError("FirstName", "First Name is required");
+        }
         else if (Owner.FirstName.Length > 64)
+        {
             AddFieldError("FirstName", "First Name must not exceed 64 characters");
+        }
 
         if (string.IsNullOrWhiteSpace(Owner.LastName))
+        {
             AddFieldError("LastName", "Last Name is required");
+        }
         else if (Owner.LastName.Length > 64)
+        {
             AddFieldError("LastName", "Last Name must not exceed 64 characters");
+        }
 
-        if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(Owner.SSN))
+        if (!string.IsNullOrWhiteSpace(Owner.SSN))
         {
             var ssnResult = SSNInput.ValidateSSN(Owner.SSN, "SSN");
             if (ssnResult != null && !ssnResult.IsValid)
+            {
                 AddFieldError("SSN", ssnResult.ErrorMessage);
+            }
+        }
+        else
+        {
+            AddFieldError($"SSN", $"{Owner.SSN} SSN is required");
         }
 
         if (Owner.OwnershipPercentage.HasValue)
         {
             if (Owner.OwnershipPercentage < 0 || Owner.OwnershipPercentage > 100)
+            {
                 AddFieldError("OwnershipPercentage", "Ownership Percentage must be between 0 and 100.00");
+            }
             else if (decimal.Round(Owner.OwnershipPercentage.Value, 2) != Owner.OwnershipPercentage.Value)
+            {
                 AddFieldError("OwnershipPercentage", "Ownership Percentage must not exceed 2 decimal places");
+            }
         }
 
         _ = OnValidationChanged.InvokeAsync(_validationItems);

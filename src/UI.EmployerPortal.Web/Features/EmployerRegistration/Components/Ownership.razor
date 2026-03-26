@@ -8,49 +8,37 @@
 <div class="ownership-container">
     <h1 class="ownership-title">Ownership</h1>
 
-    @if (!_isSessionLoaded)
+    <!-- Validation Error Summary -->
+    @if (_showValidationSummary && ValidationErrors.Any())
     {
-        <p>Loading...</p>
+        <NotificationBanner NotificationType="NotificationType.Alert"
+                            MessageStyle="MessageStyle.MultiLine"
+                            Messages="ValidationErrors"
+                            MessageFieldIds="ValidationFieldIds"
+                            DismissButton="false">
+        </NotificationBanner>
+        <br />
+        <br />
     }
-    else
-    {
-        <!-- Validation Error Summary -->
-        @if (_showValidationSummary && ValidationErrors.Any())
-        {
-            <NotificationBanner NotificationType="NotificationType.Alert"
-                                MessageStyle="MessageStyle.MultiLine"
-                                Messages="ValidationErrors"
-                                MessageFieldIds="ValidationFieldIds"
-                                DismissButton="false" />            
-            <br />
-            <br />
-        }
         
-        <EditForm Model="SessionStorage" FormName="OwnershipForm">
-            <div class="form-section">
-                <!-- Ownership Type -->
-                <OwnershipTypeSelect Id="ownership-type"
-                                     Label="Ownership Type"
-                                     @bind-Value="SelectedOwnershipType"                                     
-                                     IsRequired="true"
-                                     ValidationErrors="ValidationErrors"
-                                     @bind-Value:after="OnOwnershipTypeChanged"
-                                     CssClass="@(SelectedOwnershipType == OwnershipType.None ? "input-validation-error" : string.Empty)" />
-                <!-- Headquartered Outside USA Checkbox -->
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" @bind="IsOutsideUSA" />
-                        <span>The business is headquartered outside of the United States</span>
-                    </label>
-                </div>
+    <EditForm EditContext="@EditContext" FormName="OwnershipForm">
+        <div class="form-section">
+            <!-- Ownership Type -->
+            <OwnershipTypeSelect Id="ownership-type"
+                                 Label="Ownership Type"
+                                 @bind-Value="Model.OwnershipType"
+                                 IsRequired="true"
+                                 ValidationErrors="ValidationErrors"
+                                 @bind-Value:after="OnOwnershipTypeChanged"
+                                 CssClass="@(Model.OwnershipType == OwnershipType.None ? "input-validation-error" : string.Empty)" />
+           
 
-                @* Render dynamic component based on ownership type *@
-                @if (SelectedOwnershipType != OwnershipType.None && _ownershipComponentMap.ContainsKey(SelectedOwnershipType))
-                {
-                    <DynamicComponent Type="@_ownershipComponentMap[SelectedOwnershipType]"
-                                      Parameters="@GetComponentParameters()" />
-                }
-            </div>
-        </EditForm>
-    }
+            @* Render dynamic component based on ownership type *@
+            @if (Model.OwnershipType != OwnershipType.None && _ownershipComponentMap.ContainsKey(Model.OwnershipType))
+            {
+                <DynamicComponent Type="@_ownershipComponentMap[Model.OwnershipType]"
+                                  Parameters="@GetComponentParameters()" />
+            }
+        </div>
+    </EditForm>
 </div>

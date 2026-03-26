@@ -7,6 +7,9 @@
                  Label="Registration State"
                  Value="@RegistrationState"
                  ValueChanged="StateChanged"
+                 InvalidFields="InvalidFields"
+                 ValidationErrors="ValidationErrors"
+                 ErrorMessage="Registration State is required."
                  CssClass="@(GetFieldCssClass("RegistrationState"))" />
 
     <div class="general-partner-section">
@@ -23,7 +26,7 @@
                                 MaxLength="64"
                                 Width="106"
                                 HasError="@FieldErrors.ContainsKey("GeneralPartner_FirstName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_FirstName")"
+                                ErrorMessage="Firstname is required."
                                 OnBlur="ValidateForm" />
 
                 <ValidatedInput Id="middle-initial"
@@ -40,7 +43,7 @@
                                 MaxLength="64"
                                 Width="103"
                                 HasError="@FieldErrors.ContainsKey("GeneralPartner_LastName")"
-                                ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_LastName")"
+                                ErrorMessage="Lastname is required."
                                 OnBlur="ValidateForm" />
 
                 <SSNInput Id="general-partner-ssn"
@@ -51,7 +54,8 @@
                           IsFocusedChanged="@((bool focused) => GeneralPartner.IsSSNFocused = focused)"
                           ShowSSN="@ShowSSN"
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
-                          IsRequired="@(!ISOutsideUSA)"
+                          IsRequired="true"
+                          Width="175"
                           HasError="@FieldErrors.ContainsKey("GeneralPartner_SSN")"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_SSN")"
                           CssClass="@(GetFieldCssClass("GeneralPartner_SSN"))" />
@@ -70,75 +74,93 @@
 </div>
 
 @code {
-    [Parameter] public OwnershipFormConfig Config { get; set; } = new();
-    [Parameter] public EventCallback<LimitedPartnershipFormData> OnDataChanged { get; set; }
-    [Parameter] public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
-    [Parameter] public bool ISOutsideUSA { get; set; }
-    [Parameter] public object? SavedData { get; set; }
-    [Parameter] public Action<Func<List<string>>>? RegisterValidate { get; set; }
+    [Parameter]
+    public OwnershipFormConfig Config { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<LimitedPartnershipFormData> OnDataChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<List<ValidationItem>> OnValidationChanged { get; set; }
+
+    [Parameter]
+    public object? SavedData { get; set; }
+
+    [Parameter]
+    public OwnershipSessionData ContinueData { get; set; } = default!;
+
+    [Parameter]
+    public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
     private string RegistrationState { get; set; } = string.Empty;
     private string LimitedPartnershipName { get; set; } = string.Empty;
     private OwnerMember GeneralPartner { get; set; } = new() { Role = "General Partner" };
     private bool ShowSSN { get; set; }
     private List<string> ValidationErrors { get; set; } = [];
-    private List<ValidationItem> _validationItems = [];
+    private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private bool _dataRestored;
-    private bool _previousISOutsideUSA;
 
     protected override void OnInitialized()
     {
-        _previousISOutsideUSA = ISOutsideUSA;
         GeneralPartner = new OwnerMember { Role = "General Partner" };
-        RestoreFromSession();
+        //RestoreFromContinueData();
         RegisterValidate?.Invoke(() => { ValidateForm(); return ValidationErrors; });
-    }
-
-    protected override void OnParametersSet()
-    {
-        if (_previousISOutsideUSA != ISOutsideUSA)
-            _previousISOutsideUSA = ISOutsideUSA;
     }
 
     private void RestoreFromSession()
     {
-        if (_dataRestored || SavedData == null) return;
+        if (_dataRestored || ContinueData == null)
+            return;
+
         try
         {
-            if (SavedData is OwnershipSessionData sessionData)
-            {
-                RegistrationState = sessionData.RegistrationState ?? string.Empty;
-                LimitedPartnershipName = sessionData.LimitedPartnershipName ?? string.Empty;
-                if (sessionData.GeneralPartner != null)
-                    GeneralPartner = new OwnerMember
-                    {
-                        Role = "General Partner",
-                        FirstName = sessionData.GeneralPartner.FirstName,
-                        MiddleInitial = sessionData.GeneralPartner.MiddleInitial,
-                        LastName = sessionData.GeneralPartner.LastName,
-                        SSN = sessionData.GeneralPartner.SSN
-                    };
-                _dataRestored = true;
-            }
+            RegistrationState = ContinueData.RegistrationState ?? string.Empty;
+            LimitedPartnershipName = ContinueData.LimitedPartnershipName ?? string.Empty;
+
+            if (ContinueData.GeneralPartner != null)
+                GeneralPartner = new OwnerMember
+                {
+                    Role = "General Partner",
+                    FirstName = ContinueData.GeneralPartner.FirstName,
+                    MiddleInitial = ContinueData.GeneralPartner.MiddleInitial,
+                    LastName = ContinueData.GeneralPartner.LastName,
+                    SSN = ContinueData.GeneralPartner.SSN
+                };
+
+            _dataRestored = true;
         }
-        catch { }
+        catch
+        {
+            // Failed to restore, continue with defaults
+        }
     }
 
-    private void StateChanged(string value) { RegistrationState = value; ValidateForm(); }
-
-    private void OnSSNChanged(string value) { GeneralPartner.SSN = value; ValidateForm(); }
-
-    private static string GetElementId(string fieldKey) => fieldKey switch
+    private void StateChanged(string value)
     {
-        "RegistrationState" => "registration-state",
-        "LimitedPartnershipName" => "partnership-name",
-        "GeneralPartner_FirstName" => "first-name",
-        "GeneralPartner_LastName" => "last-name",
-        "GeneralPartner_SSN" => "general-partner-ssn",
-        _ => string.Empty
-    };
+        RegistrationState = value;
+        ValidateForm();
+    }
+
+    private void OnSSNChanged(string value)
+    {
+        GeneralPartner.SSN = value;
+        ValidateForm();
+    }
+
+    private static string GetElementId(string fieldKey)
+    {
+        return fieldKey switch
+        {
+            "RegistrationState" => $"registration-state",
+            "LimitedPartnershipName" => $"partnership-name",
+            "GeneralPartner_SSN" => $"general-partner-ssn",
+            "GeneralPartner_FirstName" => $"first-name",
+            "GeneralPartner_LastName" => $"last-name",
+            _ => string.Empty
+        };
+    }
 
     private void AddFieldError(string fieldKey, string message)
     {
@@ -156,28 +178,48 @@
         FieldErrors.Clear();
 
         if (string.IsNullOrWhiteSpace(RegistrationState))
+        {
             AddFieldError("RegistrationState", "Registration State is required");
+        }
 
         if (string.IsNullOrWhiteSpace(LimitedPartnershipName))
+        {
             AddFieldError("LimitedPartnershipName", "Limited Partnership Name is required");
+        }
         else if (LimitedPartnershipName.Length > 128)
+        {
             AddFieldError("LimitedPartnershipName", "Limited Partnership Name must not exceed 128 characters");
+        }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.FirstName))
+        {
             AddFieldError("GeneralPartner_FirstName", $"{GeneralPartner.Role} First Name is required");
+        }
         else if (GeneralPartner.FirstName.Length > 64)
+        {
             AddFieldError("GeneralPartner_FirstName", $"{GeneralPartner.Role} First Name must not exceed 64 characters");
+        }
 
         if (string.IsNullOrWhiteSpace(GeneralPartner.LastName))
+        {
             AddFieldError("GeneralPartner_LastName", $"{GeneralPartner.Role} Last Name is required");
+        }
         else if (GeneralPartner.LastName.Length > 64)
+        {
             AddFieldError("GeneralPartner_LastName", $"{GeneralPartner.Role} Last Name must not exceed 64 characters");
+        }
 
-        if (!ISOutsideUSA || !string.IsNullOrWhiteSpace(GeneralPartner.SSN))
+        if (!string.IsNullOrWhiteSpace(GeneralPartner.SSN))
         {
             var ssnResult = SSNInput.ValidateSSN(GeneralPartner.SSN, GeneralPartner.Role);
             if (ssnResult != null && !ssnResult.IsValid)
+            {
                 AddFieldError("GeneralPartner_SSN", ssnResult.ErrorMessage);
+            }
+        }
+        else
+        {
+            AddFieldError($"GeneralPartner_SSN", $"{GeneralPartner.SSN} SSN is required");
         }
 
         _ = OnValidationChanged.InvokeAsync(_validationItems);

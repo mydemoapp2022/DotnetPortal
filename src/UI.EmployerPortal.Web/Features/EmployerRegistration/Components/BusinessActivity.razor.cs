@@ -12,7 +12,7 @@ public partial class BusinessActivity : ComponentBase
     /// <summary>
     /// Business activity form model
     /// </summary>
-    private BusinessActivityModel Model { get; set; } = new();
+    [Parameter] public BusinessActivityModel Model { get; set; } = new();
 
     private bool _showValidationSummary = false;
     private bool _isSessionLoaded = false;
