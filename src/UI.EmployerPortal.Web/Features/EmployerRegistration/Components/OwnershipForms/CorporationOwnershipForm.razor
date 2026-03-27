@@ -16,11 +16,11 @@
                      Label="@Config.StateLabel"
                      Value="@IncorporationState"
                      ValueChanged="OnIncorporationStateChanged"
-                     InvalidFields="InvalidFields"
-                     ValidationErrors="ValidationErrors"
-                     ErrorMessage="Incorporation State is required."
+                     HasError="@FieldErrors.ContainsKey("IncorporationState")"
+                     ErrorMessage="@FieldErrors.GetValueOrDefault("IncorporationState")"
                      Disabled="@(!string.IsNullOrWhiteSpace(ForeignCountry))"
-                     CssClass="@(GetFieldCssClass("IncorporationState"))" />
+                     Visible="_showAllErrors"
+                     OnBlur="@(() => ValidateForm())" />
 
         <div class="form-group-divider">
             <span>OR</span>
@@ -31,9 +31,10 @@
                         Value="@ForeignCountry"
                         ValueChanged="@(v => { ForeignCountry = v; OnForeignCountryChanged(); })"
                         Disabled="@(!string.IsNullOrWhiteSpace(IncorporationState))"
-                        HasError="@(IsFieldTouched("ForeignCountry") && FieldErrors.ContainsKey("ForeignCountry"))"
+                        HasError="@FieldErrors.ContainsKey("ForeignCountry")"
                         ErrorMessage="@FieldErrors.GetValueOrDefault("ForeignCountry")"
-                        OnBlur="@(() => OnFieldBlur("ForeignCountry"))" />
+                        Visible="_showAllErrors"
+                        OnBlur="@(() => ValidateForm())" />
     </div>
 
     <!-- Owner Information Section -->
@@ -55,9 +56,10 @@
                                     ValueChanged="@(v => officer.FirstName = v)"
                                     MaxLength="64"
                                     Width="106"
-                                    HasError="@(IsFieldTouched($"{officer.Role}_FirstName") && FieldErrors.ContainsKey($"{officer.Role}_FirstName"))"
+                                    HasError="@FieldErrors.ContainsKey($"{officer.Role}_FirstName")"
                                     ErrorMessage="Firstname is required."
-                                    OnBlur="@(() => OnFieldBlur($"{officer.Role}_FirstName"))" />
+                                    Visible="_showAllErrors"
+                                    OnBlur="@(() => ValidateForm())" />
 
                     <ValidatedInput Id="@($"middle-initial-{officer.Role}")"
                                     Label="Middle Initial"
@@ -72,9 +74,10 @@
                                     ValueChanged="@(v => officer.LastName = v)"
                                     MaxLength="64"
                                     Width="103"
-                                    HasError="@(IsFieldTouched($"{officer.Role}_LastName") && FieldErrors.ContainsKey($"{officer.Role}_LastName"))"
+                                    HasError="@FieldErrors.ContainsKey($"{officer.Role}_LastName")"
                                     ErrorMessage="Lastname is required."
-                                    OnBlur="@(() => OnFieldBlur($"{officer.Role}_LastName"))" />
+                                    Visible="_showAllErrors"
+                                    OnBlur="@(() => ValidateForm())" />
 
                     <SSNInput Id="@($"ssn-{officer.Role}")"
                               Label="SSN"
@@ -86,9 +89,10 @@
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
                               IsRequired="@(!IsOutsideUSA)"
                               Width="175"
-                              HasError="@(IsFieldTouched($"{officer.Role}_SSN") && FieldErrors.ContainsKey($"{officer.Role}_SSN"))"
+                              HasError="@FieldErrors.ContainsKey($"{officer.Role}_SSN")"
                               ErrorMessage="@FieldErrors.GetValueOrDefault($"{officer.Role}_SSN")"
-                              CssClass="@(IsFieldTouched($"{officer.Role}_SSN") ? GetFieldCssClass($"{officer.Role}_SSN") : string.Empty)" />
+                              Visible="_showAllErrors"
+                              OnBlur="@(() => ValidateForm())" />
 
                     <ValidatedInput Id="@($"ownership-percentage-{officer.Role}")"
                                     Label="Ownership (%)"
@@ -99,9 +103,10 @@
                                     Max="100"
                                     Step="0.01"
                                     Width="130"
-                                    HasError="@(IsFieldTouched($"{officer.Role}_OwnershipPercentage") && FieldErrors.ContainsKey($"{officer.Role}_OwnershipPercentage"))"
+                                    HasError="@FieldErrors.ContainsKey($"{officer.Role}_OwnershipPercentage")"
                                     ErrorMessage="@FieldErrors.GetValueOrDefault($"{officer.Role}_OwnershipPercentage")"
-                                    OnBlur="@(() => OnFieldBlur($"{officer.Role}_OwnershipPercentage"))" />
+                                    Visible="_showAllErrors"
+                                    OnBlur="@(() => ValidateForm())" />
                 </div>
             </div>
         }
@@ -136,7 +141,7 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
-    private HashSet<string> _touchedFields { get; set; } = [];
+    private bool _showAllErrors;
     private bool _dataRestored;
     private bool _previousISOutsideUSA;
 
@@ -145,7 +150,7 @@
         _previousISOutsideUSA = IsOutsideUSA;
         InitializeOfficers();
         RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
+        RegisterValidate?.Invoke(() => { _showAllErrors = true; ValidateForm(); return ValidationErrors; });
     }
 
     protected override void OnParametersSet()
@@ -154,27 +159,6 @@
         {
             _previousISOutsideUSA = IsOutsideUSA;
         }
-    }
-
-    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
-
-    private void TouchAllFields()
-    {
-        _touchedFields.Add("IncorporationState");
-        _touchedFields.Add("ForeignCountry");
-        foreach (var officer in Officers)
-        {
-            _touchedFields.Add($"{officer.Role}_FirstName");
-            _touchedFields.Add($"{officer.Role}_LastName");
-            _touchedFields.Add($"{officer.Role}_SSN");
-            _touchedFields.Add($"{officer.Role}_OwnershipPercentage");
-        }
-    }
-
-    private void OnFieldBlur(string fieldKey)
-    {
-        _touchedFields.Add(fieldKey);
-        ValidateForm();
     }
 
     private void RestoreFromContinueData()
@@ -226,7 +210,6 @@
 
     private void OnIncorporationStateChanged(string value)
     {
-        _touchedFields.Add("IncorporationState");
         IncorporationState = value;
         if (!string.IsNullOrWhiteSpace(IncorporationState))
             ForeignCountry = string.Empty;
@@ -235,7 +218,6 @@
 
     private void OnForeignCountryChanged()
     {
-        _touchedFields.Add("ForeignCountry");
         if (!string.IsNullOrWhiteSpace(ForeignCountry))
             IncorporationState = string.Empty;
         ValidateForm();
@@ -245,7 +227,6 @@
     {
         if (index >= 0 && index < Officers.Count)
         {
-            _touchedFields.Add($"{Officers[index].Role}_SSN");
             Officers[index].SSN = value;
             ValidateForm();
         }
@@ -391,7 +372,6 @@
                 }
             }
 
-            // Check for duplicate SSNs
             var ssnList = Officers.Select(o => (string?)o.SSN).ToList();
             var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => Officers[i].Role);
 

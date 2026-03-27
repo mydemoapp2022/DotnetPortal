@@ -12,7 +12,7 @@
                      InvalidFields="InvalidFields"
                      ValidationErrors="ValidationErrors"
                      ErrorMessage="Registration State is required."
-                     CssClass="@(GetFieldCssClass("RegistrationState"))" />
+                     CssClass="@(_showAllErrors ? GetFieldCssClass("RegistrationState") : string.Empty)" />
     }
 
     <!-- Owner Information Section -->
@@ -35,9 +35,10 @@
                                     ValueChanged="@(v => member.FirstName = v)"
                                     MaxLength="64"
                                     Width="106"
-                                    HasError="@(IsFieldTouched($"Member{index}_FirstName") && FieldErrors.ContainsKey($"Member{index}_FirstName"))"
+                                    HasError="@FieldErrors.ContainsKey($"Member{index}_FirstName")"
                                     ErrorMessage="First name is required"
-                                    OnBlur="@(() => OnFieldBlur($"Member{index}_FirstName"))" />
+                                    Visible="_showAllErrors"
+                                    OnBlur="@(() => ValidateForm())" />
 
                     <!-- Middle Initial -->
                     <ValidatedInput Id="@($"middle-initial-{index}")"
@@ -54,9 +55,10 @@
                                     ValueChanged="@(v => member.LastName = v)"
                                     MaxLength="64"
                                     Width="103"
-                                    HasError="@(IsFieldTouched($"Member{index}_LastName") && FieldErrors.ContainsKey($"Member{index}_LastName"))"
+                                    HasError="@FieldErrors.ContainsKey($"Member{index}_LastName")"
                                     ErrorMessage="Last name is required."
-                                    OnBlur="@(() => OnFieldBlur($"Member{index}_LastName"))" />
+                                    Visible="_showAllErrors"
+                                    OnBlur="@(() => ValidateForm())" />
 
                     <SSNInput Id="@($"ssn-{index}")"
                               Label="SSN"
@@ -68,9 +70,10 @@
                               ShowSSNChanged="@((bool show) => ShowSSN = show)"
                               IsRequired="true"
                               Width="175"
-                              HasError="@(IsFieldTouched($"Member{index}_SSN") && FieldErrors.ContainsKey($"Member{index}_SSN"))"
+                              HasError="@FieldErrors.ContainsKey($"Member{index}_SSN")"
                               ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_SSN")"
-                              CssClass="@(IsFieldTouched($"Member{index}_SSN") ? GetFieldCssClass($"Member{index}_SSN") : string.Empty)" />
+                              Visible="_showAllErrors"
+                              OnBlur="@(() => ValidateForm())" />
 
                     <!-- Ownership Percentage -->
                     <ValidatedInput Id="@($"ownership-percentage-{index}")"
@@ -82,9 +85,10 @@
                                     Max="100"
                                     Step="0.01"
                                     Width="130"
-                                    HasError="@(IsFieldTouched($"Member{index}_OwnershipPercentage") && FieldErrors.ContainsKey($"Member{index}_OwnershipPercentage"))"
+                                    HasError="@FieldErrors.ContainsKey($"Member{index}_OwnershipPercentage")"
                                     ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_OwnershipPercentage")"
-                                    OnBlur="@(() => OnFieldBlur($"Member{index}_OwnershipPercentage"))" />
+                                    Visible="_showAllErrors"
+                                    OnBlur="@(() => ValidateForm())" />
                 </div>
             </div>
         }
@@ -112,7 +116,7 @@
                 </label>
             </div>
 
-            @if (HasError && InvalidFields.Contains("MoreThanFive"))
+            @if (_showAllErrors && InvalidFields.Contains("MoreThanFive"))
             {
                 <div class="bc-radio-error">Please select an option.</div>
             }
@@ -147,36 +151,14 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
-    private HashSet<string> _touchedFields { get; set; } = [];
+    private bool _showAllErrors;
     private bool _dataRestored;
-    private bool HasError { get; set; } = false;
 
     protected override void OnInitialized()
     {
         InitializeMembers();
         RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
-    }
-
-    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
-
-    private void TouchAllFields()
-    {
-        _touchedFields.Add("RegistrationState");
-        _touchedFields.Add("MoreThanFive");
-        for (var i = 0; i < Members.Count; i++)
-        {
-            _touchedFields.Add($"Member{i}_FirstName");
-            _touchedFields.Add($"Member{i}_LastName");
-            _touchedFields.Add($"Member{i}_SSN");
-            _touchedFields.Add($"Member{i}_OwnershipPercentage");
-        }
-    }
-
-    private void OnFieldBlur(string fieldKey)
-    {
-        _touchedFields.Add(fieldKey);
-        ValidateForm();
+        RegisterValidate?.Invoke(() => { _showAllErrors = true; ValidateForm(); return ValidationErrors; });
     }
 
     private void RestoreFromContinueData()
@@ -232,7 +214,6 @@
 
     private void StateChanged(string value)
     {
-        _touchedFields.Add("RegistrationState");
         RegistrationState = value;
         ValidateForm();
     }
@@ -241,7 +222,6 @@
     {
         if (index >= 0 && index < Members.Count)
         {
-            _touchedFields.Add($"Member{index}_SSN");
             Members[index].SSN = value;
             ValidateForm();
         }
@@ -257,7 +237,6 @@
 
     private void OnMoreThanFiveChanged(bool value)
     {
-        _touchedFields.Add("MoreThanFive");
         MoreThanFive = value;
         ValidateForm();
     }
@@ -305,13 +284,11 @@
         InvalidFields.Clear();
         FieldErrors.Clear();
 
-        // Validate Registration State if required
         if (Config.RequiresState && string.IsNullOrWhiteSpace(RegistrationState))
         {
             AddFieldError("RegistrationState", $"{Config.StateLabel} is required");
         }
 
-        // Validate each member — use member.Role directly as the label
         for (var i = 0; i < Members.Count; i++)
         {
             var member = Members[i];
@@ -355,7 +332,6 @@
                     AddFieldError($"Member{i}_SSN", $"{member.Role} SSN is required");
                 }
 
-                // Ownership Percentage: 0 – 100.00, max 2 decimal places
                 if (member.OwnershipPercentage.HasValue)
                 {
                     if (member.OwnershipPercentage < 0 || member.OwnershipPercentage > 100)
@@ -370,7 +346,6 @@
             }
         }
 
-        // Total must equal exactly 100.00 — use Math.Round to avoid floating-point drift
         var totalPercentage = Members
             .Where(m => m.OwnershipPercentage.HasValue)
             .Sum(m => m.OwnershipPercentage!.Value);
@@ -392,7 +367,6 @@
             }
         }
 
-        // Check for duplicate SSNs
         var ssnList = Members.Select(m => (string?)m.SSN).ToList();
         var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => Members[i].Role);
 
@@ -419,7 +393,6 @@
             }
         }
 
-        // Validate "More than five?" selection
         if (MoreThanFive == null)
         {
             _validationItems.Add(new ValidationItem("More than five ? selection is required", "more-than-five-group"));
@@ -427,7 +400,6 @@
             InvalidFields.Add("MoreThanFive");
         }
 
-        HasError = ValidationErrors.Count > 0;
         _ = OnValidationChanged.InvokeAsync(_validationItems);
         NotifyDataChanged();
         StateHasChanged();

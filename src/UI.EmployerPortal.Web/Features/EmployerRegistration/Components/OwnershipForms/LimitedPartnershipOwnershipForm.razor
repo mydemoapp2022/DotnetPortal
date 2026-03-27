@@ -7,10 +7,10 @@
                  Label="Registration State"
                  Value="@RegistrationState"
                  ValueChanged="StateChanged"
-                 InvalidFields="InvalidFields"
-                 ValidationErrors="ValidationErrors"
-                 ErrorMessage="Registration State is required."
-                 CssClass="@(GetFieldCssClass("RegistrationState"))" />
+                 HasError="@FieldErrors.ContainsKey("RegistrationState")"
+                 ErrorMessage="@FieldErrors.GetValueOrDefault("RegistrationState")"
+                 Visible="_showAllErrors"
+                 OnBlur="@(() => ValidateForm())" />
 
     <div class="general-partner-section">
         <h2 class="section-subtitle">General Partner Information</h2>
@@ -25,9 +25,10 @@
                                 ValueChanged="@(v => GeneralPartner.FirstName = v)"
                                 MaxLength="64"
                                 Width="106"
-                                HasError="@(IsFieldTouched("GeneralPartner_FirstName") && FieldErrors.ContainsKey("GeneralPartner_FirstName"))"
+                                HasError="@FieldErrors.ContainsKey("GeneralPartner_FirstName")"
                                 ErrorMessage="Firstname is required."
-                                OnBlur="@(() => OnFieldBlur("GeneralPartner_FirstName"))" />
+                                Visible="_showAllErrors"
+                                OnBlur="@(() => ValidateForm())" />
 
                 <ValidatedInput Id="middle-initial"
                                 Label="Middle Initial"
@@ -42,9 +43,10 @@
                                 ValueChanged="@(v => GeneralPartner.LastName = v)"
                                 MaxLength="64"
                                 Width="103"
-                                HasError="@(IsFieldTouched("GeneralPartner_LastName") && FieldErrors.ContainsKey("GeneralPartner_LastName"))"
+                                HasError="@FieldErrors.ContainsKey("GeneralPartner_LastName")"
                                 ErrorMessage="Lastname is required."
-                                OnBlur="@(() => OnFieldBlur("GeneralPartner_LastName"))" />
+                                Visible="_showAllErrors"
+                                OnBlur="@(() => ValidateForm())" />
 
                 <SSNInput Id="general-partner-ssn"
                           Label="SSN"
@@ -56,9 +58,10 @@
                           ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="true"
                           Width="175"
-                          HasError="@(IsFieldTouched("GeneralPartner_SSN") && FieldErrors.ContainsKey("GeneralPartner_SSN"))"
+                          HasError="@FieldErrors.ContainsKey("GeneralPartner_SSN")"
                           ErrorMessage="@FieldErrors.GetValueOrDefault("GeneralPartner_SSN")"
-                          CssClass="@(IsFieldTouched("GeneralPartner_SSN") ? GetFieldCssClass("GeneralPartner_SSN") : string.Empty)" />
+                          Visible="_showAllErrors"
+                          OnBlur="@(() => ValidateForm())" />
             </div>
         </div>
     </div>
@@ -68,9 +71,10 @@
                     Label="Limited Partnership Name"
                     Value="@LimitedPartnershipName"
                     ValueChanged="@(v => LimitedPartnershipName = v)"
-                    HasError="@(IsFieldTouched("LimitedPartnershipName") && FieldErrors.ContainsKey("LimitedPartnershipName"))"
+                    HasError="@FieldErrors.ContainsKey("LimitedPartnershipName")"
                     ErrorMessage="@FieldErrors.GetValueOrDefault("LimitedPartnershipName")"
-                    OnBlur="@(() => OnFieldBlur("LimitedPartnershipName"))" />
+                    Visible="_showAllErrors"
+                    OnBlur="@(() => ValidateForm())" />
 </div>
 
 @code {
@@ -100,28 +104,14 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
-    private HashSet<string> _touchedFields { get; set; } = [];
+    private bool _showAllErrors;
     private bool _dataRestored;
 
     protected override void OnInitialized()
     {
         GeneralPartner = new OwnerMember { Role = "General Partner" };
         //RestoreFromContinueData();
-        RegisterValidate?.Invoke(() => { TouchAllFields(); ValidateForm(); return ValidationErrors; });
-    }
-
-    private bool IsFieldTouched(string fieldKey) => _touchedFields.Contains(fieldKey);
-
-    private void TouchAllFields()
-    {
-        _touchedFields = ["RegistrationState", "LimitedPartnershipName",
-            "GeneralPartner_FirstName", "GeneralPartner_LastName", "GeneralPartner_SSN"];
-    }
-
-    private void OnFieldBlur(string fieldKey)
-    {
-        _touchedFields.Add(fieldKey);
-        ValidateForm();
+        RegisterValidate?.Invoke(() => { _showAllErrors = true; ValidateForm(); return ValidationErrors; });
     }
 
     private void RestoreFromSession()
@@ -154,14 +144,12 @@
 
     private void StateChanged(string value)
     {
-        _touchedFields.Add("RegistrationState");
         RegistrationState = value;
         ValidateForm();
     }
 
     private void OnSSNChanged(string value)
     {
-        _touchedFields.Add("GeneralPartner_SSN");
         GeneralPartner.SSN = value;
         ValidateForm();
     }
@@ -236,7 +224,7 @@
         }
         else
         {
-            AddFieldError($"GeneralPartner_SSN", $"{GeneralPartner.SSN} SSN is required");
+            AddFieldError($"GeneralPartner_SSN", $"{GeneralPartner.Role} SSN is required");
         }
 
         _ = OnValidationChanged.InvokeAsync(_validationItems);

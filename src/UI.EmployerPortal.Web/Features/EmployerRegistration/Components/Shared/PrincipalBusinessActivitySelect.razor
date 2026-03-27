@@ -2,8 +2,9 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using Microsoft.AspNetCore.Components.Forms
 
-<div class="form-group master-text-field @(HasError ? "master-text-field--error" : "")">
-    <label for="@Id" class="form-label @(HasError ? "master-label--error" : "")">
+<div class="form-group master-text-field @(ShowError ? "master-text-field--error" : "")"
+     @onfocusout="HandleBlur">
+    <label for="@Id" class="form-label @(ShowError ? "master-label--error" : "")">
         @if (IsRequired)
         {
             <span class="required-indicator">*</span>
@@ -22,7 +23,7 @@
         }
     </InputSelect>
 
-    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    @if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
         <div class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -58,8 +59,23 @@
     /// <summary>Error message displayed below the select when HasError is true.</summary>
     [Parameter] public string? ErrorMessage { get; set; }
 
+    /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Tracks whether the user has interacted with this field.</summary>
+    private bool _touched;
+
+    /// <summary>Returns true when the error should be displayed — matches OutlinedTextField pattern.</summary>
+    private bool ShowError => (_touched || Visible) && HasError;
+
+    private void HandleBlur()
+    {
+        _touched = true;
+    }
+
     private async Task OnValueChanged()
     {
+        _touched = true;
         await ValueChanged.InvokeAsync(Value);
 
         if (EditContext != null && ValueExpression != null)
@@ -80,7 +96,7 @@
     {
         var cssClass = $"form-control {CssClass}";
 
-        if (HasError)
+        if (ShowError)
         {
             cssClass += " master-input--error";
         }

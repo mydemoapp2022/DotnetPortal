@@ -1,22 +1,23 @@
-<div class="form-group master-text-field @(HasError ? "master-text-field--error" : "")">
+<div class="form-group master-text-field @(ShowError ? "master-text-field--error" : "")">
     <label for="@Id"
-           class="form-label @(HasError ? "master-label--error" : "")">
+           class="form-label @(ShowError ? "master-label--error" : "")">
         @Label
     </label>
 
     <input type="@InputType"
            id="@Id"
-           class="form-input master-input @(HasError ? "master-input--error" : "")"
+           class="form-input master-input @(ShowError ? "master-input--error" : "")"
            style="@(Width > 0 ? $"width:{Width}px;" : "")"
            maxlength="@MaxLength"
            step="@Step"
            min="@Min"
            max="@Max"
            value="@Value"
+           disabled="@Disabled"
            @onchange="HandleChange"
            @onblur="HandleBlur" />
 
-    @if (HasError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    @if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
         <div class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -76,13 +77,24 @@
     /// <summary>Disables the input when true.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Tracks whether the user has interacted with this field.</summary>
+    private bool _touched;
+
+    /// <summary>Returns true when the error should be displayed — matches OutlinedTextField pattern.</summary>
+    private bool ShowError => (_touched || Visible) && HasError;
+
     private async Task HandleChange(ChangeEventArgs e)
     {
+        _touched = true;
         await ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty);
     }
 
     private async Task HandleBlur()
     {
+        _touched = true;
         await OnBlur.InvokeAsync();
     }
 }

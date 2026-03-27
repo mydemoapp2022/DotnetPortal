@@ -3,7 +3,8 @@
 @implements IAsyncDisposable
 
 @{
-    var showError = HasError || InvalidFields.Contains($"Member{Index}_SSN");
+    var hasError = HasError || InvalidFields.Contains($"Member{Index}_SSN");
+    var showError = (_touched || Visible) && hasError;
     var displayMessage = !string.IsNullOrWhiteSpace(ErrorMessage)
         ? ErrorMessage
         : ValidationErrors.FirstOrDefault(p =>
@@ -26,8 +27,8 @@
                inputmode="numeric"
                value="@DisplayValue"
                @oninput="HandleInput"
-               @onfocus="OnFocus"
-               @onblur="OnBlur"
+               @onfocus="HandleFocus"
+               @onblur="HandleBlur"
                @onkeyup="HandleKeyUp"
                style="@(Width > 0 ? "width:" + Width + "px;" : "")" />
         <button type="button"
@@ -107,6 +108,15 @@
 
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyUp { get; set; }
 
+    /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Callback invoked on blur — allows parent to trigger validation.</summary>
+    [Parameter] public EventCallback OnBlur { get; set; }
+
+    /// <summary>Tracks whether the user has interacted with this field.</summary>
+    private bool _touched;
+
     private string DisplayValue => IsFocused || ShowSSN ? Value : MaskSSN(Value);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -126,14 +136,16 @@
         _ = ValueChanged.InvokeAsync(newValue);
     }
 
-    private void OnFocus()
+    private async Task HandleFocus()
     {
-        _ = IsFocusedChanged.InvokeAsync(true);
+        await IsFocusedChanged.InvokeAsync(true);
     }
 
-    private void OnBlur()
+    private async Task HandleBlur()
     {
-        _ = IsFocusedChanged.InvokeAsync(false);
+        _touched = true;
+        await IsFocusedChanged.InvokeAsync(false);
+        await OnBlur.InvokeAsync();
     }
 
     private void ToggleVisibility()
@@ -162,10 +174,8 @@
             return result;
         }
 
-        // Strip out dashes
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
 
-        // Check length
         if (digitsOnly.Length != 9)
         {
             result.IsValid = false;
@@ -173,7 +183,6 @@
             return result;
         }
 
-        // SSN cannot contain all the same digits
         if (digitsOnly.Distinct().Count() == 1)
         {
             result.IsValid = false;
@@ -181,7 +190,6 @@
             return result;
         }
 
-        // SSN cannot be 123456789
         if (digitsOnly == "123456789")
         {
             result.IsValid = false;
@@ -253,7 +261,6 @@
                 continue;
             }
 
-            // Strip dashes for comparison
             var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
 
             if (digitsOnly.Length == 9)
@@ -266,7 +273,6 @@
             }
         }
 
-        // Find duplicates
         foreach (var kvp in ssnDict.Where(x =>
         {
             return x.Value.Count > 1;

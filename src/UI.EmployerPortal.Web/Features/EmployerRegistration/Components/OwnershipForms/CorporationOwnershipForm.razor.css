@@ -6,6 +6,13 @@
     padding-top: 12px;
 }
 
+    /* Make both fields (StateSelect & Foreign Country) share space equally */
+    .form-row ::deep .form-group {
+        flex: 1;
+        min-width: 200px;
+        margin-bottom: 0;
+    }
+
 .form-group-divider {
     display: flex;
     align-items: center;
