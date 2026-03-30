@@ -20,34 +20,17 @@
     <div class="ssn-input-wrapper">
         <input @ref="inputElement"
                type="text"
+               autocomplete="off"
                id="@Id"
                class="@($"form-input ssn-input {CssClass}") master-input @(showError ? "master-input--error" : "")"
                placeholder="X*X-XX-XXXX"
                maxlength="11"
                inputmode="numeric"
                value="@DisplayValue"
-               @oninput="HandleInput"
                @onfocus="HandleFocus"
                @onblur="HandleBlur"
                @onkeyup="HandleKeyUp"
                style="@(Width > 0 ? "width:" + Width + "px;" : "")" />
-        <button type="button"
-                class="ssn-toggle-btn"
-                @onclick="ToggleVisibility"
-                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                @if (ShowSSN)
-                {
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                }
-                else
-                {
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                }
-            </svg>
-        </button>
     </div>
     @if (showError && !string.IsNullOrWhiteSpace(displayMessage))
     {
@@ -71,6 +54,13 @@
 @code {
     private ElementReference inputElement;
     private IJSObjectReference? module;
+    private DotNetObjectReference<SSNInput>? _dotNetRef;
+
+    /// <summary>Raw digits (no dashes) backing the real SSN value.</summary>
+    private string _rawDigits = string.Empty;
+
+    /// <summary>True when JS needs to be told about a parent-driven value change.</summary>
+    private bool _needsJsSync;
 
     [Parameter] public string Id { get; set; } = "ssn";
 
@@ -85,10 +75,6 @@
     [Parameter] public EventCallback<bool> IsFocusedChanged { get; set; }
 
     [Parameter] public string CssClass { get; set; } = string.Empty;
-
-    [Parameter] public bool ShowSSN { get; set; }
-
-    [Parameter] public EventCallback<bool> ShowSSNChanged { get; set; }
 
     [Parameter] public bool IsRequired { get; set; } = true;
 
@@ -117,7 +103,18 @@
     /// <summary>Tracks whether the user has interacted with this field.</summary>
     private bool _touched;
 
-    private string DisplayValue => IsFocused || ShowSSN ? Value : MaskSSN(Value);
+    /// <summary>Always returns a fully-masked star pattern based on current digit count.</summary>
+    private string DisplayValue => GenerateDisplayMask(_rawDigits.Length);
+
+    protected override void OnParametersSet()
+    {
+        var digitsFromValue = new string(Value.Where(char.IsDigit).ToArray());
+        if (digitsFromValue != _rawDigits)
+        {
+            _rawDigits = digitsFromValue;
+            _needsJsSync = true;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -125,15 +122,25 @@
         {
             module = await JSRuntime.InvokeAsync<IJSObjectReference>(
                 "import", "./js/ssn-input.js");
-            await module.InvokeVoidAsync("attachNumericOnlyFilter", inputElement);
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("attachMaskedSSNInput", inputElement, _dotNetRef, _rawDigits);
+            _needsJsSync = false;
+        }
+        else if (_needsJsSync && module is not null)
+        {
+            await module.InvokeVoidAsync("setSSNDigits", inputElement, _rawDigits);
+            _needsJsSync = false;
         }
     }
 
-    private void HandleInput(ChangeEventArgs e)
+    /// <summary>Called from JavaScript when the user types or deletes a digit.</summary>
+    [JSInvokable]
+    public async Task OnSSNDigitsChanged(string digits)
     {
-        var inputValue = e.Value?.ToString() ?? string.Empty;
-        var newValue = FormatSSN(inputValue);
-        _ = ValueChanged.InvokeAsync(newValue);
+        _rawDigits = digits;
+        var formatted = FormatSSN(digits);
+        await ValueChanged.InvokeAsync(formatted);
+        StateHasChanged();
     }
 
     private async Task HandleFocus()
@@ -146,11 +153,6 @@
         _touched = true;
         await IsFocusedChanged.InvokeAsync(false);
         await OnBlur.InvokeAsync();
-    }
-
-    private void ToggleVisibility()
-    {
-        _ = ShowSSNChanged.InvokeAsync(!ShowSSN);
     }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)
@@ -225,7 +227,7 @@
     }
 
     /// <summary>
-    /// Masks SSN for display (shows only last 4 digits)
+    /// Masks SSN for display — always fully masked with stars, no digits revealed.
     /// </summary>
     public static string MaskSSN(string? ssn)
     {
@@ -236,13 +238,18 @@
 
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
 
-        if (digitsOnly.Length >= 4)
-        {
-            var lastFour = digitsOnly[^4..];
-            return $"***-**-{lastFour}";
-        }
+        return GenerateDisplayMask(digitsOnly.Length);
+    }
 
-        return ssn;
+    /// <summary>
+    /// Generates a star-masked display string (e.g. "***-**-****") for the given digit count.
+    /// </summary>
+    public static string GenerateDisplayMask(int digitCount)
+    {
+        if (digitCount <= 0) return string.Empty;
+        if (digitCount <= 3) return new string('*', digitCount);
+        if (digitCount <= 5) return $"***-{new string('*', digitCount - 3)}";
+        return $"***-**-{new string('*', digitCount - 5)}";
     }
 
     /// <summary>
@@ -300,6 +307,7 @@
                 // Ignore - the circuit is already disconnected (e.g., page refresh)
             }
         }
+        _dotNetRef?.Dispose();
     }
 
     /// <summary>
