@@ -34,7 +34,8 @@
                         HasError="@FieldErrors.ContainsKey("ForeignCountry")"
                         ErrorMessage="@FieldErrors.GetValueOrDefault("ForeignCountry")"
                         Visible="_showAllErrors"
-                        OnBlur="@(() => ValidateForm())" />
+                        OnBlur="@(() => ValidateForm())"
+                        @onkeyup="@(() => ValidateForm())" />
     </div>
 
     <!-- Owner Information Section -->

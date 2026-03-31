@@ -1,0 +1,338 @@
+@page "/employer-registration/UISubjectivity";
+
+@using UI.EmployerPortal.Razor.SharedComponents.Address
+@using UI.EmployerPortal.Razor.SharedComponents.Helpers
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.TextBoxes
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using UI.EmployerPortal.Web.Features.Shared.Registrations.Models;
+@using UI.EmployerPortal.Razor.SharedComponents.Validation
+
+@inject EmployerRegistrationInfo RegistrationInfo;
+@inject NavigationManager Nav;
+
+<PageTitle>Unemployment Insurance Subjectivity</PageTitle>
+
+<div class="page_wrapper">
+    <div class="ui-page-content">
+
+        <h1 class="page-title">Unemployment Insurance Subjectivity</h1>
+        <p class="page-subtitle">
+            These answers will help us determine whether your business is covered under Wisconsin's Unemployment Insurance Law. All fields are required unless noted.
+        </p>
+
+        <EditForm Model="@_subjectivityContext" FormName="UISubjectivity">
+            
+            <DataAnnotationsValidator />
+            <CustomValidator @ref="_customValidator" />
+
+            <p class="page-subtitle">
+                Select your business category. <strong>To be considered a non-profit organization by the State of Wisconsin, you must have received a 501(c)(3) determination from the IRS.</strong>
+            </p>
+
+            <div id="section_1" class="ui-radio-section">
+                <RadioGroup TValue="BusinessCategory?"
+                            Value="SubjectivityModel.BusinessCategory"
+                            ValueChanged="OnBusinessCatagoryChanged"
+                            ValueExpression="() => SubjectivityModel.BusinessCategory"
+                            Options="@BusinessCatagories" />
+                <FieldError For="@(() => SubjectivityModel.BusinessCategory)"
+                            Visible="_formSubmitted" />
+
+            </div>
+
+            @if (Section2Visible())
+            {
+                    <div id="section_2" class="ui-radio-section">
+                        <p class="page-subtitle">Have you applied for 501(c)(3) status with the IRS?</p>
+                        <br />
+
+                        <RadioGroup TValue="bool?"
+                        Value="SubjectivityModel.HasAppliedFor501c3Status"
+                        ValueChanged="OnHasAppliedFor501c3StatusChange"
+                        ValueExpression="() => SubjectivityModel.HasAppliedFor501c3Status"
+                        Options="@HasAppliedFor501c3Status" />
+                        <FieldError For="@(() => SubjectivityModel.HasAppliedFor501c3Status)"
+                        Visible="true" />
+                    </div>
+            }
+
+            <div class="ui-section-header">
+                <span>Financial Institution for Business Checking Account</span>
+            </div>
+
+            <AddressField Address="SubjectivityModel.FinancialInstitution"
+                          ShowName="true"
+                          Visible="@_showAddressErrors" />
+
+            <div class="ui-radio-section">
+                <p class="ui-text"><strong>Note: </strong>@GetNoteText()<a href=@GetPermittedExclusionsUrl() class="link-underline-primary">Permitted Exclusions</a></p>
+            </div>
+
+
+            @if (Section3Visible())
+            {
+                <div id="section3" class="ui-radio-section">
+                    <p class="ui-text">Do you have employees who work in states other than Wisconsin?</p>
+                    <RadioGroup TValue="bool?"
+                    Value="SubjectivityModel.EmployeesInOtherStates"
+                    ValueChanged="OnEmployeesInOtherStatesChange"
+                    ValueExpression="() => SubjectivityModel.EmployeesInOtherStates"
+                    Options="@HasEmployeesOutsideWisconsin" />
+                    <FieldError For="@(() => SubjectivityModel.EmployeesInOtherStates)"
+                    Visible="_formSubmitted" />
+                </div>
+            }
+
+            @if (Section6Visible())
+            {
+                <div id="section_6" class="ui-radio-section">
+                    <Tooltip Text="For-profit entities paying State Unemployment Tax (SUTA) in a state other than Wisconsin often have a FUTA liability. Some non-profit entities may owe SUTA but not FUTA. More details on FUTA liability can be found on the IRS website: <a href='https://www.irs.gov/taxtopics/tc759' target='_blank' rel='noopener noreferrer'> Topic no. 759, Form 940, Employers Annual Federal Unemployment (FUTA) Tax Return – filing and deposit requirements | Internal Revenue Service </a>"
+                             AllowHtml="true"
+                             Placement="auto">
+                        <p class="ui-text">Do you have a <a href='https://www.irs.gov/taxtopics/tc759' target='_blank' rel='noopener noreferrer'> Federal Unemployment Tax (FUTA)</a> liability based on payrolls in any state other than Wisconsin?</p>
+                    </Tooltip>
+
+                    <RadioGroup TValue="bool?"
+                                Value="SubjectivityModel.FederalTaxLiability"
+                                ValueChanged="OnFederalTaxLiabilityChange"
+                                ValueExpression="() => SubjectivityModel.FederalTaxLiability"
+                                Options="@HasFederalTaxLiability" />
+                    <FieldError For="@(() => SubjectivityModel.FederalTaxLiability)"
+                                Visible="_formSubmitted" />
+                </div>
+            }
+
+            @if (Section4Visible())
+            {
+                <div id="section_4" class="ui-radio-section">
+                    <p class="ui-text">@GetWagesQuestion()</p>
+                    <RadioGroup TValue="bool?"
+                                Value="SubjectivityModel.PaidWagesInAQuarterEmployees"
+                                ValueChanged="OnPaidWagesInAQuarterEmployeesChange"
+                                ValueExpression="() => SubjectivityModel.PaidWagesInAQuarterEmployees"
+                                Options="@HasPaidWagesInAQuarterEmployees" />
+                    <FieldError For="@(() => SubjectivityModel.PaidWagesInAQuarterEmployees)"
+                                Visible="_formSubmitted" />
+                </div>
+            }
+
+            @if (Section5Visible())
+            {
+                <div id="section_5" class="ui-radio-section">
+                    <p class="ui-text">Quarter and year in which you first paid $1500 (q/yyyy):</p>
+                    <div class="form-row row">
+                        <div class="form-group col-md-12">
+                            <OutlinedTextField Label="Quarter and Year (q/yyyy)"
+                                               @bind-Value="SubjectivityModel.QuarterYearFirstPaidEmployees"
+                                               For="() => SubjectivityModel.QuarterYearFirstPaidEmployees"
+                                               Visible="_formSubmitted" />
+                            <FieldError For="@(() => _formSubmitted)" Visible=_formSubmitted />
+                        </div>
+                    </div>
+                </div>
+            }
+
+
+            @if (Section9Visible())
+            {
+                <div id="section_9" class="ui-radio-section">
+                    <p class="ui-text">Have you had at least one full- or part-time employee working for you in 20 different calendar weeks in a calendar year?</p>
+                    <RadioGroup TValue="bool?"
+                                Value="SubjectivityModel.Employee20Weeks"
+                                ValueChanged="OnEmployee20WeeksChange"
+                                ValueExpression="() => SubjectivityModel.Employee20Weeks"
+                                Options="@HasPaidEmployee20Weeks" />
+                    <FieldError For="@(() => SubjectivityModel.Employee20Weeks)"
+                                Visible="_formSubmitted" />
+                </div>
+            }
+
+
+            @if (Section13Visible())
+            {
+                <div id="section_3" class="ui-radio-section">
+                    <p class="ui-text">@GetExpectToPayWagesQuestion()</p>
+                    <RadioGroup TValue="bool?"
+                                Value="SubjectivityModel.ExpectToPayWagesInAQuarter"
+                                ValueChanged="OnExpectToPayWagesInAQuarterChange"
+                                ValueExpression="() => SubjectivityModel.ExpectToPayWagesInAQuarter"
+                                Options="@ExpectToPayWagesInAQuarter" />
+                    <FieldError For="@(() => SubjectivityModel.ExpectToPayWagesInAQuarter)"
+                                Visible="_formSubmitted" />
+                </div>
+            }
+
+            @if(Section14Visible())
+            {
+                <div id="section_14" class="ui-radio-section">
+                    <p class="ui-text">When?</p>
+                    <OutlinedSelectField @bind-Value="SubjectivityModel.WhenExpectToPayWagesInAQuarter"
+                                         Options="@ExpectedWagesCatagories"
+                                         For="() => SubjectivityModel.WhenExpectToPayWagesInAQuarter"
+                                         Visible="true" />
+                </div>
+                
+            }
+
+
+@*             @if (SubjectivityModel.FederalTaxLiability.HasValue && !SubjectivityModel.FederalTaxLiability.Value)
+
+ *@         @if (Section7Visible())
+            {
+                <div id="section_7" class="ui-radio-section">
+                    <p class="ui-text">@GetWagesQuestion()</p>
+                    <RadioGroup TValue="bool?"
+                                Value="SubjectivityModel.PaidWagesInAQuarterTaxes"
+                                ValueChanged="OnPaidWagesInAQuarterTaxesChange"
+                                ValueExpression="() => SubjectivityModel.PaidWagesInAQuarterTaxes"
+                                Options="@HasPaidWagesInAQuarterTaxes" />
+                    <FieldError For="@(() => SubjectivityModel.PaidWagesInAQuarterTaxes)"
+                                Visible="_formSubmitted" />
+                </div>
+            }
+
+            @if (Section8Visible())
+            {
+                <div id="section_8" class="ui-radio-section">
+                    <p class="ui-text">Quarter and year in which you first paid $1500 (q/yyyy):</p>
+                    <div class="form-row row">
+                        <div class="form-group col-md-12">
+                            <OutlinedTextField Label="Quarter and Year (q/yyyy)"
+                                               @bind-Value="SubjectivityModel.QuarterYearFirstPaidTaxes"
+                                               For="() => SubjectivityModel.QuarterYearFirstPaidTaxes"
+                                               Visible="_formSubmitted" />
+                            <FieldError For="@(() => SubjectivityModel.QuarterYearFirstPaidTaxes)"
+                                        Visible="_formSubmitted" />
+                        </div>
+                    </div>
+                </div>
+
+            }
+
+
+
+        @if (Section11Visible())
+        {
+            <div id="section_9" class="ui-radio-section">
+                <p class="ui-text">Have you had at least 4 full or part-time employees working for you in Wisconsin on the same day in 20 different calendar weeks in a calendar year?</p>
+                <RadioGroup TValue="bool?"
+                            Value="SubjectivityModel.Employee20WeeksFourOrMore"
+                            ValueChanged="OnEmployee20WeeksFourOrMoreChange"
+                            ValueExpression="() => SubjectivityModel.Employee20WeeksFourOrMore"
+                            Options="@HasPaidEmployee20Weeks" />
+                <FieldError For="@(() => SubjectivityModel.Employee20WeeksFourOrMore)"
+                            Visible="_formSubmitted" />
+            </div>
+        }
+
+
+        @if (Section10Visible())
+
+@*             @if (SubjectivityModel.Employee20Weeks.HasValue && SubjectivityModel.Employee20Weeks.Value)
+ *@            {
+                <div id="section_10" class="form-row row ui-radio-section">
+                    <div class="form-group col-md-6">
+
+                        <label class="form-label" for="dateWeek20Ended">
+                            Date 20th Week Ended
+                        </label>
+                        <InputDate id="dateWeek20Ended"
+                                   @bind-Value="SubjectivityModel.DateWeek20Ended"
+                                   class="form-control"
+                                   DisplayName="Date 20th Week Ended"
+                                   @bind-Value:format="MM/dd/yyyy" />
+                        <FieldError For="@(() => SubjectivityModel.DateWeek20Ended)"
+                                    Visible="_formSubmitted" />
+                    </div>
+                </div>
+            }
+
+            @if (SubjectivityModel.Wages != null && SubjectivityModel.Wages.Count > 0)
+            {
+                <p class="ui-text">Please enter the gross wages for which you have paid quarters in based on your answer to the date you first paid wages for work performed in WI</p>
+
+                <table>
+                    <tr style="text-align:center;">
+                        <th></th>
+                        <th>Q1</th>
+                        <th>Q2</th>
+                        <th>Q3</th>
+                        <th>Q4</th>
+                    </tr>
+                    @foreach (var row in SubjectivityModel.Wages)
+                    {
+                        <tr class"ui-table-row-header">
+                            <td class="ui-table-row-header">@row.Year</td>
+
+                            <td class="ui-table-text-box">
+                                <NumericTextBox @bind-Value="row.Q1Wages"
+                                                InputType="@InputDataTypes.Currency"
+                                                ShowCurrencyIcon="false"
+                                                CssClass="@(row.Q1Disabled ? "textboxReadOnlyBackgroundColor" : "")"
+                                                DecimalPlaces="@DecimalPlaces"
+                                                IsReadonly="@row.Q1Disabled"
+                                                Min="0" Max="10000000" />
+                            </td>
+
+                            <td class="ui-table-text-box">
+                                <NumericTextBox @bind-Value="row.Q2Wages"
+                                                InputType="@InputDataTypes.Currency"
+                                                ShowCurrencyIcon="false"
+                                                CssClass="@(row.Q2Disabled ? "textboxReadOnlyBackgroundColor" : "")"
+                                                DecimalPlaces="@DecimalPlaces"
+                                                IsReadonly="@row.Q2Disabled"
+                                                Min="0" Max="10000000" />
+
+                            </td>
+
+                            <td class="ui-table-text-box">
+                                <NumericTextBox @bind-Value="row.Q3Wages"
+                                                InputType="@InputDataTypes.Currency"
+                                                CssClass="@(row.Q3Disabled ? "textboxReadOnlyBackgroundColor" : "")"
+                                                ShowCurrencyIcon="false"
+                                                DecimalPlaces="@DecimalPlaces"
+                                                IsReadonly="@row.Q3Disabled"
+                                                Min="0" Max="10000000" />
+
+                            </td>
+
+                            <td class="ui-table-text-box">
+                                <NumericTextBox @bind-Value="row.Q4Wages"
+                                                InputType="@InputDataTypes.Currency"
+                                                CssClass="@(row.Q4Disabled ? "textboxReadOnlyBackgroundColor" : "")"
+                                                ShowCurrencyIcon="false"
+                                                DecimalPlaces="@DecimalPlaces"
+                                                IsReadonly="@row.Q4Disabled"
+                                                Min="0" Max="10000000" />
+
+                            </td>
+                        </tr>
+                    }
+
+                </table>
+
+                @if (_insufficientQuarterlyWageEntered)
+                {
+                    <div class="field-error" role="alert" aria-label="@($"Validation error for Wage Entry")">
+                        <span class="field-error__icon" aria-hidden="true">
+                            @GetMasterAlertErrorIcon()
+                        </span>
+
+                        <span class="field-error__text">
+                            Insufficient quarterly wages reported.
+                        </span>
+                    </div>
+                }                
+            }
+            <br />
+            <br />
+
+        </EditForm>
+
+        <br />
+        <Button Text="Validate" OnClick="Validate"></Button>
+
+    </div>
+</div>

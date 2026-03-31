@@ -4,7 +4,7 @@
 
 @{
     var hasError = HasError || InvalidFields.Contains($"Member{Index}_SSN");
-    var showError = (_touched || Visible) && hasError;
+    var showError = !_focused && (_touched || Visible) && hasError;
     var displayMessage = !string.IsNullOrWhiteSpace(ErrorMessage)
         ? ErrorMessage
         : ValidationErrors.FirstOrDefault(p =>
@@ -100,8 +100,11 @@
     /// <summary>Callback invoked on blur — allows parent to trigger validation.</summary>
     [Parameter] public EventCallback OnBlur { get; set; }
 
-    /// <summary>Tracks whether the user has interacted with this field.</summary>
+    /// <summary>Tracks whether the user has blurred this field at least once.</summary>
     private bool _touched;
+
+    /// <summary>Tracks whether the field is currently focused — suppresses error while typing.</summary>
+    private bool _focused;
 
     /// <summary>Always returns a fully-masked star pattern based on current digit count.</summary>
     private string DisplayValue => GenerateDisplayMask(_rawDigits.Length);
@@ -145,11 +148,13 @@
 
     private async Task HandleFocus()
     {
+        _focused = true;
         await IsFocusedChanged.InvokeAsync(true);
     }
 
     private async Task HandleBlur()
     {
+        _focused = false;
         _touched = true;
         await IsFocusedChanged.InvokeAsync(false);
         await OnBlur.InvokeAsync();
@@ -304,9 +309,10 @@
             }
             catch (JSDisconnectedException)
             {
-                // Ignore - the circuit is already disconnected (e.g., page refresh)
+                // Ignore - the circuit is already disconnected
             }
         }
+
         _dotNetRef?.Dispose();
     }
 
@@ -315,14 +321,7 @@
     /// </summary>
     public class SSNValidationResult
     {
-        /// <summary>
-        /// IsValid
-        /// </summary>
         public bool IsValid { get; set; }
-
-        /// <summary>
-        /// Error message
-        /// </summary>
         public string ErrorMessage { get; set; } = string.Empty;
     }
 }

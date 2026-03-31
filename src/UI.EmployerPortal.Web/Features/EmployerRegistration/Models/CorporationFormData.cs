@@ -1,4 +1,5 @@
 namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
+
 /// <summary>
 /// CorporationFormData
 /// </summary>

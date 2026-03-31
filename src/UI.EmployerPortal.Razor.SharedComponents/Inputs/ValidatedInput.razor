@@ -19,6 +19,7 @@
            max="@Max"
            value="@Value"
            disabled="@Disabled"
+           @onfocus="HandleFocus"
            @oninput="HandleInput"
            @onchange="HandleChange"
            @onblur="HandleBlur" />
@@ -61,8 +62,14 @@
     [Parameter] public bool Visible { get; set; }
     [Parameter] public bool NoDecimals { get; set; }
 
+    /// <summary>Tracks whether the user has blurred this field at least once.</summary>
     private bool _touched;
-    private bool ShowError => (_touched || Visible) && HasError;
+
+    /// <summary>Tracks whether the field is currently focused — suppresses error while typing.</summary>
+    private bool _focused;
+
+    /// <summary>Show error only when not actively focused, and the field has been touched or forced visible.</summary>
+    private bool ShowError => !_focused && (_touched || Visible) && HasError;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -74,6 +81,11 @@
         }
     }
 
+    private void HandleFocus()
+    {
+        _focused = true;
+    }
+
     private async Task HandleChange(ChangeEventArgs e)
     {
         _touched = true;
@@ -82,6 +94,7 @@
 
     private async Task HandleBlur()
     {
+        _focused = false;
         _touched = true;
         await OnBlur.InvokeAsync();
     }
