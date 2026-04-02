@@ -95,32 +95,32 @@
         }
 
         <br />
-        <div id="more-than-five-group" class="bc-question">
-            <p class="bc-question-text">More than five?</p>
 
-            <div class="bc-radio-group">
-                <label class="bc-radio-label">
-                    <input type="radio"
-                           name="more-than-five"
-                           value="true"
-                           checked="@(MoreThanFive == true)"
-                           @onchange="() => OnMoreThanFiveChanged(true)" />
-                    Yes
-                </label>
-                <label class="bc-radio-label">
-                    <input type="radio"
-                           name="more-than-five"
-                           value="false"
-                           checked="@(MoreThanFive == false)"
-                           @onchange="() => OnMoreThanFiveChanged(false)" />
-                    No
-                </label>
-            </div>
+        <div id="more-than-five-group" class="@(_showAllErrors && InvalidFields.Contains("MoreThanFive") ? "master-text-field--error" : "")">
+            <p class="">More than five?</p>
 
             @if (_showAllErrors && InvalidFields.Contains("MoreThanFive"))
             {
-                <div class="bc-radio-error">Please select an option.</div>
+                <div class="master-error" aria-live="polite">
+                    <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <mask id="mask0_5694_133" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
+                            <rect y="2" width="12" height="12" fill="#D9D9D9" />
+                        </mask>
+                        <g mask="url(#mask0_5694_133)">
+                            <path d="M6 10.5C6.14167 10.5 6.26042 10.4521 6.35625 10.3563C6.45208 10.2604 6.5 10.1417 6.5 10C6.5 9.85833 6.45208 9.73958 6.35625 9.64375C6.26042 9.54792 6.14167 9.5 6 9.5C5.85833 9.5 5.73958 9.54792 5.64375 9.64375C5.54792 9.73958 5.5 9.85833 5.5 10C5.5 10.1417 5.54792 10.2604 5.64375 10.3563C5.73958 10.4521 5.85833 10.5 6 10.5ZM5.5 8.5H6.5V5.5H5.5V8.5ZM6 13C5.30833 13 4.65833 12.8687 4.05 12.6062C3.44167 12.3438 2.9125 11.9875 2.4625 11.5375C2.0125 11.0875 1.65625 10.5583 1.39375 9.95C1.13125 9.34167 1 8.69167 1 8C1 7.30833 1.13125 6.65833 1.39375 6.05C1.65625 5.44167 2.0125 4.9125 2.4625 4.4625C2.9125 4.0125 3.44167 3.65625 4.05 3.39375C4.65833 3.13125 5.30833 3 6 3C6.69167 3 7.34167 3.13125 7.95 3.39375C8.55833 3.65625 9.0875 4.0125 9.5375 4.4625C9.9875 4.9125 10.3438 5.44167 10.6062 6.05C10.8687 6.65833 11 7.30833 11 8C11 8.69167 10.8687 9.34167 10.6062 9.95C10.3438 10.5583 9.9875 11.0875 9.5375 11.5375C9.0875 11.9875 8.55833 12.3438 7.95 12.6062C7.34167 12.8687 6.69167 13 6 13ZM6 12C7.11667 12 8.0625 11.6125 8.8375 10.8375C9.6125 10.0625 10 9.11667 10 8C10 6.88333 9.6125 5.9375 8.8375 5.1625C8.0625 4.3875 7.11667 4 6 4C4.88333 4 3.9375 4.3875 3.1625 5.1625C2.3875 5.9375 2 6.88333 2 8C2 9.11667 2.3875 10.0625 3.1625 10.8375C3.9375 11.6125 4.88333 12 6 12Z"
+                                  fill="#C82838" />
+                        </g>
+                    </svg>
+                    <span>Please select an option.</span>
+                </div>
             }
+
+            <RadioGroup TValue="bool?"
+                        Value="MoreThanFive"
+                        ValueChanged="OnMoreThanFiveChanged"
+                        ValueExpression="() => MoreThanFive"
+                        Options="@YesNoRadioOptions" />
+            
         </div>
     </div>
 </div>
@@ -143,6 +143,12 @@
 
     [Parameter]
     public Action<Func<List<string>>>? RegisterValidate { get; set; }
+
+    private static readonly IReadOnlyList<RadioOption<bool?>> YesNoRadioOptions = new[]
+    {
+        new RadioOption<bool?> { Value = true, Label = "Yes" },
+        new RadioOption<bool?> { Value = false, Label = "No" }
+    };
 
     private string RegistrationState { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
@@ -236,7 +242,7 @@
         }
     }
 
-    private void OnMoreThanFiveChanged(bool value)
+    private void OnMoreThanFiveChanged(bool? value)
     {
         MoreThanFive = value;
         ValidateForm();

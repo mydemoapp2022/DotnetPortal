@@ -35,6 +35,7 @@ public class BusinessActivityModel
     /// Gets or sets the description of the employer's primary business activity.
     /// </summary>
     [Required(ErrorMessage = "Primary business activity description is required.")]
+    [MaxLength(255, ErrorMessage = "Primary business activity description cannot exceed 255 characters.")]
     public string? PrimaryBusinessActivityDescription { get; set; }
 
     /// <summary>
@@ -45,5 +46,6 @@ public class BusinessActivityModel
     /// <summary>
     /// Gets or sets the description of the employer's Wisconsin-specific business activity.
     /// </summary>
+    [MaxLength(255, ErrorMessage = "Wisconsin specific business activity cannot exceed 255 characters.")]
     public string? WisconsinSpecificBusinessActivity { get; set; }
 }

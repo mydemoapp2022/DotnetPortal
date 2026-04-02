@@ -21,4 +21,24 @@ public static class OwnershipTypeExtensions
 
         return displayAttribute?.Name ?? ownershipType.ToString();
     }
+
+    /// <summary>
+    /// Determines whether the ownership type is a governmental classification.
+    /// Governmental types: City, County, Federal, Indian Tribe, Other Government Local,
+    /// Other Government State, School District, State, Township, Village.
+    /// </summary>
+    public static bool IsGovernmental(this OwnershipType ownershipType)
+    {
+        return ownershipType is
+            OwnershipType.CityGovernmentAgency or
+            OwnershipType.CountyGovernmentAgency or
+            OwnershipType.FederalGovernmentAgency or
+            OwnershipType.IndianTribe or
+            OwnershipType.LocalGovernmentUnitNotListed or
+            OwnershipType.StateGovernmentUnitNotListed or
+            OwnershipType.SchoolDistrict or
+            OwnershipType.StateGovernmentAgency or
+            OwnershipType.Township or
+            OwnershipType.Village;
+    }
 }

@@ -36,7 +36,10 @@
         }
         @if (_currentStep == 5)
         {
-            <BusinessActivity @ref="_businessActivityRef" />
+            <BusinessActivity @ref="_businessActivityRef"
+                              Model="@ModelStore.EmployerRegistrationModel.BusinessActivityModel"
+                              OwnershipType="@ModelStore.EmployerRegistrationModel.OwnershipSessionData.OwnershipType"
+                              HasPaidEmployeesInWI="@(ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.HavePaidEmployeesForWorkInWisconsin == true)" />
         }
         @if (_currentStep == 6)
         {
