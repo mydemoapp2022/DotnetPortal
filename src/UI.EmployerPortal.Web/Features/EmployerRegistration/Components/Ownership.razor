@@ -39,6 +39,24 @@
                 <DynamicComponent Type="@_ownershipComponentMap[Model.OwnershipType]"
                                   Parameters="@GetComponentParameters()" />
             }
+
+            @* LLC Documentation Section — always shown for LLCCorporation *@
+            @if (ShowLlcDocumentationSection)
+            {
+                <LlcDocumentationSection @ref="_llcDocSectionRef"
+                                         Data="@_llcDocumentationData"
+                                         OnDataChanged="OnLlcDocumentationChanged"
+                                         RegisterValidate="RegisterLlcDocValidateCallback" />
+            }
+
+            @* Corporate Officer Services (UCT-10056-E) — conditional on Step 1 + ownership type *@
+            @if (ShowCorporateOfficerServicesSection)
+            {
+                <CorporateOfficerServicesSection @ref="_officerServicesSectionRef"
+                                                 Data="@_corporateOfficerServicesData"
+                                                 OnDataChanged="OnCorporateOfficerServicesChanged"
+                                                 RegisterValidate="RegisterOfficerServicesValidateCallback" />
+            }
         </div>
     </EditForm>
 </div>

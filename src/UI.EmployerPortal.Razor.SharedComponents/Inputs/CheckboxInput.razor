@@ -1,0 +1,53 @@
+@using UI.EmployerPortal.Razor.SharedComponents.Validation
+
+<div class="form-check @(ShowError ? "master-text-field--error" : "")">
+    <input type="checkbox"
+           id="@Id"
+           class="form-check-input"
+           checked="@Value"
+           @onchange="HandleChange" />
+    <label for="@Id" class="form-check-label">
+        @Label
+    </label>
+
+    @if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <ValidationError ErrorMessage="@ErrorMessage" />
+    }
+</div>
+
+@code {
+    /// <summary>HTML id for the checkbox element.</summary>
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    /// <summary>Label text displayed next to the checkbox.</summary>
+    [Parameter] public string Label { get; set; } = string.Empty;
+
+    /// <summary>Current checked state.</summary>
+    [Parameter] public bool Value { get; set; }
+
+    /// <summary>Two-way binding callback.</summary>
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+
+    /// <summary>Whether the field currently has a validation error.</summary>
+    [Parameter] public bool HasError { get; set; }
+
+    /// <summary>Error message to display below the checkbox.</summary>
+    [Parameter] public string? ErrorMessage { get; set; }
+
+    /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Tracks whether the user has interacted with this field.</summary>
+    private bool _touched;
+
+    /// <summary>Returns true when the error should be displayed.</summary>
+    private bool ShowError => (_touched || Visible) && HasError;
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        _touched = true;
+        var isChecked = e.Value is bool b && b;
+        await ValueChanged.InvokeAsync(isChecked);
+    }
+}

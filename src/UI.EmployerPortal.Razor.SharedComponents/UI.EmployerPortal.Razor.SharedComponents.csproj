@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <Folder Include="ReadOnlyFileUpload\" />
-    <Folder Include="Validation\" />
     <Folder Include="TextBoxes\" />
   </ItemGroup>
 

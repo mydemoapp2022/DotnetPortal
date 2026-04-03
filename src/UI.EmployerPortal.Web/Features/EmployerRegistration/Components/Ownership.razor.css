@@ -660,3 +660,8 @@
     font-size: 13px;
     color: #C62828;
 }
+
+::deep .file-upload-dropzone--drag-over {
+    border-color: #1565C0;
+    background-color: #e3f2fd;
+}

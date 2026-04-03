@@ -26,19 +26,55 @@ public partial class Ownership
     [Parameter]
     public OwnershipSessionData Model { get; set; } = default!;
 
+    /// <summary>
+    /// Step 1: Has the registrant paid employees for work in Wisconsin?
+    /// </summary>
+    [Parameter]
+    public bool HasPaidEmployeesInWI { get; set; }
+
+    /// <summary>
+    /// Step 1: Does the registrant expect to pay wages in the future?
+    /// </summary>
+    [Parameter]
+    public bool ExpectsFuturePayroll { get; set; }
+
     private OwnershipType SelectedOwnershipType { get; set; } = OwnershipType.None;
 
     private List<string> ValidationErrors { get; set; } = new();
     private List<string> ValidationFieldIds { get; set; } = new();
-    //private bool _shouldValidate = false;
     private bool _showValidationSummary = false;
-    //private bool IsContinueEnabled = true;>// IsFormValid();
     private object? _childFormData;
+
+    // --- New section refs and data ---
+    private CorporateOfficerServicesSection? _officerServicesSectionRef;
+    private LlcDocumentationSection? _llcDocSectionRef;
+    private CorporateOfficerServicesData _corporateOfficerServicesData = new();
+    private LlcDocumentationData _llcDocumentationData = new();
+    private Func<List<ValidationItem>>? _officerServicesValidateCallback;
+    private Func<List<ValidationItem>>? _llcDocValidateCallback;
+
+    /// <summary>
+    /// Show the Corporate Officer Services (UCT-10056-E) section when:
+    /// - Ownership = Corporation or LLCCorporation
+    /// - Step 1: HavePaid = No AND ExpectFuture = No
+    /// </summary>
+    private bool ShowCorporateOfficerServicesSection => Model.OwnershipType is OwnershipType.Corporation or OwnershipType.LLCCorporation
+                                                    && !HasPaidEmployeesInWI
+                                                && !ExpectsFuturePayroll;
+
+    /// <summary>
+    /// Show the LLC Documentation section when ownership = LLCCorporation
+    /// </summary>
+    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation
+                                                && !HasPaidEmployeesInWI
+                                                && !ExpectsFuturePayroll;
+
     /// <inheritdoc/>
     protected override void OnInitialized()
     {
         base.OnInitialized();
         EditContext = new EditContext(Model);
+        RestoreSectionData();
     }
 
     /// <summary>
@@ -46,15 +82,43 @@ public partial class Ownership
     /// </summary>
     public async Task<bool> Validate()
     {
-        //_shouldValidate = true;
         _showValidationSummary = true;
         EnsureOwnershipTypeValidationError();
+
         if (_validateCallback != null)
         {
             ValidationErrors = _validateCallback().Distinct().ToList();
             EnsureOwnershipTypeValidationError();
         }
-        //await InvokeAsync(("RegisterValidate", (Action<Func<List<string>>>) RegisterValidateCallback);
+
+        // Validate LLC Documentation section
+        if (ShowLlcDocumentationSection && _llcDocValidateCallback != null)
+        {
+            var llcItems = _llcDocValidateCallback();
+            foreach (var item in llcItems)
+            {
+                if (!ValidationErrors.Contains(item.Message))
+                {
+                    ValidationErrors.Add(item.Message);
+                    ValidationFieldIds.Add(item.FieldId);
+                }
+            }
+        }
+
+        // Validate Corporate Officer Services section
+        if (ShowCorporateOfficerServicesSection && _officerServicesValidateCallback != null)
+        {
+            var cosItems = _officerServicesValidateCallback();
+            foreach (var item in cosItems)
+            {
+                if (!ValidationErrors.Contains(item.Message))
+                {
+                    ValidationErrors.Add(item.Message);
+                    ValidationFieldIds.Add(item.FieldId);
+                }
+            }
+        }
+
         _showValidationSummary = !IsFormValid();
         await InvokeAsync(StateHasChanged);
         return IsFormValid();
@@ -218,6 +282,15 @@ public partial class Ownership
             _showValidationSummary = false;
             _childFormData = null;
             _validateCallback = null;
+            _officerServicesValidateCallback = null;
+            _llcDocValidateCallback = null;
+
+            // Reset section data when ownership type changes
+            _corporateOfficerServicesData = new();
+            _llcDocumentationData = new();
+            Model.CorporateOfficerServices = null;
+            Model.LlcDocumentation = null;
+
             StateHasChanged();
             await Task.Delay(100);
         }
@@ -357,6 +430,46 @@ public partial class Ownership
         }
     }
 
+    // --- New section data handlers ---
+
+    private void OnCorporateOfficerServicesChanged(CorporateOfficerServicesData data)
+    {
+        _corporateOfficerServicesData = data;
+        Model.CorporateOfficerServices = data;
+    }
+
+    private void OnLlcDocumentationChanged(LlcDocumentationData data)
+    {
+        _llcDocumentationData = data;
+        Model.LlcDocumentation = data;
+    }
+
+    private void RegisterOfficerServicesValidateCallback(Func<List<ValidationItem>> callback)
+    {
+        _officerServicesValidateCallback = callback;
+    }
+
+    private void RegisterLlcDocValidateCallback(Func<List<ValidationItem>> callback)
+    {
+        _llcDocValidateCallback = callback;
+    }
+
+    /// <summary>
+    /// Restores section data from the model (for back-navigation/session continuity).
+    /// </summary>
+    private void RestoreSectionData()
+    {
+        if (Model.CorporateOfficerServices != null)
+        {
+            _corporateOfficerServicesData = Model.CorporateOfficerServices;
+        }
+
+        if (Model.LlcDocumentation != null)
+        {
+            _llcDocumentationData = Model.LlcDocumentation;
+        }
+    }
+
     private bool IsFormValid()
     {
         // Basic validation - ownership type must be selected
@@ -370,10 +483,6 @@ public partial class Ownership
     }
 
     private Func<List<string>>? _validateCallback;
-    ///// <summary>
-    ///// RegisterValidateCallback
-    ///// </summary>
-    ///// <param name="callback"></param>
     private void RegisterValidateCallback(Func<List<string>> callback)
     {
         _validateCallback = callback;

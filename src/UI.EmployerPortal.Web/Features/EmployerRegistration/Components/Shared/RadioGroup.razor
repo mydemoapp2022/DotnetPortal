@@ -1,0 +1,43 @@
+@using System.Linq.Expressions
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components
+@typeparam TValue
+
+@foreach (var option in Options)
+{
+    <div class="form-check">
+        <input type="radio"
+               id="@GetOptionId(option)"
+               name="@_groupName"
+               class="form-check-input"
+               checked="@IsSelected(option)"
+               @onchange="@(() => HandleChange(option))" />
+        <label for="@GetOptionId(option)" class="form-check-label">
+            @option.Label
+        </label>
+    </div>
+}
+
+@code {
+    private readonly string _groupName = $"rg-{Guid.NewGuid():N}";
+
+    /// <summary>Currently selected value.</summary>
+    [Parameter] public TValue? Value { get; set; }
+
+    /// <summary>Callback invoked when the selection changes.</summary>
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    /// <summary>Expression used to identify the bound field (for form integration).</summary>
+    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    /// <summary>The list of radio options to render.</summary>
+    [Parameter] public IReadOnlyList<RadioOption<TValue>> Options { get; set; } = [];
+
+    private bool IsSelected(RadioOption<TValue> option) =>
+        EqualityComparer<TValue>.Default.Equals(option.Value, Value);
+
+    private string GetOptionId(RadioOption<TValue> option) =>
+        $"{_groupName}-{option.Value?.ToString()?.ToLowerInvariant() ?? "null"}";
+
+    private async Task HandleChange(RadioOption<TValue> option) =>
+        await ValueChanged.InvokeAsync(option.Value);
+}
