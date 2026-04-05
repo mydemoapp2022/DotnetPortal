@@ -75,4 +75,10 @@ public class OwnershipSessionData
     /// LLC Corporation documentation data — for LLCCorporation type
     /// </summary>
     public LlcDocumentationData? LlcDocumentation { get; set; }
+
+    /// <summary>
+    /// Qualified Settlement Fund (QSF) questionnaire data — for QSF ownership type
+    /// when registrant has paid or will pay wages.
+    /// </summary>
+    public QualifiedSettlementFundData? QualifiedSettlementFund { get; set; }
 }

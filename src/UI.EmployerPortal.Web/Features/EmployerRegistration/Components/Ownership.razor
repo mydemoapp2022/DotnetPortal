@@ -57,6 +57,15 @@
                                                  OnDataChanged="OnCorporateOfficerServicesChanged"
                                                  RegisterValidate="RegisterOfficerServicesValidateCallback" />
             }
+
+            @* Qualified Settlement Fund (QSF) — conditional on ownership type + paid/will-pay wages *@
+            @if (ShowQsfSection)
+            {
+                <QualifiedSettlementFundSection @ref="_qsfSectionRef"
+                                                Data="@_qsfData"
+                                                OnDataChanged="OnQsfDataChanged"
+                                                RegisterValidate="RegisterQsfValidateCallback" />
+            }
         </div>
     </EditForm>
 </div>

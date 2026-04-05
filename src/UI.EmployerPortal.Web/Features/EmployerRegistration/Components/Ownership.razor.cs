@@ -48,10 +48,13 @@ public partial class Ownership
     // --- New section refs and data ---
     private CorporateOfficerServicesSection? _officerServicesSectionRef;
     private LlcDocumentationSection? _llcDocSectionRef;
+    private QualifiedSettlementFundSection? _qsfSectionRef;
     private CorporateOfficerServicesData _corporateOfficerServicesData = new();
     private LlcDocumentationData _llcDocumentationData = new();
+    private QualifiedSettlementFundData _qsfData = new();
     private Func<List<ValidationItem>>? _officerServicesValidateCallback;
     private Func<List<ValidationItem>>? _llcDocValidateCallback;
+    private Func<List<ValidationItem>>? _qsfValidateCallback;
 
     /// <summary>
     /// Show the Corporate Officer Services (UCT-10056-E) section when:
@@ -68,6 +71,14 @@ public partial class Ownership
     private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation
                                                 && !HasPaidEmployeesInWI
                                                 && !ExpectsFuturePayroll;
+
+    /// <summary>
+    /// Show the Qualified Settlement Fund (QSF) section when:
+    /// - Ownership = QSF
+    /// - Step 1: registrant has paid or will pay wages
+    /// </summary>
+    private bool ShowQsfSection => Model.OwnershipType == OwnershipType.QSF
+                                   && (HasPaidEmployeesInWI || ExpectsFuturePayroll);
 
     /// <inheritdoc/>
     protected override void OnInitialized()
@@ -110,6 +121,20 @@ public partial class Ownership
         {
             var cosItems = _officerServicesValidateCallback();
             foreach (var item in cosItems)
+            {
+                if (!ValidationErrors.Contains(item.Message))
+                {
+                    ValidationErrors.Add(item.Message);
+                    ValidationFieldIds.Add(item.FieldId);
+                }
+            }
+        }
+
+        // Validate Qualified Settlement Fund section
+        if (ShowQsfSection && _qsfValidateCallback != null)
+        {
+            var qsfItems = _qsfValidateCallback();
+            foreach (var item in qsfItems)
             {
                 if (!ValidationErrors.Contains(item.Message))
                 {
@@ -284,12 +309,15 @@ public partial class Ownership
             _validateCallback = null;
             _officerServicesValidateCallback = null;
             _llcDocValidateCallback = null;
+            _qsfValidateCallback = null;
 
             // Reset section data when ownership type changes
             _corporateOfficerServicesData = new();
             _llcDocumentationData = new();
+            _qsfData = new();
             Model.CorporateOfficerServices = null;
             Model.LlcDocumentation = null;
+            Model.QualifiedSettlementFund = null;
 
             StateHasChanged();
             await Task.Delay(100);
@@ -444,6 +472,12 @@ public partial class Ownership
         Model.LlcDocumentation = data;
     }
 
+    private void OnQsfDataChanged(QualifiedSettlementFundData data)
+    {
+        _qsfData = data;
+        Model.QualifiedSettlementFund = data;
+    }
+
     private void RegisterOfficerServicesValidateCallback(Func<List<ValidationItem>> callback)
     {
         _officerServicesValidateCallback = callback;
@@ -452,6 +486,11 @@ public partial class Ownership
     private void RegisterLlcDocValidateCallback(Func<List<ValidationItem>> callback)
     {
         _llcDocValidateCallback = callback;
+    }
+
+    private void RegisterQsfValidateCallback(Func<List<ValidationItem>> callback)
+    {
+        _qsfValidateCallback = callback;
     }
 
     /// <summary>
@@ -467,6 +506,11 @@ public partial class Ownership
         if (Model.LlcDocumentation != null)
         {
             _llcDocumentationData = Model.LlcDocumentation;
+        }
+
+        if (Model.QualifiedSettlementFund != null)
+        {
+            _qsfData = Model.QualifiedSettlementFund;
         }
     }
 

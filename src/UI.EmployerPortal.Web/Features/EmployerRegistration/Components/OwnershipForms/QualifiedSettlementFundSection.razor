@@ -1,0 +1,444 @@
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.Validation
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
+
+<div class="qsf-section">
+    <p><strong>Payments for services performed in Wisconsin must be reported under the Wisconsin Unemployment Insurance Account of the Actual Employer</strong></p>
+
+    <p>
+        According to your registration the Qualified Settlement Fund has paid wages or will
+        pay wages for work performed in Wisconsin. If the wages you have paid or plan to
+        pay were not for work performed in Wisconsin, then they should not be reported to
+        Wisconsin for unemployment insurance tax. We do not set up Qualified Settlement
+        Funds as employers because the settlement fund itself has no employment in Wisconsin.
+        If the settlement fund is making payments to individuals with respect to services
+        those individuals performed in Wisconsin, those payments would be considered covered
+        wages reportable by the employer they worked for.
+    </p>
+
+    <!-- Were the payments for services? -->
+    <div id="payments-for-services-group"
+         class="@(_showAllErrors && _invalidFields.Contains("PaymentsForServices") ? "master-text-field--error" : "")">
+        <p><strong>Were the payments for services?</strong></p>
+
+        @if (_showAllErrors && _invalidFields.Contains("PaymentsForServices"))
+        {
+            <ValidationError ErrorMessage="Please select an option." />
+        }
+
+        <RadioGroup TValue="bool?"
+                    Value="Data.PaymentsForServices"
+                    ValueChanged="OnPaymentsForServicesChanged"
+                    ValueExpression="() => Data.PaymentsForServices"
+                    Options="@YesNoRadioOptions" />
+    </div>
+
+    <!-- "Yes" branch: Entity details + address -->
+    @if (Data.PaymentsForServices == true)
+    {
+        <div class="qsf-entity-details">
+            <p>Please provide the following information about the entity that received the services:</p>
+
+            <ValidatedInput Id="qsf-entity-legal-name"
+                            Label="Legal Name"
+                            Value="@Data.EntityLegalName"
+                            ValueChanged="OnEntityLegalNameChanged"
+                            HasError="@(_showAllErrors && _invalidFields.Contains("EntityLegalName"))"
+                            ErrorMessage="@_fieldErrors.GetValueOrDefault("EntityLegalName")"
+                            Visible="@_showAllErrors"
+                            Width="350" />
+
+            <div class="qsf-id-row">
+                <ValidatedInput Id="qsf-federal-id"
+                                Label="Federal ID Number"
+                                Value="@Data.FederalIdNumber"
+                                ValueChanged="OnFederalIdChanged"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("FederalIdNumber"))"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("FederalIdNumber")"
+                                Visible="@_showAllErrors"
+                                MaxLength="10"
+                                Width="220" />
+
+                <ValidatedInput Id="qsf-wi-ui-account"
+                                Label="Wisconsin UI Account Number (Optional)"
+                                Value="@Data.WisconsinUiAccountNumber"
+                                ValueChanged="OnWiUiAccountChanged"
+                                HasError="false"
+                                Width="260" />
+            </div>
+
+            <p><strong>Wisconsin address where services were performed:</strong></p>
+
+            <div class="qsf-address-row">
+                <ValidatedInput Id="qsf-address-line1"
+                                Label="Address Line 1"
+                                Value="@Data.ServiceAddress.AddressLine1"
+                                ValueChanged="OnAddressLine1Changed"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("AddressLine1"))"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("AddressLine1")"
+                                Visible="@_showAllErrors"
+                                Width="300" />
+
+                <ValidatedInput Id="qsf-address-line2"
+                                Label="Address Line 2 (Optional)"
+                                Value="@Data.ServiceAddress.AddressLine2"
+                                ValueChanged="OnAddressLine2Changed"
+                                HasError="false"
+                                Width="300" />
+            </div>
+
+            <div class="qsf-address-row">
+                <ValidatedInput Id="qsf-city"
+                                Label="City"
+                                Value="@Data.ServiceAddress.City"
+                                ValueChanged="OnCityChanged"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("City"))"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("City")"
+                                Visible="@_showAllErrors"
+                                Width="220" />
+
+                <div class="form-group master-text-field">
+                    <label for="qsf-state" class="form-label">State</label>
+                    <select id="qsf-state"
+                            class="form-input master-input"
+                            style="width:220px;"
+                            value="@Data.ServiceAddress.State"
+                            disabled>
+                        <option value="Wisconsin">Wisconsin</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="qsf-address-row">
+                <ValidatedInput Id="qsf-zip-code"
+                                Label="Zip Code"
+                                Value="@Data.ServiceAddress.ZipCode"
+                                ValueChanged="OnZipCodeChanged"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("ZipCode"))"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("ZipCode")"
+                                Visible="@_showAllErrors"
+                                MaxLength="5"
+                                Width="120" />
+
+                <ValidatedInput Id="qsf-zip-ext"
+                                Label="Ext. (Optional)"
+                                Value="@Data.ServiceAddress.ZipExtension"
+                                ValueChanged="OnZipExtChanged"
+                                HasError="false"
+                                MaxLength="4"
+                                Width="100" />
+            </div>
+        </div>
+    }
+
+    <!-- "No" branch: Reason for payments -->
+    @if (Data.PaymentsForServices == false)
+    {
+        <div class="qsf-no-services">
+            <ValidatedTextArea Id="qsf-payment-reason"
+                               Label="Provide reason for payments below:"
+                               Value="@Data.PaymentReason"
+                               ValueChanged="OnPaymentReasonChanged"
+                               Rows="3"
+                               HasError="@(_showAllErrors && _invalidFields.Contains("PaymentReason"))"
+                               ErrorMessage="@_fieldErrors.GetValueOrDefault("PaymentReason")"
+                               Visible="@_showAllErrors" />
+        </div>
+    }
+
+    <!-- File upload (always shown) -->
+    <div class="file-upload-section">
+        <h3 class="section-subtitle">File upload</h3>
+
+        <div class="file-upload-area">
+            <div class="file-upload-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM19 18H6C3.79 18 2 16.21 2 14C2 11.95 3.53 10.24 5.56 10.03L6.63 9.92L7.13 8.97C8.08 7.14 9.94 6 12 6C14.62 6 16.88 7.86 17.39 10.43L17.69 11.93L19.22 12.04C20.78 12.14 22 13.45 22 15C22 16.65 20.65 18 19 18ZM8 13H10.55V16H13.45V13H16L12 9L8 13Z"
+                          fill="#1565C0" />
+                </svg>
+                <div>
+                    <strong>Settlement Agreement</strong>
+                    <p class="file-upload-filetypes">Acceptable file types: PDF, JPG, HEIC or PNG.</p>
+                </div>
+            </div>
+
+            <div class="file-upload-dropzone @(_isDragOver ? "file-upload-dropzone--drag-over" : "")"
+                 @ondragover:preventDefault
+                 @ondragover="@(() => _isDragOver = true)"
+                 @ondragleave="@(() => _isDragOver = false)"
+                 @ondrop:preventDefault>
+                <InputFile OnChange="OnFileSelected"
+                           accept=".pdf,.jpg,.jpeg,.heic,.png"
+                           id="qsf-doc-upload"
+                           class="file-upload-input" />
+
+                @if (string.IsNullOrWhiteSpace(Data.UploadedFileName))
+                {
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM19 18H6C3.79 18 2 16.21 2 14C2 11.95 3.53 10.24 5.56 10.03L6.63 9.92L7.13 8.97C8.08 7.14 9.94 6 12 6C14.62 6 16.88 7.86 17.39 10.43L17.69 11.93L19.22 12.04C20.78 12.14 22 13.45 22 15C22 16.65 20.65 18 19 18ZM8 13H10.55V16H13.45V13H16L12 9L8 13Z"
+                              fill="#90CAF9" />
+                    </svg>
+                    <p>Drag and drop your file, or <label for="qsf-doc-upload" class="file-upload-browse">browse</label></p>
+                    <p class="file-upload-sizelimit">The file must be 20 MB or smaller.</p>
+                }
+                else
+                {
+                    <p class="file-upload-filename">@Data.UploadedFileName</p>
+                    <button type="button" class="file-upload-remove" @onclick="RemoveFile">Remove</button>
+                }
+            </div>
+
+            @if (_showAllErrors && _invalidFields.Contains("FileUpload"))
+            {
+                <ValidationError ErrorMessage="@_fieldErrors.GetValueOrDefault("FileUpload")" />
+            }
+        </div>
+    </div>
+
+    <!-- Will provide documentation later checkbox -->
+    <div id="qsf-provide-later-group">
+        <CheckboxInput Id="qsf-provide-later"
+                       Label="I will provide documentation later."
+                       Value="@Data.WillProvideDocumentationLater"
+                       ValueChanged="OnProvideLaterChanged"
+                       HasError="false" />
+    </div>
+</div>
+
+@code {
+    private const long MaxFileSizeBytes = 20 * 1024 * 1024; // 20 MB
+    private static readonly string[] AllowedExtensions = [".pdf", ".jpg", ".jpeg", ".heic", ".png"];
+
+    [Parameter]
+    public QualifiedSettlementFundData Data { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<QualifiedSettlementFundData> OnDataChanged { get; set; }
+
+    [Parameter]
+    public Action<Func<List<ValidationItem>>>? RegisterValidate { get; set; }
+
+    private static readonly IReadOnlyList<RadioOption<bool?>> YesNoRadioOptions =
+    [
+        new RadioOption<bool?> { Value = true, Label = "Yes" },
+        new RadioOption<bool?> { Value = false, Label = "No" }
+    ];
+
+    private HashSet<string> _invalidFields = [];
+    private Dictionary<string, string> _fieldErrors = [];
+    private List<ValidationItem> _validationItems = [];
+    private bool _showAllErrors;
+    private bool _isDragOver;
+
+    protected override void OnInitialized()
+    {
+        RegisterValidate?.Invoke(() =>
+        {
+            _showAllErrors = true;
+            return ValidateSection();
+        });
+    }
+
+    // --- Radio change ---
+
+    private void OnPaymentsForServicesChanged(bool? value)
+    {
+        Data.PaymentsForServices = value;
+
+        if (value == true)
+        {
+            // Clear "No" branch data
+            Data.PaymentReason = null;
+        }
+        else if (value == false)
+        {
+            // Clear "Yes" branch data
+            Data.EntityLegalName = null;
+            Data.FederalIdNumber = null;
+            Data.WisconsinUiAccountNumber = null;
+            Data.ServiceAddress = new();
+        }
+
+        NotifyDataChanged();
+    }
+
+    // --- "Yes" branch handlers ---
+
+    private void OnEntityLegalNameChanged(string value) { Data.EntityLegalName = value; NotifyDataChanged(); }
+    private void OnFederalIdChanged(string value) { Data.FederalIdNumber = value; NotifyDataChanged(); }
+    private void OnWiUiAccountChanged(string value) { Data.WisconsinUiAccountNumber = value; NotifyDataChanged(); }
+    private void OnAddressLine1Changed(string value) { Data.ServiceAddress.AddressLine1 = value; NotifyDataChanged(); }
+    private void OnAddressLine2Changed(string value) { Data.ServiceAddress.AddressLine2 = value; NotifyDataChanged(); }
+    private void OnCityChanged(string value) { Data.ServiceAddress.City = value; NotifyDataChanged(); }
+    private void OnZipCodeChanged(string value) { Data.ServiceAddress.ZipCode = value; NotifyDataChanged(); }
+    private void OnZipExtChanged(string value) { Data.ServiceAddress.ZipExtension = value; NotifyDataChanged(); }
+
+    // --- "No" branch handler ---
+
+    private void OnPaymentReasonChanged(string value) { Data.PaymentReason = value; NotifyDataChanged(); }
+
+    // --- File upload ---
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _invalidFields.Remove("FileUpload");
+        _fieldErrors.Remove("FileUpload");
+
+        var file = e.File;
+        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+
+        if (!AllowedExtensions.Contains(extension))
+        {
+            _invalidFields.Add("FileUpload");
+            _fieldErrors["FileUpload"] = "Invalid file type. Acceptable types: PDF, JPG, HEIC or PNG.";
+            StateHasChanged();
+            return;
+        }
+
+        if (file.Size > MaxFileSizeBytes)
+        {
+            _invalidFields.Add("FileUpload");
+            _fieldErrors["FileUpload"] = "The file must be 20 MB or smaller.";
+            StateHasChanged();
+            return;
+        }
+
+        using var stream = file.OpenReadStream(MaxFileSizeBytes);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        Data.UploadedFileName = file.Name;
+        Data.UploadedFileContent = ms.ToArray();
+        Data.UploadedFileContentType = file.ContentType;
+
+        NotifyDataChanged();
+    }
+
+    private void RemoveFile()
+    {
+        Data.UploadedFileName = null;
+        Data.UploadedFileContent = null;
+        Data.UploadedFileContentType = null;
+        NotifyDataChanged();
+    }
+
+    // --- Checkbox ---
+
+    private void OnProvideLaterChanged(bool value)
+    {
+        Data.WillProvideDocumentationLater = value;
+        NotifyDataChanged();
+    }
+
+    /// <summary>
+    /// Validates the section and returns validation items for the parent to aggregate.
+    /// </summary>
+    public List<ValidationItem> ValidateSection()
+    {
+        _invalidFields.Clear();
+        _fieldErrors.Clear();
+        _validationItems.Clear();
+
+        // Must answer Yes or No
+        if (Data.PaymentsForServices is null)
+        {
+            _invalidFields.Add("PaymentsForServices");
+            _validationItems.Add(new ValidationItem(
+                "Please select whether the payments were for services.",
+                "payments-for-services-group"));
+        }
+
+        // "Yes" branch validations
+        if (Data.PaymentsForServices == true)
+        {
+            if (string.IsNullOrWhiteSpace(Data.EntityLegalName))
+            {
+                _invalidFields.Add("EntityLegalName");
+                _fieldErrors["EntityLegalName"] = "Legal name is required.";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the legal name of the entity that received the services.",
+                    "qsf-entity-legal-name"));
+            }
+
+            if (string.IsNullOrWhiteSpace(Data.FederalIdNumber))
+            {
+                _invalidFields.Add("FederalIdNumber");
+                _fieldErrors["FederalIdNumber"] = "Federal ID Number is required.";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the Federal ID Number.",
+                    "qsf-federal-id"));
+            }
+
+            // Address validations
+            if (string.IsNullOrWhiteSpace(Data.ServiceAddress.AddressLine1))
+            {
+                _invalidFields.Add("AddressLine1");
+                _fieldErrors["AddressLine1"] = "Address Line 1 is required.";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter Address Line 1.",
+                    "qsf-address-line1"));
+            }
+
+            if (string.IsNullOrWhiteSpace(Data.ServiceAddress.City))
+            {
+                _invalidFields.Add("City");
+                _fieldErrors["City"] = "City is required.";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the city.",
+                    "qsf-city"));
+            }
+
+            if (string.IsNullOrWhiteSpace(Data.ServiceAddress.ZipCode))
+            {
+                _invalidFields.Add("ZipCode");
+                _fieldErrors["ZipCode"] = "Zip Code is required.";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the zip code.",
+                    "qsf-zip-code"));
+            }
+            else if (Data.ServiceAddress.ZipCode.Length != 5 || !Data.ServiceAddress.ZipCode.All(char.IsDigit))
+            {
+                _invalidFields.Add("ZipCode");
+                _fieldErrors["ZipCode"] = "Zip Code must be 5 digits.";
+                _validationItems.Add(new ValidationItem(
+                    "Zip Code must be 5 digits.",
+                    "qsf-zip-code"));
+            }
+        }
+
+        // "No" branch validations
+        if (Data.PaymentsForServices == false)
+        {
+            if (string.IsNullOrWhiteSpace(Data.PaymentReason))
+            {
+                _invalidFields.Add("PaymentReason");
+                _fieldErrors["PaymentReason"] = "Please provide a reason for payments.";
+                _validationItems.Add(new ValidationItem(
+                    "Please provide a reason for payments.",
+                    "qsf-payment-reason"));
+            }
+        }
+
+        // File upload: required unless "will provide later" is checked
+        if (string.IsNullOrWhiteSpace(Data.UploadedFileName) && !Data.WillProvideDocumentationLater)
+        {
+            _invalidFields.Add("FileUpload");
+            _fieldErrors["FileUpload"] = "Please upload the Settlement Agreement or check that you will provide documentation later.";
+            _validationItems.Add(new ValidationItem(
+                "Please upload the court-approved Settlement Agreement or indicate you will provide documentation later.",
+                "qsf-doc-upload"));
+        }
+
+        StateHasChanged();
+        return _validationItems;
+    }
+
+    private void NotifyDataChanged()
+    {
+        if (_showAllErrors)
+            ValidateSection();
+
+        _ = OnDataChanged.InvokeAsync(Data);
+    }
+}
