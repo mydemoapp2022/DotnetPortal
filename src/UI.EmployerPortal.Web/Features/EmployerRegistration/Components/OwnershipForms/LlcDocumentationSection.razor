@@ -28,143 +28,106 @@
             First page of 1120 or 1120S corporate tax returns from the two most recent filing years.
         </li>
     </ul>
-
+    <br />
     <!-- Has Documentation Question -->
     <div id="has-documentation-group"
          class="@(_showAllErrors && _invalidFields.Contains("HasRequiredDocumentation") ? "master-text-field--error" : "")">
         <p><strong>Do you have the required documentation available to upload?</strong></p>
-
         @if (_showAllErrors && _invalidFields.Contains("HasRequiredDocumentation"))
         {
-            <ValidationError ErrorMessage="Please select an option." />
+            <ValidationError ErrorMessage="Please select an option" />
         }
-
         <RadioGroup TValue="bool?"
-                    Value="Data.HasRequiredDocumentation"
+                    Value="Model.HasRequiredDocumentation"
                     ValueChanged="OnHasDocumentationChanged"
-                    ValueExpression="() => Data.HasRequiredDocumentation"
-                    Options="@YesNoRadioOptions" />
+                    ValueExpression="() => Model.HasRequiredDocumentation"
+                    Options="@YesNoRadioOptions"
+                    CSS="@(_showAllErrors && _invalidFields.Contains("HasRequiredDocumentation") ? "invalid" : "valid")" />
     </div>
-
+    <br/>
     <!-- File Upload when Yes -->
-    @if (Data.HasRequiredDocumentation == true)
+    @if (Model.HasRequiredDocumentation == true)
     {
         <div class="file-upload-section">
             <h3 class="section-subtitle">File upload</h3>
 
-            <div class="file-upload-area">
-                <div class="file-upload-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM19 18H6C3.79 18 2 16.21 2 14C2 11.95 3.53 10.24 5.56 10.03L6.63 9.92L7.13 8.97C8.08 7.14 9.94 6 12 6C14.62 6 16.88 7.86 17.39 10.43L17.69 11.93L19.22 12.04C20.78 12.14 22 13.45 22 15C22 16.65 20.65 18 19 18ZM8 13H10.55V16H13.45V13H16L12 9L8 13Z"
-                              fill="#1565C0" />
-                    </svg>
-                    <div>
-                        <strong>Notice of Acceptance</strong>
-                        <p class="file-upload-filetypes">Acceptable file types: PDF, JPG, HEIC or PNG.</p>
-                    </div>
-                </div>
-
-                <div class="file-upload-dropzone @(_isDragOver ? "file-upload-dropzone--drag-over" : "")"
-                     @ondragover:preventDefault
-                     @ondragover="@(() => _isDragOver = true)"
-                     @ondragleave="@(() => _isDragOver = false)"
-                     @ondrop:preventDefault>
-                    <InputFile OnChange="OnFileSelected"
-                               accept=".pdf,.jpg,.jpeg,.heic,.png"
-                               id="llc-doc-upload"
-                               class="file-upload-input" />
-
-                    @if (string.IsNullOrWhiteSpace(Data.UploadedFileName))
-                    {
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM19 18H6C3.79 18 2 16.21 2 14C2 11.95 3.53 10.24 5.56 10.03L6.63 9.92L7.13 8.97C8.08 7.14 9.94 6 12 6C14.62 6 16.88 7.86 17.39 10.43L17.69 11.93L19.22 12.04C20.78 12.14 22 13.45 22 15C22 16.65 20.65 18 19 18ZM8 13H10.55V16H13.45V13H16L12 9L8 13Z"
-                                  fill="#90CAF9" />
-                        </svg>
-                        <p>Drag and drop your file, or <label for="llc-doc-upload" class="file-upload-browse">browse</label></p>
-                        <p class="file-upload-sizelimit">The file must be 20 MB or smaller.</p>
-                    }
-                    else
-                    {
-                        <p class="file-upload-filename">@Data.UploadedFileName</p>
-                        <button type="button" class="file-upload-remove" @onclick="RemoveFile">Remove</button>
-                    }
-                </div>
-
-                @if (_showAllErrors && _invalidFields.Contains("FileUpload"))
-                {
-                    <ValidationError ErrorMessage="@_fieldErrors.GetValueOrDefault("FileUpload")" />
-                }
-            </div>
+            
         </div>
-    }
-
-    <!-- Reason & Acknowledgment when No -->
-    @if (Data.HasRequiredDocumentation == false)
+    }  
+    <!-- Reason and Acknowledge when No -->
+    @if (Model.HasRequiredDocumentation == false)
     {
         <div class="no-documentation-section">
             <div id="no-doc-reason-group"
                  class="@(_showAllErrors && _invalidFields.Contains("NoDocReason") ? "master-text-field--error" : "")">
                 <p><strong>What is the reason the documentation cannot be submitted at this time?</strong></p>
-
+                
                 @if (_showAllErrors && _invalidFields.Contains("NoDocReason"))
                 {
-                    <ValidationError ErrorMessage="Please select a reason." />
+                    <ValidationError ErrorMessage="Please select at least one reason" />
                 }
-
-                <RadioGroup TValue="NoDocReason ?"
-                            Value="Data.NoDocumentationReason"
-                            ValueChanged="OnNoDocReasonChanged"
-                            ValueExpression="() => Data.NoDocumentationReason"
-                            Options="@NoDocReasonOptions" />
+                <CheckboxInput Id="havent-applied"
+                               Label="We haven't applied yet"
+                               Value="@Model.HaventApplied"
+                               ValueChanged="OnHaventAppliedChanged"/>
+                <br />
+                @if (Model.HaventApplied)
+                {
+                    <ValidatedDateInput Id="planned-submission-date"
+                                        Label="when do you plan to submit your application to the IRS?"
+                                        Value="@(Model.PlannedSubmissionDate?.ToDateTime(TimeOnly.MinValue))"
+                                        ValueChanged="OnPlannedSubmissionDateChanged"
+                                        Min="@DateTime.Today.AddDays(1)"
+                                        Width="410"
+                                        CSS="large-date-input"
+                                        HasError="@(_showAllErrors && _invalidFields.Contains("PlannedSubmissionDate"))"
+                                        ErrorMessage="@_fieldErrors.GetValueOrDefault("PlannedSubmissionDate")"
+                                        Visible="_showAllErrors"/>
+                }
+                
+                <!-- Checkbox: we applied and have not receiveed a decision.-->
+                <CheckboxInput Id="applied-no-decision"
+                               Label="We applied and have not received a decision from the IRS"
+                               Value="@Model.AppliedNoDecision"
+                               ValueChanged="OnAppliedNoDecisionChanged" />
+                <br />
+                @if (Model.AppliedNoDecision)
+                {
+                    <ValidatedDateInput Id="application-submitted-date"
+                                        Label="What date was the application submitted to the IRS?"
+                                        Value="@(Model.ApplicationSubmittedDate?.ToDateTime(TimeOnly.MinValue))"
+                                        ValueChanged="OnApplicationSubmittedDateChanged"
+                                        Max="@DateTime.Today"
+                                        Width="410"
+                                        CSS="large-date-input"
+                                        HasError="@(_showAllErrors && _invalidFields.Contains("ApplicationSubmittedDate"))"
+                                        ErrorMessage="@_fieldErrors.GetValueOrDefault("ApplicationSubmittedDate")"
+                                        Visible="_showAllErrors" />
+                }
             </div>
-
-            @if (Data.NoDocumentationReason == NoDocReason.HaventApplied)
-            {
-                <ValidatedDateInput Id="planned-submission-date"
-                                    Label="When do you plan to submit your application to the IRS?"
-                                    Value="@(Data.PlannedSubmissionDate?.ToDateTime(TimeOnly.MinValue))"
-                                    ValueChanged="OnPlannedSubmissionDateChanged"
-                                    Min="@DateTime.Today.AddDays(1)"
-                                    HasError="@(_showAllErrors && _invalidFields.Contains("PlannedSubmissionDate"))"
-                                    ErrorMessage="@_fieldErrors.GetValueOrDefault("PlannedSubmissionDate")"
-                                    Visible="@_showAllErrors"
-                                    Width="220" />
-            }
-
-            @if (Data.NoDocumentationReason == NoDocReason.AppliedNoDecision)
-            {
-                <ValidatedDateInput Id="application-submitted-date"
-                                    Label="What date was the application submitted to the IRS?"
-                                    Value="@(Data.ApplicationSubmittedDate?.ToDateTime(TimeOnly.MinValue))"
-                                    ValueChanged="OnApplicationSubmittedDateChanged"
-                                    Max="@DateTime.Today"
-                                    HasError="@(_showAllErrors && _invalidFields.Contains("ApplicationSubmittedDate"))"
-                                    ErrorMessage="@_fieldErrors.GetValueOrDefault("ApplicationSubmittedDate")"
-                                    Visible="@_showAllErrors"
-                                    Width="220" />
-            }
-
-            <!-- Acknowledgment checkbox -->
-            <div id="acknowledge-group">
+            <br />
+            <div id="acknowledge-group"
+                 class="form-check @(_showAllErrors && _invalidFields.Contains("Acknowledge") ? "master-text-field--error" : "")">
                 <CheckboxInput Id="acknowledge-submit-doc"
-                               Label="I acknowledge that I will submit the required documentation."
-                               Value="@Data.AcknowledgeSubmitDocumentation"
+                               Label="I acknowledge that I will submit the required documentation"
+                               Value="@Model.AcknowledgeSubmitDocumentation"
                                ValueChanged="OnAcknowledgeChanged"
                                HasError="@(_showAllErrors && _invalidFields.Contains("Acknowledge"))"
                                ErrorMessage="You must acknowledge that you will submit the required documentation"
                                Visible="@_showAllErrors" />
             </div>
-
-            <!-- Info paragraph -->
+            <br />
             <p class="llc-info-notice">
                 Upon receipt of this information, we will treat your LLC as a corporation for
-                Wisconsin UI tax purposes as of the effective date stated in your IRS notice.
+                Wisconsin Ul tax purposes as of the effective date stated in your IRS notice.
                 Each member of the LLC will be treated as a corporate officer for tax and benefit
                 purposes. Any compensation received by members performing services for the LLC
-                will be considered wages subject to UI tax.
+                will be considered wages subject to Ul tax.
             </p>
+
         </div>
     }
+    
 </div>
 
 @code {
@@ -172,7 +135,7 @@
     private static readonly string[] AllowedExtensions = [".pdf", ".jpg", ".jpeg", ".heic", ".png"];
 
     [Parameter]
-    public LlcDocumentationData Data { get; set; } = new();
+    public LlcDocumentationData Model { get; set; } = new();
 
     [Parameter]
     public EventCallback<LlcDocumentationData> OnDataChanged { get; set; }
@@ -186,17 +149,10 @@
         new RadioOption<bool?> { Value = false, Label = "No" }
     ];
 
-    private static readonly IReadOnlyList<RadioOption<NoDocReason?>> NoDocReasonOptions =
-    [
-        new RadioOption<NoDocReason?> { Value = NoDocReason.HaventApplied, Label = "We haven't applied yet." },
-        new RadioOption<NoDocReason?> { Value = NoDocReason.AppliedNoDecision, Label = "We applied and have not received a decision from the IRS." }
-    ];
-
     private HashSet<string> _invalidFields = [];
     private Dictionary<string, string> _fieldErrors = [];
     private List<ValidationItem> _validationItems = [];
     private bool _showAllErrors;
-    private bool _isDragOver;
 
     protected override void OnInitialized()
     {
@@ -209,103 +165,46 @@
 
     private void OnHasDocumentationChanged(bool? value)
     {
-        Data.HasRequiredDocumentation = value;
-
-        if (value == true)
-        {
-            // Switching to Yes — clear "No" branch fields
-            Data.NoDocumentationReason = null;
-            Data.PlannedSubmissionDate = null;
-            Data.ApplicationSubmittedDate = null;
-            Data.AcknowledgeSubmitDocumentation = false;
-        }
-        else if (value == false)
-        {
-            // Switching to No — clear "Yes" branch fields
-            Data.UploadedFileName = null;
-            Data.UploadedFileContent = null;
-            Data.UploadedFileContentType = null;
-        }
-
+        Model.HasRequiredDocumentation = value;
         NotifyDataChanged();
     }
 
-    // --- "Yes" branch handlers ---
-
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    // -- "No" branch handlers ---
+    private void OnHaventAppliedChanged(bool value)
     {
-        _invalidFields.Remove("FileUpload");
-        _fieldErrors.Remove("FileUpload");
-
-        var file = e.File;
-        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-
-        if (!AllowedExtensions.Contains(extension))
+        Model.HaventApplied = value;
+        if (!Model.HaventApplied)
         {
-            _invalidFields.Add("FileUpload");
-            _fieldErrors["FileUpload"] = "Invalid file type. Acceptable types: PDF, JPG, HEIC or PNG.";
-            StateHasChanged();
-            return;
+            Model.PlannedSubmissionDate = null;
         }
-
-        if (file.Size > MaxFileSizeBytes)
-        {
-            _invalidFields.Add("FileUpload");
-            _fieldErrors["FileUpload"] = "The file must be 20 MB or smaller.";
-            StateHasChanged();
-            return;
-        }
-
-        using var stream = file.OpenReadStream(MaxFileSizeBytes);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-
-        Data.UploadedFileName = file.Name;
-        Data.UploadedFileContent = ms.ToArray();
-        Data.UploadedFileContentType = file.ContentType;
-
-        NotifyDataChanged();
-    }
-
-    private void RemoveFile()
-    {
-        Data.UploadedFileName = null;
-        Data.UploadedFileContent = null;
-        Data.UploadedFileContentType = null;
-        NotifyDataChanged();
-    }
-
-    // --- "No" branch handlers ---
-
-    private void OnNoDocReasonChanged(NoDocReason? value)
-    {
-        Data.NoDocumentationReason = value;
-
-        // Clear the conditional date for the deselected reason
-        if (value != NoDocReason.HaventApplied)
-            Data.PlannedSubmissionDate = null;
-
-        if (value != NoDocReason.AppliedNoDecision)
-            Data.ApplicationSubmittedDate = null;
-
         NotifyDataChanged();
     }
 
     private void OnPlannedSubmissionDateChanged(DateTime? value)
     {
-        Data.PlannedSubmissionDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+        Model.PlannedSubmissionDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+        NotifyDataChanged();
+    }
+
+    private void OnAppliedNoDecisionChanged(bool value)
+    {
+        Model.AppliedNoDecision = value;
+        if (!Model.AppliedNoDecision)
+        {
+            Model.ApplicationSubmittedDate = null;
+        }
         NotifyDataChanged();
     }
 
     private void OnApplicationSubmittedDateChanged(DateTime? value)
     {
-        Data.ApplicationSubmittedDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+        Model.ApplicationSubmittedDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
         NotifyDataChanged();
     }
 
     private void OnAcknowledgeChanged(bool value)
     {
-        Data.AcknowledgeSubmitDocumentation = value;
+        Model.AcknowledgeSubmitDocumentation = value;
         NotifyDataChanged();
     }
 
@@ -318,86 +217,71 @@
         _fieldErrors.Clear();
         _validationItems.Clear();
 
-        // Must answer Yes or No
-        if (Data.HasRequiredDocumentation is null)
+        if (Model.HasRequiredDocumentation is null)
         {
             _invalidFields.Add("HasRequiredDocumentation");
             _validationItems.Add(new ValidationItem(
-                "Please select whether you have the required documentation.",
+                "Please select whether you have the required documentation",
                 "has-documentation-group"));
         }
 
-        // "Yes" branch: file required
-        if (Data.HasRequiredDocumentation == true && string.IsNullOrWhiteSpace(Data.UploadedFileName))
-        {
-            _invalidFields.Add("FileUpload");
-            _fieldErrors["FileUpload"] = "Please upload the Notice of Acceptance document.";
-            _validationItems.Add(new ValidationItem(
-                "Please upload the Notice of Acceptance document.",
-                "llc-doc-upload"));
-        }
-
         // "No" branch validations
-        if (Data.HasRequiredDocumentation == false)
+        if(Model.HasRequiredDocumentation == false)
         {
-            // A reason must be selected
-            if (Data.NoDocumentationReason is null)
+            if(!Model.HaventApplied && !Model.AppliedNoDecision)
             {
                 _invalidFields.Add("NoDocReason");
                 _validationItems.Add(new ValidationItem(
-                    "Please select a reason the documentation cannot be submitted.",
+                    "Please select at least one reason the documentation cannot be submitted",
                     "no-doc-reason-group"));
             }
 
-            // "We haven't applied yet" — planned submission date required and must be future
-            if (Data.NoDocumentationReason == NoDocReason.HaventApplied)
+            if (Model.HaventApplied)
             {
-                if (!Data.PlannedSubmissionDate.HasValue)
+                if (!Model.PlannedSubmissionDate.HasValue)
                 {
                     _invalidFields.Add("PlannedSubmissionDate");
-                    _fieldErrors["PlannedSubmissionDate"] = "Please enter the date you plan to submit your application.";
+                    _fieldErrors["PlannedSubmissionDate"] = "Please enter the date you plan to submit your application";
                     _validationItems.Add(new ValidationItem(
-                        "Please enter the date you plan to submit your application to the IRS.",
+                        "Please enter the date you plan to submit your application to the IRS",
                         "planned-submission-date"));
                 }
-                else if (Data.PlannedSubmissionDate.Value <= DateOnly.FromDateTime(DateTime.Today))
+                else if(Model.PlannedSubmissionDate.Value <= DateOnly.FromDateTime(DateTime.Today))
                 {
                     _invalidFields.Add("PlannedSubmissionDate");
-                    _fieldErrors["PlannedSubmissionDate"] = "Planned submission date must be a future date.";
+                    _fieldErrors["PlannedSubmissionDate"] = "Planned submission date must be a future date";
                     _validationItems.Add(new ValidationItem(
-                        "Planned submission date must be a future date.",
+                        "Planned submission date must be a future date",
                         "planned-submission-date"));
                 }
             }
 
-            // "We applied and have not received a decision" — application date required and must be past
-            if (Data.NoDocumentationReason == NoDocReason.AppliedNoDecision)
+            if (Model.AppliedNoDecision)
             {
-                if (!Data.ApplicationSubmittedDate.HasValue)
+                if (!Model.ApplicationSubmittedDate.HasValue)
                 {
                     _invalidFields.Add("ApplicationSubmittedDate");
-                    _fieldErrors["ApplicationSubmittedDate"] = "Please enter the date the application was submitted.";
+                    _fieldErrors["ApplicationSubmittedDate"] = "Please enter the date the application was submitted";
                     _validationItems.Add(new ValidationItem(
-                        "Please enter the date the application was submitted to the IRS.",
+                        "Please enter the date the application was submitted to the IRS",
                         "application-submitted-date"));
                 }
-                else if (Data.ApplicationSubmittedDate.Value >= DateOnly.FromDateTime(DateTime.Today))
+                else if (Model.ApplicationSubmittedDate.Value >= DateOnly.FromDateTime(DateTime.Today))
                 {
                     _invalidFields.Add("ApplicationSubmittedDate");
-                    _fieldErrors["ApplicationSubmittedDate"] = "Application submitted date must be a past date.";
+                    _fieldErrors["ApplicationSubmittedDate"] = "Application submission date must be a future date";
                     _validationItems.Add(new ValidationItem(
-                        "Application submitted date must be a past date.",
+                        "Application submitted date must be a past date",
                         "application-submitted-date"));
                 }
             }
 
-            // Acknowledgment required
-            if (!Data.AcknowledgeSubmitDocumentation)
+            if (!Model.AcknowledgeSubmitDocumentation)
             {
-                _invalidFields.Add("Acknowledge");
+                _invalidFields.Add("AcknowledgeSubmitDocumentation");
                 _validationItems.Add(new ValidationItem(
-                    "You must acknowledge that you will submit the required documentation.",
-                    "acknowledge-group"));
+                        "You must acknowledge that you will submit the required documentation",
+                        "acknowledge-group"));
             }
         }
 
@@ -408,8 +292,10 @@
     private void NotifyDataChanged()
     {
         if (_showAllErrors)
+        {
             ValidateSection();
+        }
 
-        _ = OnDataChanged.InvokeAsync(Data);
+        _ = OnDataChanged.InvokeAsync(Model);
     }
 }

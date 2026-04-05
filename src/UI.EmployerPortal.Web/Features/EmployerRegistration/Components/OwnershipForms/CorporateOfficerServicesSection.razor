@@ -47,36 +47,37 @@
     <div id="officers-perform-services-group"
          class="@(_showAllErrors && _invalidFields.Contains("OfficersPerformServices") ? "master-text-field--error" : "")">
         <p><strong>Do corporate officers perform services or plan to perform services in Wisconsin?</strong></p>
-
         @if (_showAllErrors && _invalidFields.Contains("OfficersPerformServices"))
         {
             <ValidationError ErrorMessage="Please select an option" />
         }
-
         <RadioGroup TValue="bool?"
-                    Value="Data.OfficersPerformServices"
+                    Value="Model.OfficersPerformServices"
                     ValueChanged="OnOfficersPerformServicesChanged"
-                    ValueExpression="() => Data.OfficersPerformServices"
+                    ValueExpression="() => Model.OfficersPerformServices"
                     Options="@YesNoRadioOptions" />
     </div>
-
+    <br />
     <!-- Conditional fields when Yes is selected -->
-    @if (Data.OfficersPerformServices == true)
+    @if (Model.OfficersPerformServices == true)
     {
         <div class="officer-services-details">
+            <!-- Approximate Pay Date -->
+            <p>If the officers have not been paid yet, please give us the approximate date they will be paid.</p>
             <ValidatedDateInput Id="approximate-pay-date"
-                                Label="If the officers have not been paid yet, please give us the approximate date they will be paid."
-                                Value="@(Data.ApproximatePayDate?.ToDateTime(TimeOnly.MinValue))"
+                                Label="Approximate date"
+                                Value="@(Model.ApproximatePayDate?.ToDateTime(TimeOnly.MinValue))"
                                 ValueChanged="OnApproximatePayDateChanged"
                                 Min="@DateTime.Today.AddDays(1)"
+                                Width="410"
                                 HasError="@(_showAllErrors && _invalidFields.Contains("ApproximatePayDate"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("ApproximatePayDate")"
-                                Visible="@_showAllErrors"
-                                Width="220" />
-
+                                Visible="_showAllErrors" />
+            
+            <!-- No Pay Explanation -->
             <ValidatedTextArea Id="no-pay-explanation"
                                Label="If you do not expect the officers to be paid, please explain:"
-                               Value="@Data.NoPayExplanation"
+                               Value="@(Model.NoPayExplanation)"
                                ValueChanged="OnNoPayExplanationChanged"
                                Rows="3" />
         </div>
@@ -85,7 +86,7 @@
 
 @code {
     [Parameter]
-    public CorporateOfficerServicesData Data { get; set; } = new();
+    public CorporateOfficerServicesData Model { get; set; } = new();
 
     [Parameter]
     public EventCallback<CorporateOfficerServicesData> OnDataChanged { get; set; }
@@ -115,13 +116,13 @@
 
     private void OnOfficersPerformServicesChanged(bool? value)
     {
-        Data.OfficersPerformServices = value;
+        Model.OfficersPerformServices = value;
 
         // Reset child fields when toggled to No
         if (value != true)
         {
-            Data.ApproximatePayDate = null;
-            Data.NoPayExplanation = string.Empty;
+            Model.ApproximatePayDate = null;
+            Model.NoPayExplanation = string.Empty;
         }
 
         NotifyDataChanged();
@@ -129,13 +130,13 @@
 
     private void OnApproximatePayDateChanged(DateTime? value)
     {
-        Data.ApproximatePayDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+        Model.ApproximatePayDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
         NotifyDataChanged();
     }
 
     private void OnNoPayExplanationChanged(string value)
     {
-        Data.NoPayExplanation = value;
+        Model.NoPayExplanation = value;
         NotifyDataChanged();
     }
 
@@ -148,7 +149,7 @@
         _fieldErrors.Clear();
         _validationItems.Clear();
 
-        if (Data.OfficersPerformServices is null)
+        if (Model.OfficersPerformServices is null)
         {
             _invalidFields.Add("OfficersPerformServices");
             _validationItems.Add(new ValidationItem(
@@ -156,9 +157,9 @@
                 "officers-perform-services-group"));
         }
 
-        if (Data.OfficersPerformServices == true && Data.ApproximatePayDate.HasValue)
+        if (Model.OfficersPerformServices == true && Model.ApproximatePayDate.HasValue)
         {
-            if (Data.ApproximatePayDate.Value <= DateOnly.FromDateTime(DateTime.Today))
+            if (Model.ApproximatePayDate.Value <= DateOnly.FromDateTime(DateTime.Today))
             {
                 _invalidFields.Add("ApproximatePayDate");
                 _fieldErrors["ApproximatePayDate"] = "Approximate pay date must be a future date.";
@@ -179,6 +180,6 @@
             ValidateSection();
         }
 
-        _ = OnDataChanged.InvokeAsync(Data);
+        _ = OnDataChanged.InvokeAsync(Model);
     }
 }
