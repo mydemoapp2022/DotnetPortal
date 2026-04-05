@@ -24,6 +24,11 @@ public class LlcDocumentationData
     // --- "No" branch ---
 
     /// <summary>
+    /// Haven't applied yet
+    /// </summary>
+    public NoDocReason? HaventApplied { get; set; }
+
+    /// <summary>
     /// The single reason the documentation cannot be submitted (mutually exclusive).
     /// </summary>
     public NoDocReason? NoDocumentationReason { get; set; }

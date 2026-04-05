@@ -3,7 +3,7 @@ namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 /// <summary>
 /// Data for the Qualified Settlement Fund (QSF) questionnaire section.
 /// </summary>
-public class QualifiedSettlementFundData
+public class QualifiedSettlementFundModel
 {
     /// <summary>
     /// Were the payments for services performed in Wisconsin?

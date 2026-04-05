@@ -46,7 +46,7 @@
             <div class="form-row">
                 <ValidatedInput Id="qsf-entity-legal-name"
                                 Label="Legal Name"
-                                Value="@Model.EntityLeganName"
+                                Value="@Model.EntityLegalName"
                                 ValueChanged="OnEntityLegalNameChanged"
                                 HasError="@(_showAllErrors && _invalidFields.Contains("EntityLeganName"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("EntityLeganName")"
@@ -204,24 +204,26 @@
     private void OnPaymentsForServicesChanged(bool? value)
     {
         Model.PaymentsForServices = value;
-        if (value != true)
+
+        if (value == true)
         {
-            // Clear 'No' branch data
+            // Switching to Yes — clear "No" branch data
             Model.PaymentReason = null;
         }
         else if (value == false)
         {
-            // Clear 'Yes' branch data
-            Model.EntityLeganName = null;
+            // Switching to No — clear "Yes" branch data
+            Model.EntityLegalName = null;
             Model.FederalIdNumber = null;
             Model.WisconsinUiAccountNumber = null;
             Model.ServiceAddress = new();
         }
+
         NotifyDataChanged();
     }
 
     // --- 'Yes' branch handlers ---
-    private void OnEntityLegalNameChanged(string value) { Model.EntityLeganName = value; NotifyDataChanged(); }
+    private void OnEntityLegalNameChanged(string value) { Model.EntityLegalName = value; NotifyDataChanged(); }
     private void OnFederalIdChanged(string value) { Model.FederalIdNumber = value; NotifyDataChanged(); }
     private void OnWiUiAccountChanged(string value) { Model.WisconsinUiAccountNumber = value; NotifyDataChanged(); }
     private void OnAddressLine1Changed(string value) { Model.ServiceAddress.AddressLine1 = value; NotifyDataChanged(); }
@@ -252,17 +254,18 @@
         // Must answer Yes or No
         if (Model.PaymentsForServices is null)
         {
-            _invalidFields.Add("PaymentForServices"); 
+            // BUG FIX: was "PaymentForServices" (missing 's') — must match template's Contains() check
+            _invalidFields.Add("PaymentsForServices");
             _fieldErrors["PaymentsForServices"] = "Please select whether the payments were for services";
-            _validationItems.Add(new ValidationItem(                                        
-                "Please select whether the payments were for services",        
+            _validationItems.Add(new ValidationItem(
+                "Please select whether the payments were for services",
                 "payments-for-services-group"));
         }
-                                                                     
+
         // "Yes" branch validations
         if (Model.PaymentsForServices == true)
         {
-            if (string.IsNullOrWhiteSpace(Model.EntityLeganName))
+            if (string.IsNullOrWhiteSpace(Model.EntityLegalName))
             {
                 _invalidFields.Add("EntityLeganName");
                 _fieldErrors["EntityLeganName"] = "Legal name is required";
@@ -280,7 +283,7 @@
                     "qsf-federal-id"));
             }
 
-            //Address validations
+            // Address validations
             if (string.IsNullOrWhiteSpace(Model.ServiceAddress.AddressLine1))
             {
                 _invalidFields.Add("AddressLine1");
@@ -318,7 +321,7 @@
         }
 
         // "No" branch validations
-        if(Model.PaymentsForServices == false)
+        if (Model.PaymentsForServices == false)
         {
             if (string.IsNullOrWhiteSpace(Model.PaymentReason))
             {
