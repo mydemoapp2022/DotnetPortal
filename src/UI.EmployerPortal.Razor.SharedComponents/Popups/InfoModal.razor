@@ -1,0 +1,81 @@
+@namespace UI.EmployerPortal.Razor.SharedComponents.Popups
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+
+    <div class="modal fade show d-block"
+         tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="@_titleId"
+         @onclick="HandleBackdropClick">
+
+        <div class="modal-dialog modal-dialog-scrollable @Size"
+             role="document"
+             @onclick:stopPropagation>
+            <div class="modal-content">
+
+                <div class="modal-header align-items-center gap-2">
+                    @if (TitleIcon is not null)
+                    {
+                        <span class="modal-title-icon">@TitleIcon</span>
+                    }
+                    <h5 class="modal-title flex-grow-1" id="@_titleId">@Title</h5>
+                    <button type="button"
+                            class="btn btn-link p-0 text-decoration-none modal-close-btn"
+                            @onclick="HandleClose"
+                            aria-label="Close">
+                        @CloseButtonText
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    @ChildContent
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Controls whether the modal is visible.</summary>
+    [Parameter, EditorRequired]
+    public bool IsVisible { get; set; }
+
+    /// <summary>Modal heading text.</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Invoked when the user closes the modal. Parent must set IsVisible = false.</summary>
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>Body content rendered inside the modal.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Optional icon rendered before the title.</summary>
+    [Parameter]
+    public RenderFragment? TitleIcon { get; set; }
+
+    /// <summary>Close button label. Defaults to "Cancel ×".</summary>
+    [Parameter]
+    public string CloseButtonText { get; set; } = "Cancel \u00D7";
+
+    /// <summary>Bootstrap size modifier: "modal-sm" | "modal-lg" | "modal-xl". Defaults to standard.</summary>
+    [Parameter]
+    public string Size { get; set; } = string.Empty;
+
+    /// <summary>When true, clicking the backdrop closes the modal. Defaults to true.</summary>
+    [Parameter]
+    public bool CloseOnBackdropClick { get; set; } = true;
+
+    private readonly string _titleId = $"info-modal-{Guid.NewGuid():N}";
+
+    private Task HandleClose() => OnClose.InvokeAsync();
+
+    private Task HandleBackdropClick() =>
+        CloseOnBackdropClick ? HandleClose() : Task.CompletedTask;
+}

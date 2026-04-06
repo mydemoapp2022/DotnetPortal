@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 
 /// <summary>
@@ -15,11 +13,9 @@ public class QualifiedSettlementFundModel
     // --- "Yes" branch ---
 
     /// <summary>Legal name of the entity that received the services.</summary>
-    [Required(ErrorMessage = "Legal name is required")]
     public string? EntityLegalName { get; set; }
 
     /// <summary>Federal Employer Identification Number of the entity.</summary>
-    [Required(ErrorMessage = "Federal ID Number is required")]
     public string? FederalIdNumber { get; set; }
 
     /// <summary>Wisconsin UI Account Number (optional).</summary>

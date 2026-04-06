@@ -2,7 +2,6 @@
 @using UI.EmployerPortal.Razor.SharedComponents.Validation
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
-@using Microsoft.AspNetCore.Components.Forms
 
 <div class="qsf-section">
     <p>
@@ -13,9 +12,9 @@
     </p>
     <p>
         According to your registration the Qualified Settlement Fund has paid wages or will pay wages
-        for work performed in Wisconsin. If the wages you have paid or plan to pay were not for work
-        performed in Wisconsin, then they should not be reported to Wisconsin for unemployment insurance.
-        We do not set up Qualified Settlement Funds as employers because the settlement fund itself
+        for work performed in Wisconsin. . If the wages you have paid or plan to pay were not for work
+        performed in Wisconsin, then they should not be reported to Wisconsin for unemployment insurance
+        . We do not set up Qualified Settlement Funds as employers because the settlement fund itself
         has no employment in Wisconsin. If the settlement fund is making payments to individuals with
         respect to services those individuals performed in Wisconsin, those payments would be considered
         covered wages reportable by the employer they worked for.
@@ -36,114 +35,127 @@
                     Options="@YesNoRadioOptions" />
     </div>
     <br />
+    <!-- "Yes" branch: Entity details + address -->
+    @if (Model.PaymentsForServices == true)
+    {
+        <div class="qsf-entity-details">
+            <p>Please provide the following information about the entity that received the services:</p>
 
-    @* Nested EditForm scopes a new EditContext to QualifiedSettlementFundModel
-       so OutlinedTextField's cascaded EditContext resolves to the correct model. *@
-    <EditForm EditContext="_editContext">
-        <DataAnnotationsValidator />
+            <div class="form-row">
+                <ValidatedInput Id="qsf-entity-legal-name"
+                                Label="Legal Name"
+                                Value="@Model.EntityLegalName"
+                                ValueChanged="OnEntityLegalNameChanged"
+                                HasError="@_invalidFields.Contains("EntityLegalName")"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("EntityLegalName")"
+                                Visible="@_showAllErrors"
+                                Width="330" />
+            </div>
+            
+            <div class="qsf-id-row form-row">
+                <ValidatedInput Id="qsf-federal-id"
+                                Label="Federal ID Number"
+                                Value="@Model.FederalIdNumber"
+                                ValueChanged="OnFederalIdChanged"
+                                HasError="@_invalidFields.Contains("FederalIdNumber")"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("FederalIdNumber")"
+                                Visible="@_showAllErrors"
+                                MaxLength="10"
+                                Width="330" />
 
-        <!-- "Yes" branch: Entity details + address -->
-        @if (Model.PaymentsForServices == true)
-        {
-            <div class="qsf-entity-details">
-                <p>Please provide the following information about the entity that received the services:</p>
+                <ValidatedInput Id="qsf-wi-ui-account"
+                                Label="Wisconsin UI Account number (Optional)"
+                                Value="@Model.WisconsinUiAccountNumber"
+                                ValueChanged="OnWiUiAccountChanged"
+                                HasError="false"
+                                Width="330" />
+            </div>
 
-                <div class="form-row">
-                    <OutlinedTextField Id="qsf-entity-legal-name"
-                                       Label="Legal Name"
-                                       @bind-Value="Model.EntityLegalName"
-                                       For="() => Model.EntityLegalName"
-                                       Visible="@_showAllErrors" />
+            <p><strong>Wisconsin address where services were performed:</strong></p>
+
+            <div class="qsf-address-row form-row">
+                <ValidatedInput Id="qsf-address-line1"
+                                Label="Address Line 1"
+                                Value="@Model.ServiceAddress.AddressLine1"
+                                ValueChanged="OnAddressLine1Changed"
+                                HasError="@_invalidFields.Contains("AddressLine1")"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("AddressLine1")"
+                                Visible="@_showAllErrors"
+                                Width="330" />
+
+                <ValidatedInput Id="qsf-address-line2"
+                                Label="Address Line 2 (Optional)"
+                                Value="@Model.ServiceAddress.AddressLine2"
+                                ValueChanged="OnAddressLine2Changed"
+                                HasError="false"
+                                Width="330" />
+            </div>
+
+            <div class="qsf-address-row form-row">
+                <ValidatedInput Id="qsf-city"
+                                Label="City"
+                                Value="@Model.ServiceAddress.City"
+                                ValueChanged="OnCityChanged"
+                                HasError="@_invalidFields.Contains("City")"
+                                ErrorMessage="@_fieldErrors.GetValueOrDefault("City")"
+                                Visible="@_showAllErrors"
+                                Width="330" />
+
+                <StateSelect Id="registration-state"
+                             Label="State"
+                             Value="@Model.ServiceAddress.State"
+                             ValueChanged="OnStateChanged"
+                             HasError="@_invalidFields.Contains("State")"
+                             ErrorMessage="@_fieldErrors.GetValueOrDefault("State")"
+                             CssClass="master-input form-select-small"
+                             Visible="_showAllErrors" />
+            </div>
+            <div class="bi-zip-row">
+                <div class="bi-zip-field">
+                    <ValidatedInput Id="qsf-zip-code"
+                                    Label="Zip Code"
+                                    Value="@Model.ServiceAddress.ZipCode"
+                                    ValueChanged="OnZipCodeChanged"
+                                    HasError="@_invalidFields.Contains("ZipCode")"
+                                    ErrorMessage="@_fieldErrors.GetValueOrDefault("ZipCode")"
+                                    Visible="@_showAllErrors"
+                                    MaxLength="5"
+                                    Width="130" />
                 </div>
-
-                <div class="qsf-id-row form-row">
-                    <OutlinedTextField Id="qsf-federal-id"
-                                       Label="Federal ID Number"
-                                       @bind-Value="Model.FederalIdNumber"
-                                       For="() => Model.FederalIdNumber"
-                                       Visible="@_showAllErrors"
-                                       Mask="00-0000000" />
-
-                    <OutlinedTextField Id="qsf-wi-ui-account"
-                                       Label="Wisconsin UI Account Number (Optional)"
-                                       @bind-Value="Model.WisconsinUiAccountNumber"
-                                       For="() => Model.WisconsinUiAccountNumber" />
-                </div>
-
-                <p><strong>Wisconsin address where services were performed:</strong></p>
-
-                <div class="qsf-address-row form-row">
-                    <OutlinedTextField Id="qsf-address-line1"
-                                       Label="Address Line 1"
-                                       @bind-Value="Model.ServiceAddress.AddressLine1"
-                                       For="() => Model.ServiceAddress.AddressLine1"
-                                       Visible="@_showAllErrors" />
-
-                    <OutlinedTextField Id="qsf-address-line2"
-                                       Label="Address Line 2 (Optional)"
-                                       @bind-Value="Model.ServiceAddress.AddressLine2"
-                                       For="() => Model.ServiceAddress.AddressLine2" />
-                </div>
-
-                <div class="qsf-address-row form-row">
-                    <OutlinedTextField Id="qsf-city"
-                                       Label="City"
-                                       @bind-Value="Model.ServiceAddress.City"
-                                       For="() => Model.ServiceAddress.City"
-                                       Visible="@_showAllErrors" />
-
-                    <StateSelect Id="registration-state"
-                                 Label="State"
-                                 Value="@Model.ServiceAddress.State"
-                                 ValueChanged="OnStateChanged"
-                                 HasError="@_invalidFields.Contains("State")"
-                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("State")"
-                                 CssClass="master-input form-select-small"
-                                 Visible="_showAllErrors" />
-                </div>
-
-                <div class="bi-zip-row">
-                    <div class="bi-zip-field">
-                        <OutlinedTextField Id="qsf-zip-code"
-                                           Label="Zip Code"
-                                           @bind-Value="Model.ServiceAddress.ZipCode"
-                                           For="() => Model.ServiceAddress.ZipCode"
-                                           Visible="@_showAllErrors"
-                                           MaxLength="5"
-                                           InputMode="numeric" />
-                    </div>
-                    <span class="bi-zip-dash">—</span>
-                    <div class="bi-ext-field">
-                        <OutlinedTextField Id="qsf-zip-ext"
-                                           Label="Ext. (Optional)"
-                                           @bind-Value="Model.ServiceAddress.ZipExtension"
-                                           For="() => Model.ServiceAddress.ZipExtension"
-                                           MaxLength="4"
-                                           InputMode="numeric" />
-                    </div>
+                <span class="bi-zip-dash">—</span>
+                <div class="bi-ext-field">
+                    <ValidatedInput Id="qsf-zip-ext"
+                                    Label="Ext. (Optional)"
+                                    Value="@Model.ServiceAddress.ZipExtension"
+                                    ValueChanged="OnZipExtChanged"
+                                    HasError="false"
+                                    MaxLength="4"
+                                    Width="130" />
                 </div>
             </div>
-        }
+        </div>
+    }
 
-        <!-- "No" branch: Reason for payments -->
-        @if (Model.PaymentsForServices == false)
-        {
-            <div class="qsf-no-services">
-                <ValidatedTextArea Id="qsf-payment-reason"
-                                   Label="Provide reason for payments below"
-                                   Value="@(Model.PaymentReason)"
-                                   ValueChanged="OnPaymentReasonChanged"
-                                   HasError="@_invalidFields.Contains("PaymentReason")"
-                                   ErrorMessage="@_fieldErrors.GetValueOrDefault("PaymentReason")"
-                                   Visible="@_showAllErrors"
-                                   Rows="3" />
-            </div>
-        }
-    </EditForm>
+    <!-- No : Reason for payments -->
+    @if (Model.PaymentsForServices == false)
+    {
+        <div class="qsf-no-services">
+            <ValidatedTextArea Id="qsf-payment-reason"
+                               Label="Provide reason for payments below"
+                               Value="@(Model.PaymentReason)"
+                               ValueChanged="OnPaymentReasonChanged"
+                               HasError="@_invalidFields.Contains("PaymentReason")"
+                               ErrorMessage="@_fieldErrors.GetValueOrDefault("PaymentReason")"
+                               Visible="@_showAllErrors"
+                               Rows="3" />
+        </div>
+    }
 
     <!-- File Upload -->
     <div class="file-upload-section">
         <h3 class="section-subtitle">File upload</h3>
+
+
     </div>
 
     <!-- Will provide documentation later checkbox -->
@@ -172,9 +184,6 @@
         new RadioOption<bool?> { Value = false, Label = "No" }
     ];
 
-    // Scoped EditContext for OutlinedTextField — separate from the outer OwnershipSessionData context
-    private EditContext _editContext = default!;
-
     private HashSet<string> _invalidFields = [];
     private Dictionary<string, string> _fieldErrors = [];
     private List<ValidationItem> _validationItems = [];
@@ -182,8 +191,6 @@
 
     protected override void OnInitialized()
     {
-        _editContext = new EditContext(Model);
-
         RegisterValidate?.Invoke(() =>
         {
             _showAllErrors = true;
@@ -216,7 +223,18 @@
         NotifyDataChanged();
     }
 
+    // --- 'Yes' branch handlers ---
+    private void OnEntityLegalNameChanged(string value) { Model.EntityLegalName = value; NotifyDataChanged(); }
+    private void OnFederalIdChanged(string value) { Model.FederalIdNumber = value; NotifyDataChanged(); }
+    private void OnWiUiAccountChanged(string value) { Model.WisconsinUiAccountNumber = value; NotifyDataChanged(); }
+    private void OnAddressLine1Changed(string value) { Model.ServiceAddress.AddressLine1 = value; NotifyDataChanged(); }
+    private void OnAddressLine2Changed(string value) { Model.ServiceAddress.AddressLine2 = value; NotifyDataChanged(); }
+    private void OnCityChanged(string value) { Model.ServiceAddress.City = value; NotifyDataChanged(); }
     private void OnStateChanged(string value) { Model.ServiceAddress.State = value; NotifyDataChanged(); }
+    private void OnZipCodeChanged(string value) { Model.ServiceAddress.ZipCode = value; NotifyDataChanged(); }
+    private void OnZipExtChanged(string value) { Model.ServiceAddress.ZipExtension = value; NotifyDataChanged(); }
+
+    // --- 'No' branch handlers ---
     private void OnPaymentReasonChanged(string value) { Model.PaymentReason = value; NotifyDataChanged(); }
 
     private void OnProvideLaterChanged(bool value)
@@ -234,40 +252,72 @@
         _fieldErrors.Clear();
         _validationItems.Clear();
 
-        // Trigger EditContext validation so OutlinedTextField fields show errors via DataAnnotations
-        _editContext.Validate();
-
         // Must answer Yes or No
         if (Model.PaymentsForServices is null)
         {
             _invalidFields.Add("PaymentsForServices");
+            _fieldErrors["PaymentsForServices"] = "Please select whether the payments were for services";
             _validationItems.Add(new ValidationItem(
                 "Please select whether the payments were for services",
                 "payments-for-services-group"));
         }
 
-        // "Yes" branch — collect errors from EditContext validation messages
+        // "Yes" branch validations
         if (Model.PaymentsForServices == true)
         {
-            CollectEditContextError(() => Model.EntityLegalName,
-                "Please enter the legal name of the entity that received the services",
-                "qsf-entity-legal-name");
+            if (string.IsNullOrWhiteSpace(Model.EntityLegalName))
+            {
+                _invalidFields.Add("EntityLegalName");
+                _fieldErrors["EntityLegalName"] = "Legal name is required";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the legal name of the entity that received the services",
+                    "qsf-entity-legal-name"));
+            }
 
-            CollectEditContextError(() => Model.FederalIdNumber,
-                "Please enter the Federal ID Number",
-                "qsf-federal-id");
+            if (string.IsNullOrWhiteSpace(Model.FederalIdNumber))
+            {
+                _invalidFields.Add("FederalIdNumber");
+                _fieldErrors["FederalIdNumber"] = "Federal Id Number is required";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the Federal Id Number",
+                    "qsf-federal-id"));
+            }
 
-            CollectEditContextError(() => Model.ServiceAddress.AddressLine1,
-                "Please enter Address Line 1",
-                "qsf-address-line1");
+            // Address validations
+            if (string.IsNullOrWhiteSpace(Model.ServiceAddress.AddressLine1))
+            {
+                _invalidFields.Add("AddressLine1");
+                _fieldErrors["AddressLine1"] = "Address Line 1 is required";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the Address Line 1",
+                    "qsf-address-line1"));
+            }
 
-            CollectEditContextError(() => Model.ServiceAddress.City,
-                "Please enter the city",
-                "qsf-city");
+            if (string.IsNullOrWhiteSpace(Model.ServiceAddress.City))
+            {
+                _invalidFields.Add("City");
+                _fieldErrors["City"] = "City is required";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the city",
+                    "qsf-city"));
+            }
 
-            CollectEditContextError(() => Model.ServiceAddress.ZipCode,
-                "Please enter the zip code",
-                "qsf-zip-code");
+            if (string.IsNullOrWhiteSpace(Model.ServiceAddress.ZipCode))
+            {
+                _invalidFields.Add("ZipCode");
+                _fieldErrors["ZipCode"] = "Zip Code is required";
+                _validationItems.Add(new ValidationItem(
+                    "Please enter the zip code",
+                    "qsf-zip-code"));
+            }
+            else if (Model.ServiceAddress.ZipCode.Length != 5 || !Model.ServiceAddress.ZipCode.All(char.IsDigit))
+            {
+                _invalidFields.Add("ZipCode");
+                _fieldErrors["ZipCode"] = "Zip Code must be 5 digits";
+                _validationItems.Add(new ValidationItem(
+                    "Zip Code must be 5 digits",
+                    "qsf-zip-code"));
+            }
         }
 
         // "No" branch validations
@@ -287,25 +337,9 @@
         return _validationItems;
     }
 
-    /// <summary>
-    /// Reads validation messages from the scoped EditContext for a given field
-    /// and adds any errors to _validationItems for the parent banner.
-    /// </summary>
-    private void CollectEditContextError<T>(
-        System.Linq.Expressions.Expression<Func<T>> fieldExpression,
-        string bannerMessage,
-        string fieldId)
-    {
-        var fi = FieldIdentifier.Create(fieldExpression);
-        var messages = _editContext.GetValidationMessages(fi);
-        if (messages.Any())
-        {
-            _validationItems.Add(new ValidationItem(bannerMessage, fieldId));
-        }
-    }
-
     private void NotifyDataChanged()
     {
+        // Always re-validate so _invalidFields stays current for per-field HasError bindings
         ValidateSection();
         _ = OnDataChanged.InvokeAsync(Model);
     }

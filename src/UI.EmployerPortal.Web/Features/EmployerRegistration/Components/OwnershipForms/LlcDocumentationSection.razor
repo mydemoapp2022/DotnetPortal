@@ -1,4 +1,5 @@
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.Popups
 @using UI.EmployerPortal.Razor.SharedComponents.Validation
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
@@ -7,27 +8,12 @@
     <p>
         You indicated that your limited liability company (LLC) has elected to be taxed as a
         corporation for federal tax purposes.
+        <strong>You must submit a copy of the Notice of Acceptance</strong> issued to you by the
+        IRS, or other
+        <a href="#" class="info-link" @onclick="OpenModal" @onclick:preventDefault>
+            acceptable supporting documentation
+        </a>.
     </p>
-    <p>
-        Wisconsin Unemployment Insurance law treats a multimember LLC as a partnership and a single
-        member LLC as a sole proprietorship unless the company files proof with the department that
-        the Internal Revenue Service has agreed to treat the LLC as a corporation. Business owners
-        of entities taxed as partnerships or sole proprietorships are excluded from Wisconsin
-        Unemployment Insurance tax law and their earnings should not be reported to this department.
-    </p>
-    <p>
-        You must submit a copy of the Notice of Acceptance issued to you by the IRS. We can also
-        accept the following as proof that the IRS has agreed to treat the LLC as a Corporation:
-    </p>
-    <ul class="info-list">
-        <li>
-            IRS Documentation of accepted e-file of the 1120 or 1120S corporate tax return
-            for any year along with a copy of the first page of the filed tax return.
-        </li>
-        <li>
-            First page of 1120 or 1120S corporate tax returns from the two most recent filing years.
-        </li>
-    </ul>
     <br />
     <!-- Has Documentation Question -->
     <div id="has-documentation-group"
@@ -130,6 +116,46 @@
     
 </div>
 
+<!-- Acceptable Documentation modal -->
+<InfoModal IsVisible="@_showModal"
+           Title="Acceptable Documentation"
+           OnClose="CloseModal">
+    <TitleIcon>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V11H13V17ZM13 9H11V7H13V9Z" fill="#1565C0" />
+        </svg>
+    </TitleIcon>
+    <ChildContent>
+        <p>
+            You indicated that your limited liability company (LLC) has elected to be taxed as a
+            corporation for federal tax purposes.
+        </p>
+        <p>
+            Wisconsin Unemployment Insurance law treats a multimember LLC as a partnership and a
+            single member LLC as a sole proprietorship unless the company files proof with the
+            department that the Internal Revenue Service has agreed to treat the LLC as a
+            corporation. Business owners of entities taxed as partnerships or sole
+            proprietorships are excluded from Wisconsin Unemployment Insurance tax law and their
+            earnings should not be reported to this department.
+        </p>
+        <p>
+            You must submit a copy of the <strong>Notice of Acceptance</strong> issued to you by
+            the IRS. We can also accept the following as proof that the IRS has agreed to treat
+            the LLC as a Corporation:
+        </p>
+        <ul>
+            <li>
+                IRS Documentation of accepted e-file of the 1120 or 1120S corporate tax return
+                for any year along with a copy of the first page of the filed tax return.
+            </li>
+            <li>
+                First page of 1120 or 1120S corporate tax returns from the two most recent
+                filing years.
+            </li>
+        </ul>
+    </ChildContent>
+</InfoModal>
+
 @code {
     private const long MaxFileSizeBytes = 20 * 1024 * 1024; // 20 MB
     private static readonly string[] AllowedExtensions = [".pdf", ".jpg", ".jpeg", ".heic", ".png"];
@@ -153,6 +179,7 @@
     private Dictionary<string, string> _fieldErrors = [];
     private List<ValidationItem> _validationItems = [];
     private bool _showAllErrors;
+    private bool _showModal;
 
     protected override void OnInitialized()
     {
@@ -162,6 +189,9 @@
             return ValidateSection();
         });
     }
+
+    private void OpenModal() => _showModal = true;
+    private void CloseModal() => _showModal = false;
 
     private void OnHasDocumentationChanged(bool? value)
     {

@@ -26,7 +26,7 @@ public class LlcDocumentationData
     /// <summary>
     /// Haven't applied yet
     /// </summary>
-    public NoDocReason? HaventApplied { get; set; }
+    public bool HaventApplied { get; set; }
 
     /// <summary>
     /// The single reason the documentation cannot be submitted (mutually exclusive).
@@ -38,6 +38,11 @@ public class LlcDocumentationData
     /// Conditional on <see cref="NoDocumentationReason"/> == <see cref="NoDocReason.HaventApplied"/>.
     /// </summary>
     public DateOnly? PlannedSubmissionDate { get; set; }
+
+    /// <summary>
+    /// Haven't applied yet
+    /// </summary>
+    public bool AppliedNoDecision { get; set; }
 
     /// <summary>
     /// What date was the application submitted to the IRS? (must be a past date)

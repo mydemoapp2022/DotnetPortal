@@ -1,0 +1,20 @@
+/* "Cancel ×" close button */
+.modal-close-btn {
+    color: #1565C0;
+    font-size: 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+    .modal-close-btn:hover {
+        color: #0d47a1;
+        text-decoration: underline !important;
+    }
+
+/* Icon slot next to the title */
+.modal-title-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: #1565C0;
+}
