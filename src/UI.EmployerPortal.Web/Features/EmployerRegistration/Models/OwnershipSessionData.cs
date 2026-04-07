@@ -80,5 +80,5 @@ public class OwnershipSessionData
     /// Qualified Settlement Fund (QSF) questionnaire data — for QSF ownership type
     /// when registrant has paid or will pay wages.
     /// </summary>
-    public QualifiedSettlementFundData? QualifiedSettlementFund { get; set; }
+    public QualifiedSettlementFundModel? QualifiedSettlementFund { get; set; }
 }

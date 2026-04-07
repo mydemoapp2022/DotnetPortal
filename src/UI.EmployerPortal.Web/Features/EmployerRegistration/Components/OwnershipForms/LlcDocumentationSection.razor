@@ -30,7 +30,7 @@
                     Options="@YesNoRadioOptions"
                     CSS="@(_showAllErrors && _invalidFields.Contains("HasRequiredDocumentation") ? "invalid" : "valid")" />
     </div>
-    <br/>
+    <br />
     <!-- File Upload when Yes -->
     @if (Model.HasRequiredDocumentation == true)
     {
@@ -39,7 +39,7 @@
 
             
         </div>
-    }  
+    }
     <!-- Reason and Acknowledge when No -->
     @if (Model.HasRequiredDocumentation == false)
     {
@@ -47,20 +47,22 @@
             <div id="no-doc-reason-group"
                  class="@(_showAllErrors && _invalidFields.Contains("NoDocReason") ? "master-text-field--error" : "")">
                 <p><strong>What is the reason the documentation cannot be submitted at this time?</strong></p>
-                
+
                 @if (_showAllErrors && _invalidFields.Contains("NoDocReason"))
                 {
-                    <ValidationError ErrorMessage="Please select at least one reason" />
+                    <ValidationError ErrorMessage="Please select a reason" />
                 }
-                <CheckboxInput Id="havent-applied"
-                               Label="We haven't applied yet"
-                               Value="@Model.HaventApplied"
-                               ValueChanged="OnHaventAppliedChanged"/>
-                <br />
-                @if (Model.HaventApplied)
+                <RadioGroup TValue="NoDocReason ?"
+                            Value="Model.NoDocumentationReason"
+                            ValueChanged="OnNoDocReasonChanged"
+                            ValueExpression="() => Model.NoDocumentationReason"
+                            Options="@NoDocReasonOptions"
+                            CSS="@(_showAllErrors && _invalidFields.Contains("NoDocReason") ? "invalid" : "valid")" />
+
+                @if (Model.NoDocumentationReason == NoDocReason.HaventApplied)
                 {
                     <ValidatedDateInput Id="planned-submission-date"
-                                        Label="when do you plan to submit your application to the IRS?"
+                                        Label="When do you plan to submit your application to the IRS?"
                                         Value="@(Model.PlannedSubmissionDate?.ToDateTime(TimeOnly.MinValue))"
                                         ValueChanged="OnPlannedSubmissionDateChanged"
                                         Min="@DateTime.Today.AddDays(1)"
@@ -68,16 +70,10 @@
                                         CSS="large-date-input"
                                         HasError="@(_showAllErrors && _invalidFields.Contains("PlannedSubmissionDate"))"
                                         ErrorMessage="@_fieldErrors.GetValueOrDefault("PlannedSubmissionDate")"
-                                        Visible="_showAllErrors"/>
+                                        Visible="_showAllErrors" />
                 }
-                
-                <!-- Checkbox: we applied and have not receiveed a decision.-->
-                <CheckboxInput Id="applied-no-decision"
-                               Label="We applied and have not received a decision from the IRS"
-                               Value="@Model.AppliedNoDecision"
-                               ValueChanged="OnAppliedNoDecisionChanged" />
-                <br />
-                @if (Model.AppliedNoDecision)
+
+                @if (Model.NoDocumentationReason == NoDocReason.AppliedNoDecision)
                 {
                     <ValidatedDateInput Id="application-submitted-date"
                                         Label="What date was the application submitted to the IRS?"
@@ -110,7 +106,6 @@
                 purposes. Any compensation received by members performing services for the LLC
                 will be considered wages subject to Ul tax.
             </p>
-
         </div>
     }
     
@@ -175,6 +170,12 @@
         new RadioOption<bool?> { Value = false, Label = "No" }
     ];
 
+    private static readonly IReadOnlyList<RadioOption<NoDocReason?>> NoDocReasonOptions =
+    [
+        new RadioOption<NoDocReason?> { Value = NoDocReason.HaventApplied, Label = "We haven't applied yet." },
+        new RadioOption<NoDocReason?> { Value = NoDocReason.AppliedNoDecision, Label = "We applied and have not received a decision from the IRS." }
+    ];
+
     private HashSet<string> _invalidFields = [];
     private Dictionary<string, string> _fieldErrors = [];
     private List<ValidationItem> _validationItems = [];
@@ -200,29 +201,19 @@
     }
 
     // -- "No" branch handlers ---
-    private void OnHaventAppliedChanged(bool value)
+    private void OnNoDocReasonChanged(NoDocReason? value)
     {
-        Model.HaventApplied = value;
-        if (!Model.HaventApplied)
-        {
+        Model.NoDocumentationReason = value;
+        if (value != NoDocReason.HaventApplied)
             Model.PlannedSubmissionDate = null;
-        }
+        if (value != NoDocReason.AppliedNoDecision)
+            Model.ApplicationSubmittedDate = null;
         NotifyDataChanged();
     }
 
     private void OnPlannedSubmissionDateChanged(DateTime? value)
     {
         Model.PlannedSubmissionDate = value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
-        NotifyDataChanged();
-    }
-
-    private void OnAppliedNoDecisionChanged(bool value)
-    {
-        Model.AppliedNoDecision = value;
-        if (!Model.AppliedNoDecision)
-        {
-            Model.ApplicationSubmittedDate = null;
-        }
         NotifyDataChanged();
     }
 
@@ -256,17 +247,17 @@
         }
 
         // "No" branch validations
-        if(Model.HasRequiredDocumentation == false)
+        if (Model.HasRequiredDocumentation == false)
         {
-            if(!Model.HaventApplied && !Model.AppliedNoDecision)
+            if (Model.NoDocumentationReason is null)
             {
                 _invalidFields.Add("NoDocReason");
                 _validationItems.Add(new ValidationItem(
-                    "Please select at least one reason the documentation cannot be submitted",
+                    "Please select a reason the documentation cannot be submitted",
                     "no-doc-reason-group"));
             }
 
-            if (Model.HaventApplied)
+            if (Model.NoDocumentationReason == NoDocReason.HaventApplied)
             {
                 if (!Model.PlannedSubmissionDate.HasValue)
                 {
@@ -276,7 +267,7 @@
                         "Please enter the date you plan to submit your application to the IRS",
                         "planned-submission-date"));
                 }
-                else if(Model.PlannedSubmissionDate.Value <= DateOnly.FromDateTime(DateTime.Today))
+                else if (Model.PlannedSubmissionDate.Value <= DateOnly.FromDateTime(DateTime.Today))
                 {
                     _invalidFields.Add("PlannedSubmissionDate");
                     _fieldErrors["PlannedSubmissionDate"] = "Planned submission date must be a future date";
@@ -286,7 +277,7 @@
                 }
             }
 
-            if (Model.AppliedNoDecision)
+            if (Model.NoDocumentationReason == NoDocReason.AppliedNoDecision)
             {
                 if (!Model.ApplicationSubmittedDate.HasValue)
                 {
@@ -299,7 +290,7 @@
                 else if (Model.ApplicationSubmittedDate.Value >= DateOnly.FromDateTime(DateTime.Today))
                 {
                     _invalidFields.Add("ApplicationSubmittedDate");
-                    _fieldErrors["ApplicationSubmittedDate"] = "Application submission date must be a future date";
+                    _fieldErrors["ApplicationSubmittedDate"] = "Application submission date must be a past date";
                     _validationItems.Add(new ValidationItem(
                         "Application submitted date must be a past date",
                         "application-submitted-date"));
@@ -308,10 +299,10 @@
 
             if (!Model.AcknowledgeSubmitDocumentation)
             {
-                _invalidFields.Add("AcknowledgeSubmitDocumentation");
+                _invalidFields.Add("Acknowledge");
                 _validationItems.Add(new ValidationItem(
-                        "You must acknowledge that you will submit the required documentation",
-                        "acknowledge-group"));
+                    "You must acknowledge that you will submit the required documentation",
+                    "acknowledge-group"));
             }
         }
 

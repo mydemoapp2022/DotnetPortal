@@ -51,7 +51,7 @@ public partial class Ownership
     private QualifiedSettlementFundSection? _qsfSectionRef;
     private CorporateOfficerServicesData _corporateOfficerServicesData = new();
     private LlcDocumentationData _llcDocumentationData = new();
-    private QualifiedSettlementFundData _qsfData = new();
+    private QualifiedSettlementFundModel _qsfData = new();
     private Func<List<ValidationItem>>? _officerServicesValidateCallback;
     private Func<List<ValidationItem>>? _llcDocValidateCallback;
     private Func<List<ValidationItem>>? _qsfValidateCallback;
@@ -61,16 +61,14 @@ public partial class Ownership
     /// - Ownership = Corporation or LLCCorporation
     /// - Step 1: HavePaid = No AND ExpectFuture = No
     /// </summary>
-    private bool ShowCorporateOfficerServicesSection => Model.OwnershipType is OwnershipType.Corporation or OwnershipType.LLCCorporation
-                                                    && !HasPaidEmployeesInWI
-                                                && !ExpectsFuturePayroll;
+    private bool ShowCorporateOfficerServicesSection => Model.OwnershipType is (OwnershipType.Corporation or OwnershipType.LLCCorporation)
+                                                        && !HasPaidEmployeesInWI
+                                                        && !ExpectsFuturePayroll;
 
     /// <summary>
     /// Show the LLC Documentation section when ownership = LLCCorporation
     /// </summary>
-    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation
-                                                && !HasPaidEmployeesInWI
-                                                && !ExpectsFuturePayroll;
+    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation;
 
     /// <summary>
     /// Show the Qualified Settlement Fund (QSF) section when:
@@ -94,59 +92,56 @@ public partial class Ownership
     public async Task<bool> Validate()
     {
         _showValidationSummary = true;
+
+        // Clear both lists up-front so they stay in sync across repeated calls
+        ValidationErrors.Clear();
+        ValidationFieldIds.Clear();
+
+        // Ownership type validation (inserts at index 0 if None)
         EnsureOwnershipTypeValidationError();
 
+        // Main ownership form validation (returns messages only, no field IDs)
         if (_validateCallback != null)
         {
-            ValidationErrors = _validateCallback().Distinct().ToList();
-            EnsureOwnershipTypeValidationError();
-        }
-
-        // Validate LLC Documentation section
-        if (ShowLlcDocumentationSection && _llcDocValidateCallback != null)
-        {
-            var llcItems = _llcDocValidateCallback();
-            foreach (var item in llcItems)
+            foreach (var msg in _validateCallback().Distinct())
             {
-                if (!ValidationErrors.Contains(item.Message))
+                if (!ValidationErrors.Contains(msg))
                 {
-                    ValidationErrors.Add(item.Message);
-                    ValidationFieldIds.Add(item.FieldId);
+                    ValidationErrors.Add(msg);
+                    ValidationFieldIds.Add(string.Empty);
                 }
             }
         }
 
-        // Validate Corporate Officer Services section
-        if (ShowCorporateOfficerServicesSection && _officerServicesValidateCallback != null)
-        {
-            var cosItems = _officerServicesValidateCallback();
-            foreach (var item in cosItems)
-            {
-                if (!ValidationErrors.Contains(item.Message))
-                {
-                    ValidationErrors.Add(item.Message);
-                    ValidationFieldIds.Add(item.FieldId);
-                }
-            }
-        }
-
-        // Validate Qualified Settlement Fund section
-        if (ShowQsfSection && _qsfValidateCallback != null)
-        {
-            var qsfItems = _qsfValidateCallback();
-            foreach (var item in qsfItems)
-            {
-                if (!ValidationErrors.Contains(item.Message))
-                {
-                    ValidationErrors.Add(item.Message);
-                    ValidationFieldIds.Add(item.FieldId);
-                }
-            }
-        }
+        // Aggregate all visible section validations
+        AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
+        AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
+        AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
 
         _showValidationSummary = !IsFormValid();
         await InvokeAsync(StateHasChanged);
         return IsFormValid();
+    }
+
+    /// <summary>
+    /// Merges a section's validation items into the aggregate error/field-ID lists,
+    /// keeping both lists in sync and de-duplicating by message text.
+    /// </summary>
+    private void AggregateSectionErrors(bool showSection, Func<List<ValidationItem>>? validateCallback)
+    {
+        if (!showSection || validateCallback is null)
+        {
+            return;
+        }
+
+        foreach (var item in validateCallback())
+        {
+            if (!ValidationErrors.Contains(item.Message))
+            {
+                ValidationErrors.Add(item.Message);
+                ValidationFieldIds.Add(item.FieldId);
+            }
+        }
     }
 
     // Component mapping dictionary
@@ -411,6 +406,7 @@ public partial class Ownership
             {
                 case OwnershipType.LLC:
                 case OwnershipType.LLP:
+                case OwnershipType.LLCCorporation:
                 case OwnershipType.Partnership:
                     if (_childFormData is MemberBasedFormData memberData)
                     {
@@ -430,7 +426,6 @@ public partial class Ownership
                     break;
 
                 case OwnershipType.Corporation:
-                case OwnershipType.LLCCorporation:
                     if (_childFormData is CorporationFormData corpData)
                     {
                         Model.IncorporationState = corpData.IncorporationState;
@@ -472,7 +467,7 @@ public partial class Ownership
         Model.LlcDocumentation = data;
     }
 
-    private void OnQsfDataChanged(QualifiedSettlementFundData data)
+    private void OnQsfDataChanged(QualifiedSettlementFundModel data)
     {
         _qsfData = data;
         Model.QualifiedSettlementFund = data;
