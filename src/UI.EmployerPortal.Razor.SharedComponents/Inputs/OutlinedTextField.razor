@@ -21,6 +21,7 @@
            disabled="@Disabled"
            aria-label="@Label"
            aria-invalid="@HasError"
+           placeholder="@Placeholder"
            aria-required="@IsRequired"
            aria-describedby="@AriaDescribedBy" />
 
@@ -35,7 +36,7 @@
     {
         <div id="@ErrorId" class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <mask id="mask0_5694_133" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
+                <mask id="mask0_5694_133" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
                     <rect y="2" width="12" height="12" fill="#D9D9D9" />
                 </mask>
 
@@ -93,6 +94,11 @@
     /// Expression to identify the bound field for validation. Primary Parameter
     /// </summary>
     [Parameter] public Expression<Func<string?>>? For { get; set; }
+
+    /// <summary>
+    /// Optional placeholder text displayed inside the input when it has no value.
+    /// </summary>
+    [Parameter] public string? Placeholder { get; set; }
 
     /// <summary>
     /// Automatically provided by @bind-value. Falls back to this when For is not set.
@@ -229,12 +235,9 @@
         {
             raw = ApplyMask(raw, Mask);
         }
-        else if (InputMode == "numeric")
-        {
-            raw = new string(raw.Where(char.IsDigit).ToArray());
-            if (MaxLength.HasValue && raw.Length > MaxLength.Value)
-                raw = raw[..MaxLength.Value];
-        }
+        // If numeric type and MaxLength set, truncate
+        else if (InputMode == "numeric" && MaxLength.HasValue && raw.Length > MaxLength.Value)
+            raw = raw[..MaxLength.Value];
 
         Value = raw;
 

@@ -3,7 +3,7 @@ namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 /// <summary>
 /// Data for LLC Corporation documentation section (UCT-10334-E)
 /// </summary>
-public class LlcDocumentationData
+public class LlcDocumentationModel
 {
     /// <summary>
     /// Does the registrant have the required documentation available to upload?

@@ -450,7 +450,7 @@
 
 /* Or use a fixed width */
 ::deep .form-select-small {
-    max-width: 350px;
+    max-width: 330px;
     width: 100%;
 }
 
@@ -661,7 +661,61 @@
     color: #C62828;
 }
 
+::deep .radio-option .radio-label {
+    color: #000;
+}
+
 ::deep .file-upload-dropzone--drag-over {
     border-color: #1565C0;
     background-color: #e3f2fd;
+}
+
+::deep .large-date-input {
+}
+
+    ::deep .large-date-input label {
+        width: 385px;
+    }
+
+
+/* 2-column grid — 330px per column, 24px gap = 684px */
+::deep .bi-fields-grid {
+    display: grid;
+    grid-template-columns: 330px 330px;
+    gap: 24px;
+    width: 684px;
+}
+
+::deep .bi-field {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Zip + Extension row */
+::deep .bi-zip-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    grid-column: span 1;
+}
+
+::deep .bi-zip-field {
+    flex: 0 0 140px;
+}
+
+::deep .bi-ext-field {
+    flex: 1;
+}
+
+::deep .bi-zip-dash {
+    font-family: Verdana, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #424242;
+    flex-shrink: 0;
+    padding-top: 16px;
+}
+
+::deep .form-check label {
+    color: #000;
 }

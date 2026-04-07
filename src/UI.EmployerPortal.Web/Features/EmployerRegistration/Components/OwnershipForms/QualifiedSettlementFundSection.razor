@@ -20,7 +20,7 @@
         covered wages reportable by the employer they worked for.
     </p>
 
-    <!-- Payments For Services Question -->
+    <!-- Officers Perform Services Question -->
     <div id="payments-for-services-group"
          class="@(_showAllErrors && _invalidFields.Contains("PaymentsForServices") ? "master-text-field--error" : "")">
         <p><strong>Were the payments for services?</strong></p>
@@ -32,6 +32,7 @@
                     Value="Model.PaymentsForServices"
                     ValueChanged="OnPaymentsForServicesChanged"
                     ValueExpression="() => Model.PaymentsForServices"
+                    CSS="@(_showAllErrors && _invalidFields.Contains("PaymentsForServices") ? "invalid" : "valid")"
                     Options="@YesNoRadioOptions" />
     </div>
     <br />
@@ -39,6 +40,7 @@
     @if (Model.PaymentsForServices == true)
     {
         <div class="qsf-entity-details">
+            <!-- Approximate Pay Date -->
             <p>Please provide the following information about the entity that received the services:</p>
 
             <div class="form-row">
@@ -46,7 +48,7 @@
                                 Label="Legal Name"
                                 Value="@Model.EntityLegalName"
                                 ValueChanged="OnEntityLegalNameChanged"
-                                HasError="@_invalidFields.Contains("EntityLegalName")"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("EntityLegalName"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("EntityLegalName")"
                                 Visible="@_showAllErrors"
                                 Width="330" />
@@ -57,7 +59,7 @@
                                 Label="Federal ID Number"
                                 Value="@Model.FederalIdNumber"
                                 ValueChanged="OnFederalIdChanged"
-                                HasError="@_invalidFields.Contains("FederalIdNumber")"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("FederalIdNumber"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("FederalIdNumber")"
                                 Visible="@_showAllErrors"
                                 MaxLength="10"
@@ -78,7 +80,7 @@
                                 Label="Address Line 1"
                                 Value="@Model.ServiceAddress.AddressLine1"
                                 ValueChanged="OnAddressLine1Changed"
-                                HasError="@_invalidFields.Contains("AddressLine1")"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("AddressLine1"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("AddressLine1")"
                                 Visible="@_showAllErrors"
                                 Width="330" />
@@ -96,7 +98,7 @@
                                 Label="City"
                                 Value="@Model.ServiceAddress.City"
                                 ValueChanged="OnCityChanged"
-                                HasError="@_invalidFields.Contains("City")"
+                                HasError="@(_showAllErrors && _invalidFields.Contains("City"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("City")"
                                 Visible="@_showAllErrors"
                                 Width="330" />
@@ -105,7 +107,7 @@
                              Label="State"
                              Value="@Model.ServiceAddress.State"
                              ValueChanged="OnStateChanged"
-                             HasError="@_invalidFields.Contains("State")"
+                             HasError="@(_showAllErrors && _invalidFields.Contains("State"))"
                              ErrorMessage="@_fieldErrors.GetValueOrDefault("State")"
                              CssClass="master-input form-select-small"
                              Visible="_showAllErrors" />
@@ -116,7 +118,7 @@
                                     Label="Zip Code"
                                     Value="@Model.ServiceAddress.ZipCode"
                                     ValueChanged="OnZipCodeChanged"
-                                    HasError="@_invalidFields.Contains("ZipCode")"
+                                    HasError="@(_showAllErrors && _invalidFields.Contains("ZipCode"))"
                                     ErrorMessage="@_fieldErrors.GetValueOrDefault("ZipCode")"
                                     Visible="@_showAllErrors"
                                     MaxLength="5"
@@ -144,7 +146,7 @@
                                Label="Provide reason for payments below"
                                Value="@(Model.PaymentReason)"
                                ValueChanged="OnPaymentReasonChanged"
-                               HasError="@_invalidFields.Contains("PaymentReason")"
+                               HasError="@(_showAllErrors && _invalidFields.Contains("PaymentReason"))"
                                ErrorMessage="@_fieldErrors.GetValueOrDefault("PaymentReason")"
                                Visible="@_showAllErrors"
                                Rows="3" />
@@ -189,8 +191,11 @@
     private List<ValidationItem> _validationItems = [];
     private bool _showAllErrors;
 
+    private EditContext _editContext = default!;
+
     protected override void OnInitialized()
     {
+        _editContext = new EditContext(Model);
         RegisterValidate?.Invoke(() =>
         {
             _showAllErrors = true;
@@ -201,25 +206,25 @@
     // -- Radio change --
     private void OnPaymentsForServicesChanged(bool? value)
     {
-        Model.PaymentsForServices = value;
-
-        // Reset forced-visible so newly revealed fields start clean
         _showAllErrors = false;
+        _invalidFields.Clear();
+        _fieldErrors.Clear();
+        _validationItems.Clear();
 
+        Model.PaymentsForServices = value;
         if (value == true)
         {
-            // Switching to Yes — clear "No" branch data
+            // Clear 'No' branch data
             Model.PaymentReason = null;
         }
         else if (value == false)
         {
-            // Switching to No — clear "Yes" branch data
+            // Clear 'Yes' branch data
             Model.EntityLegalName = null;
             Model.FederalIdNumber = null;
             Model.WisconsinUiAccountNumber = null;
             Model.ServiceAddress = new();
         }
-
         NotifyDataChanged();
     }
 
@@ -261,7 +266,7 @@
                 "Please select whether the payments were for services",
                 "payments-for-services-group"));
         }
-
+                                                                     
         // "Yes" branch validations
         if (Model.PaymentsForServices == true)
         {
@@ -283,7 +288,7 @@
                     "qsf-federal-id"));
             }
 
-            // Address validations
+            //Address validations
             if (string.IsNullOrWhiteSpace(Model.ServiceAddress.AddressLine1))
             {
                 _invalidFields.Add("AddressLine1");
@@ -339,8 +344,10 @@
 
     private void NotifyDataChanged()
     {
-        // Always re-validate so _invalidFields stays current for per-field HasError bindings
-        ValidateSection();
+        if (_showAllErrors)
+        {
+            ValidateSection();
+        }
         _ = OnDataChanged.InvokeAsync(Model);
     }
 }

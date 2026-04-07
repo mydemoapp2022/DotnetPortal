@@ -5,6 +5,7 @@
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 
 <div class="llc-documentation-section">
+    <h2 class="section-subtitle">Required Documentation</h2>
     <p>
         You indicated that your limited liability company (LLC) has elected to be taxed as a
         corporation for federal tax purposes.
@@ -58,16 +59,16 @@
                             ValueExpression="() => Model.NoDocumentationReason"
                             Options="@NoDocReasonOptions"
                             CSS="@(_showAllErrors && _invalidFields.Contains("NoDocReason") ? "invalid" : "valid")" />
-
+                <br />
                 @if (Model.NoDocumentationReason == NoDocReason.HaventApplied)
                 {
+                    <p>When do you plan to submit your application to the IRS?</p>
                     <ValidatedDateInput Id="planned-submission-date"
-                                        Label="When do you plan to submit your application to the IRS?"
+                                        Label="Planned Submission Date"
                                         Value="@(Model.PlannedSubmissionDate?.ToDateTime(TimeOnly.MinValue))"
                                         ValueChanged="OnPlannedSubmissionDateChanged"
                                         Min="@DateTime.Today.AddDays(1)"
-                                        Width="410"
-                                        CSS="large-date-input"
+                                        Width="330"
                                         HasError="@(_showAllErrors && _invalidFields.Contains("PlannedSubmissionDate"))"
                                         ErrorMessage="@_fieldErrors.GetValueOrDefault("PlannedSubmissionDate")"
                                         Visible="_showAllErrors" />
@@ -75,13 +76,13 @@
 
                 @if (Model.NoDocumentationReason == NoDocReason.AppliedNoDecision)
                 {
+                    <p>What date was the application submitted to the IRS?</p>
                     <ValidatedDateInput Id="application-submitted-date"
-                                        Label="What date was the application submitted to the IRS?"
+                                        Label="Application Submitted Date"
                                         Value="@(Model.ApplicationSubmittedDate?.ToDateTime(TimeOnly.MinValue))"
                                         ValueChanged="OnApplicationSubmittedDateChanged"
                                         Max="@DateTime.Today"
-                                        Width="410"
-                                        CSS="large-date-input"
+                                        Width="330"
                                         HasError="@(_showAllErrors && _invalidFields.Contains("ApplicationSubmittedDate"))"
                                         ErrorMessage="@_fieldErrors.GetValueOrDefault("ApplicationSubmittedDate")"
                                         Visible="_showAllErrors" />
@@ -108,7 +109,6 @@
             </p>
         </div>
     }
-    
 </div>
 
 <!-- Acceptable Documentation modal -->
@@ -156,10 +156,10 @@
     private static readonly string[] AllowedExtensions = [".pdf", ".jpg", ".jpeg", ".heic", ".png"];
 
     [Parameter]
-    public LlcDocumentationData Model { get; set; } = new();
+    public LlcDocumentationModel Model { get; set; } = new();
 
     [Parameter]
-    public EventCallback<LlcDocumentationData> OnDataChanged { get; set; }
+    public EventCallback<LlcDocumentationModel> OnDataChanged { get; set; }
 
     [Parameter]
     public Action<Func<List<ValidationItem>>>? RegisterValidate { get; set; }

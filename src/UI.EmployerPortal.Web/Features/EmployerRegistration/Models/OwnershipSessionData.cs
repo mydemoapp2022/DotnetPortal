@@ -69,12 +69,12 @@ public class OwnershipSessionData
     /// Corporate Officer Services data (UCT-10056-E) — for Corporation and LLCCorporation
     /// when registrant has not paid and does not expect to pay employees
     /// </summary>
-    public CorporateOfficerServicesData? CorporateOfficerServices { get; set; }
+    public CorporateOfficerServicesModel? CorporateOfficerServices { get; set; }
 
     /// <summary>
     /// LLC Corporation documentation data — for LLCCorporation type
     /// </summary>
-    public LlcDocumentationData? LlcDocumentation { get; set; }
+    public LlcDocumentationModel? LlcDocumentation { get; set; }
 
     /// <summary>
     /// Qualified Settlement Fund (QSF) questionnaire data — for QSF ownership type

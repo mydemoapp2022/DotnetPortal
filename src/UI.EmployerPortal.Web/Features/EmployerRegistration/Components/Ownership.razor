@@ -40,7 +40,7 @@
                                   Parameters="@GetComponentParameters()" />
             }
 
-            @* Corporate Officer Services (UCT-10056-E) — conditional on Step 1 + ownership type *@
+            @* Corporate Officer Services *@
             @if (ShowCorporateOfficerServicesSection)
             {
                 <br />
@@ -60,9 +60,10 @@
                                          RegisterValidate="RegisterLlcDocValidateCallback" />
             }
 
-            @* Qualified Settlement Fund (QSF) — conditional on ownership type + paid/will-pay wages *@
+            @* Qualified Settlement Fund *@
             @if (ShowQsfSection)
             {
+                <br />
                 <QualifiedSettlementFundSection @ref="_qsfSectionRef"
                                                 Model="@_qsfData"
                                                 OnDataChanged="OnQsfDataChanged"

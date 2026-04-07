@@ -1,8 +1,10 @@
 namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Pages;
 
 using global::UI.EmployerPortal.Razor.SharedComponents.Helpers;
-using UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
+using UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
+
 
 /// <summary>
 /// Code-behind for the TaxReportOnly wizard page.
@@ -20,8 +22,12 @@ public partial class EmployerRegistrationSteps
     [Inject]
     private EmployerRegistrationModelStore ModelStore { get; set; } = default!;
 
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+
 
     private int _currentStep = 1;
+    private int _lastStep = 0;
 
     private PreliminaryQuestions? _preliminaryQuestionsRef;
     private Ownership? _ownershipRef;
@@ -34,33 +40,101 @@ public partial class EmployerRegistrationSteps
 
     private readonly List<WizardStep> _wizardSteps = new()
     {
-        new() { StepNumber = 1, Icon = "/icons/employer_reg_step_1.svg", ActionButtonText = "CONTINUE"      },
-        new() { StepNumber = 2, Icon = "/icons/employer_reg_step_2.svg", ActionButtonText = "CONTINUE"      },
-        new() { StepNumber = 3, Icon = "/icons/employer_reg_step_3.svg", ActionButtonText = "CONTINUE"      },
-        new() { StepNumber = 4, Icon = "/icons/employer_reg_step_4.svg", ActionButtonText = "CONTINUE"      },
-        new() { StepNumber = 5, Icon = "/icons/employer_reg_step_5.svg", ActionButtonText = "CONTINUE"      },
-        new() { StepNumber = 6, Icon = "/icons/employer_reg_step_6.svg", ActionButtonText = "CONTINUE"      },
-        new() { StepNumber = 7, Icon = "/icons/employer_reg_step_7.svg", ActionButtonText = "SUBMIT" }
+        new() { StepNumber = 1, Icon = "icons/employer_reg_step_1.svg", ActionButtonText = "CONTINUE"      },
+        new() { StepNumber = 2, Icon = "icons/employer_reg_step_2.svg", ActionButtonText = "CONTINUE"      },
+        new() { StepNumber = 3, Icon = "icons/employer_reg_step_3.svg", ActionButtonText = "CONTINUE"      },
+        new() { StepNumber = 4, Icon = "icons/employer_reg_step_4.svg", ActionButtonText = "CONTINUE"      },
+        new() { StepNumber = 5, Icon = "icons/employer_reg_step_5.svg", ActionButtonText = "CONTINUE"      },
+        new() { StepNumber = 6, Icon = "icons/employer_reg_step_6.svg", ActionButtonText = "CONTINUE"      },
+        new() { StepNumber = 7, Icon = "icons/employer_reg_step_7.svg", ActionButtonText = "SUBMIT" , BackButtonText = "Return To Registration"}
     };
 
     /// ── Single source of truth for the page ───────────────────────────────────
 
-
-
-
-    /// ── Step 2: TaxDetailsData computed from the live _taxEntryData ───────────
-
-    /// <summary>
-    /// OnInitialized
-    /// </summary>
+    /// <summary>Restores the current step from state (e.g., after returning from the Address Correction page).</summary>
     protected override void OnInitialized()
     {
+        if (RegistrationState.CurrentStep > 0)
+        {
+            _currentStep = RegistrationState.CurrentStep;
+            RegistrationState.CurrentStep = 0;
+        }
+    }
+
+    private async Task HandleVerificationEditClick(int stepNumber)
+    {
+        _lastStep = stepNumber - 1;
+        _currentStep = stepNumber;
+        await JSRuntime.InvokeVoidAsync("scrollToTop");
 
     }
 
-
-
     private async Task HandleActionClick()
+    {
+        var isValid = await Validate();
+
+        if (!isValid)
+        {
+            return;
+        }
+
+        if (_currentStep == _wizardSteps.Count)
+        {
+            await HandleSubmit();
+            return;
+        }
+        _currentStep++;
+        _lastStep++;
+    }
+
+    private async Task HandleSaveAndQuit()
+    {
+        var isValid = await Validate();
+
+        if (!isValid)
+        {
+            return;
+        }
+
+        _lastStep++;
+        _currentStep = _wizardSteps.Count;
+    }
+
+    private async Task HandleBackClick()
+    {
+        if (_currentStep == 1)
+        {
+            //Delegate validation to Preliminary Questions component
+            Nav.NavigateTo("employer-registration/employer-registration-welcome");
+        }
+
+        if (_currentStep < _wizardSteps.Count)
+        {
+            _currentStep--;
+            _lastStep = _currentStep - 1;
+        }
+
+        if (_currentStep == _wizardSteps.Count)
+        {
+            _currentStep = _lastStep;
+            _lastStep = _currentStep - 1;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        // WCF Service calls to save and register
+        if (_currentStep == _wizardSteps.Count)
+        {
+            ModelStore.Save();
+        }
+        else
+        {
+            ModelStore.SavePartial(_lastStep);
+        }
+    }
+
+    private async Task<bool> Validate()
     {
         bool isValid;
 
@@ -102,42 +176,11 @@ public partial class EmployerRegistrationSteps
 
         else
         {
-            //Delegate validation to Step 7
+            // Delegate validation to Step 7
+            // Step 7 is Verification, if they clicked submit, they are validating the screen.
             isValid = true;
         }
 
-
-        if (!isValid)
-        {
-            return;
-        }
-
-        if (_currentStep == _wizardSteps.Count)
-        {
-
-            await HandleSubmit();
-            return;
-
-        }
-        _currentStep++;
-
+        return isValid;
     }
-
-
-    private async Task HandleBackClick()
-    {
-        if (_currentStep == 1)
-        {
-            //Delegate validation to Preliminary Questions component
-            Nav.NavigateTo("/employer-registration/employer-registration-welcome");
-        }
-    }
-
-    private async Task HandleSubmit()
-    {
-        // WCF Service calls to save and register
-        ModelStore.Save();
-    }
-
-
 }

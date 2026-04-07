@@ -1,5 +1,376 @@
-﻿<h3>OutlinedSSNInput</h3>
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Forms;
+@using System.Linq.Expressions;
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
+<div class="master-text-field @(HasError ? "master-text-field--error" : "")">
+    <label for="@Id" class="@(HasError ? "master-text-field--error" : "")">@Label</label>
+    <div class="input-wrapper">
+        <input @ref="_inputElement"
+               id="@Id"
+               type="text"
+               class="master-input @(HasError ? "master-text-field--error" : "")"
+               placeholder="999-99-9999"
+               maxlength="11"
+               inputmode="numeric"
+               value="@DisplayValue"
+               @oninput="HandleInput"
+               @onfocus="OnFocus"
+               @onblur="OnBlur"
+               disabled: "@Disabled"
+               aria-disabled="@(Disabled ? "true" : null)"
+               aria-required="@(IsRequired ? "true" : null)"
+               aria-invalid="@(HasError ? "true" : null)"
+               aria-describedby="@($"{Id}-format{(HasError ? "true" : null)}")" />
+        <button type="button"
+                class="toggle-btn"
+                @onclick="ToggleVisibility"
+                aria-label="@(ShowSSN ? "Hide SSN" : "Show SSN")">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                @if (ShowSSN)
+                {
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                }
+                else
+                {
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                }
+            </svg>
+        </button>
+    </div>
+    <span id="@($"{Id}-format")" class="visually-hidden">Format: 999-99-9999</span>
+    @if (HasError)
+    {
+        <div id="@($"{Id}-error")" class="master-error" aria-live="polite">
+            @foreach (var msg in ErrorMessages)
+            {
+                <span>@msg</span>
+            }
+        </div>
+    }
+</div>
 @code {
+    private ElementReference _inputElement;
+    private IJSObjectReference? module;
+    private bool _touched;
 
+    [Parameter]
+    public string Id { get; set; } = "ssn";
+
+    [Parameter]
+    public string Label { get; set; } = "SSN";
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter]
+    public bool IsFocused { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsFocusedChanged { get; set; }
+
+    [Parameter]
+    public bool ShowSSN { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowSSNChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>
+    /// Cascaded EditContext from parent EditForm
+    /// </summary>
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    private EditContext? _previousEditContext;
+
+    private string DisplayValue => IsFocused || ShowSSN ? Value : MaskSSN(Value);
+
+    private bool IsRequired
+    {
+        get
+        {
+            if (Required) return true;
+            if (ValueExpression is null) return false;
+            var fi = FieldIdentifier.Create(ValueExpression);
+            var prop = fi.Model.GetType().GetProperty(fi.FieldName);
+            return prop is not null && Attribute.IsDefined(prop, typeof(System.ComponentModel.DataAnnotations.RequiredAttribute));
+        }
+    }
+
+
+    /// <summary>
+    /// Returns the validation error messages for this field.
+    /// </summary>
+    private IEnumerable<string> ErrorMessages =>
+        EditContext is not null && ValueExpression is not null
+        ? EditContext.GetValidationMessages(FieldIdentifier.Create(ValueExpression))
+        : Enumerable.Empty<string>();
+
+    /// <summary>
+    /// Returns true if the field has validation errors and has been touched or forced visible.
+    /// </summary>
+    private bool HasError =>
+        (_touched || Visible) &&
+        EditContext is not null &&
+        ValueExpression is not null &&
+    EditContext.GetValidationMessages(FieldIdentifier.Create(ValueExpression)).Any();
+
+    protected override void OnParametersSet()
+    {
+        if (EditContext != _previousEditContext)
+        {
+            if (_previousEditContext is not null)
+            {
+                _previousEditContext.OnValidationRequested -= OnValidationRequested;
+            }
+
+            if (EditContext is not null)
+            {
+                EditContext.OnValidationRequested += OnValidationRequested;
+            }
+
+            _previousEditContext = EditContext;
+            _touched = false;
+        }
+    }
+
+
+    /// <summary>
+    /// Call when the form is submitted - auto-touches this field so errors show.
+    /// </summary>
+    private void OnValidationRequested(object? sender, ValidationRequestedEventArgs e)
+    {
+        _touched = true;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./js/ssn-input.js");
+            await module.InvokeVoidAsync("attachNumericOnlyFilter", _inputElement);
+        }
+    }
+
+    private void HandleInput(ChangeEventArgs e)
+    {
+        var inputValue = e.Value?.ToString() ?? string.Empty;
+        var newValue = FormatSSN(inputValue);
+        _ = ValueChanged.InvokeAsync(newValue);
+
+        if (EditContext is not null && ValueExpression is not null)
+        {
+            EditContext.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression));
+        }
+    }
+
+    private void OnFocus()
+    {
+        _ = IsFocusedChanged.InvokeAsync(true);
+    }
+
+    private void OnBlur()
+    {
+        if (!_touched)
+        {
+            _touched = true;
+            if (EditContext is not null && ValueExpression is not null)
+            {
+                EditContext.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression));
+            }
+        }
+
+        _ = IsFocusedChanged.InvokeAsync(false);
+    }
+
+    private void ToggleVisibility()
+    {
+        _ = ShowSSNChanged.InvokeAsync(!ShowSSN);
+    }
+
+    //Service logic
+    /// <summary>
+    /// Validates an SSN and returns validation result
+    /// </summary>
+    public SSNValidationResult ValidateSSN(string? ssn, string fieldLabel = "SSN")
+    {
+        var result = new SSNValidationResult { IsValid = true };
+
+        if (string.IsNullOrWhiteSpace(ssn))
+        {
+            result.IsValid = false;
+            result.ErrorMessage = $"{fieldLabel} is required";
+            return result;
+        }
+
+        // Strip out dashes
+        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
+
+        // Check length
+        if (digitsOnly.Length != 9)
+        {
+            result.IsValid = false;
+            result.ErrorMessage = $"{fieldLabel} format must be 999-99-9999";
+            return result;
+        }
+
+        // SSN cannot contain all the same digits
+        if (digitsOnly.Distinct().Count() == 1)
+        {
+            result.IsValid = false;
+            result.ErrorMessage = $"{fieldLabel} cannot be all the same character";
+            return result;
+        }
+
+        // SSN cannot be 123456789
+        if (digitsOnly == "123456789")
+        {
+            result.IsValid = false;
+            result.ErrorMessage = $"{fieldLabel} cannot be \"123456789\"";
+            return result;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Formats SSN with dashes
+    /// </summary>
+    public string FormatSSN(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+
+        if (digitsOnly.Length > 9)
+        {
+            digitsOnly = digitsOnly[..9];
+        }
+
+        return digitsOnly.Length > 5
+            ? $"{digitsOnly[..3]}-{digitsOnly.Substring(3, 2)}-{digitsOnly[5..]}"
+            : digitsOnly.Length > 3
+                ? $"{digitsOnly[..3]}-{digitsOnly[3..]}"
+                : digitsOnly;
+    }
+
+    /// <summary>
+    /// Masks SSN for display (shows only last 4 digits)
+    /// </summary>
+    public string MaskSSN(string? ssn)
+    {
+        if (string.IsNullOrWhiteSpace(ssn))
+        {
+            return string.Empty;
+        }
+
+        var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
+
+        if (digitsOnly.Length >= 4)
+        {
+            var lastFour = digitsOnly[^4..];
+            return $"***-**-{lastFour}";
+        }
+
+        return ssn;
+    }
+
+    /// <summary>
+    /// Checks for duplicate SSNs in a list
+    /// </summary>
+    public static List<string> FindDuplicateSSNs(List<string?> ssnList, Func<int, string> getLabelForIndex)
+    {
+        var errors = new List<string>();
+        var ssnDict = new Dictionary<string, List<int>>();
+
+        for (var i = 0; i < ssnList.Count; i++)
+        {
+            var ssn = ssnList[i];
+            if (string.IsNullOrWhiteSpace(ssn))
+            {
+                continue;
+            }
+
+            // Strip dashes for comparison
+            var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
+
+            if (digitsOnly.Length == 9)
+            {
+                if (!ssnDict.ContainsKey(digitsOnly))
+                {
+                    ssnDict[digitsOnly] = [];
+                }
+                ssnDict[digitsOnly].Add(i);
+            }
+        }
+
+        // Find duplicates
+        foreach (var kvp in ssnDict.Where(x =>
+        {
+            return x.Value.Count > 1;
+        }))
+        {
+            var indices = string.Join(", ", kvp.Value.Select(i =>
+            {
+                return getLabelForIndex(i);
+            }));
+            errors.Add($"Duplicate SSN found for: {indices}");
+        }
+        return errors;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore - the circuit is already disconnected (e.g., page refresh)
+            }
+            catch (ObjectDisposedException)
+            {
+                //Js runtime is alredy been disposed (e.g. during circuit disconnect or page navigation etc.)
+            }
+        }
+    }
+
+    /// <summary>
+    /// SSN validation result
+    /// </summary>
+    public class SSNValidationResult
+    {
+        /// <summary>
+        /// IsValid
+        /// </summary>
+        public bool IsValid { get; set; }
+
+        /// <summary>
+        /// Error message
+        /// </summary>
+        public string ErrorMessage { get; set; } = string.Empty;
+    }
 }

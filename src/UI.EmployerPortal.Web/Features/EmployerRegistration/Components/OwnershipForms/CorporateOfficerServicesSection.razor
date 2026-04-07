@@ -46,9 +46,9 @@
     <!-- Officers Perform Services Question -->
     <div id="officers-perform-services-group"
          class="@(_showAllErrors && _invalidFields.Contains("OfficersPerformServices") ? "master-text-field--error" : "")">
-        <p><strong>Do corporate officers perform services or plan to perform services in Wisconsin?</strong></p>
+        <p><strong>Do corporate officers perform services or plan to perform services in Wisconsin?</strong></p>        
         @if (_showAllErrors && _invalidFields.Contains("OfficersPerformServices"))
-        {
+        {   
             <ValidationError ErrorMessage="Please select an option" />
         }
         <RadioGroup TValue="bool?"
@@ -72,24 +72,24 @@
                                 Width="410"
                                 HasError="@(_showAllErrors && _invalidFields.Contains("ApproximatePayDate"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("ApproximatePayDate")"
-                                Visible="_showAllErrors" />
+                                Visible="_showAllErrors"/>
             
             <!-- No Pay Explanation -->
             <ValidatedTextArea Id="no-pay-explanation"
                                Label="If you do not expect the officers to be paid, please explain:"
                                Value="@(Model.NoPayExplanation)"
                                ValueChanged="OnNoPayExplanationChanged"
-                               Rows="3" />
+                               Rows="3"/>
         </div>
     }
 </div>
 
 @code {
     [Parameter]
-    public CorporateOfficerServicesData Model { get; set; } = new();
+    public CorporateOfficerServicesModel Model { get; set; } = new();
 
     [Parameter]
-    public EventCallback<CorporateOfficerServicesData> OnDataChanged { get; set; }
+    public EventCallback<CorporateOfficerServicesModel> OnDataChanged { get; set; }
 
     [Parameter]
     public Action<Func<List<ValidationItem>>>? RegisterValidate { get; set; }

@@ -10,9 +10,9 @@ namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 /// </summary>
 public partial class Ownership
 {
-    [Inject]
-    private NavigationManager Nav { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private EmployerRegistrationModelStore ModelStore { get; set; } = default!;
 
     /// <summary>
     /// 
@@ -26,62 +26,49 @@ public partial class Ownership
     [Parameter]
     public OwnershipSessionData Model { get; set; } = default!;
 
-    /// <summary>
-    /// Step 1: Has the registrant paid employees for work in Wisconsin?
-    /// </summary>
-    [Parameter]
-    public bool HasPaidEmployeesInWI { get; set; }
-
-    /// <summary>
-    /// Step 1: Does the registrant expect to pay wages in the future?
-    /// </summary>
-    [Parameter]
-    public bool ExpectsFuturePayroll { get; set; }
-
     private OwnershipType SelectedOwnershipType { get; set; } = OwnershipType.None;
-
     private List<string> ValidationErrors { get; set; } = new();
     private List<string> ValidationFieldIds { get; set; } = new();
+    //private bool _shouldValidate = false;
     private bool _showValidationSummary = false;
+    //private bool IsContinueEnabled = true;>// IsFormValid();
     private object? _childFormData;
+    private bool HasPaidEmployeesInWI { get; set; }
+    private bool ExpectsFuturePayroll { get; set; }
 
     // --- New section refs and data ---
     private CorporateOfficerServicesSection? _officerServicesSectionRef;
     private LlcDocumentationSection? _llcDocSectionRef;
     private QualifiedSettlementFundSection? _qsfSectionRef;
-    private CorporateOfficerServicesData _corporateOfficerServicesData = new();
-    private LlcDocumentationData _llcDocumentationData = new();
+    private CorporateOfficerServicesModel _corporateOfficerServicesData = new();
+    private LlcDocumentationModel _llcDocumentationData = new();
     private QualifiedSettlementFundModel _qsfData = new();
     private Func<List<ValidationItem>>? _officerServicesValidateCallback;
     private Func<List<ValidationItem>>? _llcDocValidateCallback;
     private Func<List<ValidationItem>>? _qsfValidateCallback;
+    private readonly HashSet<string> _sectionFieldsIds = [];
 
-    /// <summary>
-    /// Show the Corporate Officer Services (UCT-10056-E) section when:
-    /// - Ownership = Corporation or LLCCorporation
-    /// - Step 1: HavePaid = No AND ExpectFuture = No
-    /// </summary>
     private bool ShowCorporateOfficerServicesSection => Model.OwnershipType is (OwnershipType.Corporation or OwnershipType.LLCCorporation)
                                                         && !HasPaidEmployeesInWI
                                                         && !ExpectsFuturePayroll;
 
-    /// <summary>
-    /// Show the LLC Documentation section when ownership = LLCCorporation
-    /// </summary>
     private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation;
+    //&& !HasPaidEmployeesInWI
+    //&& !ExpectsFuturePayroll;
 
-    /// <summary>
-    /// Show the Qualified Settlement Fund (QSF) section when:
-    /// - Ownership = QSF
-    /// - Step 1: registrant has paid or will pay wages
-    /// </summary>
     private bool ShowQsfSection => Model.OwnershipType == OwnershipType.QSF
-                                   && (HasPaidEmployeesInWI || ExpectsFuturePayroll);
+                                                && (!HasPaidEmployeesInWI || !ExpectsFuturePayroll);
 
     /// <inheritdoc/>
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        HasPaidEmployeesInWI = ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.HavePaidEmployeesForWorkInWisconsin.HasValue
+            && ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.HavePaidEmployeesForWorkInWisconsin.Value == true;
+
+        ExpectsFuturePayroll = ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.ExpectFuturePayroll.HasValue
+            && ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.ExpectFuturePayroll.Value == true;
+
         EditContext = new EditContext(Model);
         RestoreSectionData();
     }
@@ -93,14 +80,10 @@ public partial class Ownership
     {
         _showValidationSummary = true;
 
-        // Clear both lists up-front so they stay in sync across repeated calls
         ValidationErrors.Clear();
         ValidationFieldIds.Clear();
 
-        // Ownership type validation (inserts at index 0 if None)
         EnsureOwnershipTypeValidationError();
-
-        // Main ownership form validation (returns messages only, no field IDs)
         if (_validateCallback != null)
         {
             foreach (var msg in _validateCallback().Distinct())
@@ -112,8 +95,7 @@ public partial class Ownership
                 }
             }
         }
-
-        // Aggregate all visible section validations
+        _sectionFieldsIds.Clear();
         AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
         AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
         AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
@@ -124,9 +106,10 @@ public partial class Ownership
     }
 
     /// <summary>
-    /// Merges a section's validation items into the aggregate error/field-ID lists,
-    /// keeping both lists in sync and de-duplicating by message text.
+    /// AggregateSectionErrors
     /// </summary>
+    /// <param name="showSection"></param>
+    /// <param name="validateCallback"></param>
     private void AggregateSectionErrors(bool showSection, Func<List<ValidationItem>>? validateCallback)
     {
         if (!showSection || validateCallback is null)
@@ -140,8 +123,34 @@ public partial class Ownership
             {
                 ValidationErrors.Add(item.Message);
                 ValidationFieldIds.Add(item.FieldId);
+                if (!string.IsNullOrEmpty(item.FieldId))
+                {
+                    _sectionFieldsIds.Add(item.FieldId);
+                }
             }
         }
+    }
+    /// <summary>
+    /// RefreshSectionValidationSummary
+    /// </summary>
+    public void RefreshSectionValidationSummary()
+    {
+        for (var i = ValidationFieldIds.Count - 1; i >= 0; i--)
+        {
+            if (!string.IsNullOrEmpty(ValidationFieldIds[i])
+                    && _sectionFieldsIds.Contains(ValidationFieldIds[i]))
+            {
+                ValidationErrors.RemoveAt(i);
+                ValidationFieldIds.RemoveAt(i);
+            }
+        }
+        _sectionFieldsIds.Clear();
+
+        AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
+        AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
+        AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
+
+        StateHasChanged();
     }
 
     // Component mapping dictionary
@@ -184,7 +193,6 @@ public partial class Ownership
                 RequiresState = true,
                 MaxEntries = 5,
                 InstructionText = "Enter the names, Social Security Numbers, and ownership percentages of the members. If there are more than five members, list the five with the highest ownership percentages."
-
             }
         },
         {
@@ -453,24 +461,34 @@ public partial class Ownership
         }
     }
 
-    // --- New section data handlers ---
-
-    private void OnCorporateOfficerServicesChanged(CorporateOfficerServicesData data)
+    private void OnCorporateOfficerServicesChanged(CorporateOfficerServicesModel data)
     {
         _corporateOfficerServicesData = data;
         Model.CorporateOfficerServices = data;
+        if (_showValidationSummary)
+        {
+            RefreshSectionValidationSummary();
+        }
     }
 
-    private void OnLlcDocumentationChanged(LlcDocumentationData data)
+    private void OnLlcDocumentationChanged(LlcDocumentationModel data)
     {
         _llcDocumentationData = data;
         Model.LlcDocumentation = data;
+        if (_showValidationSummary)
+        {
+            RefreshSectionValidationSummary();
+        }
     }
 
     private void OnQsfDataChanged(QualifiedSettlementFundModel data)
     {
         _qsfData = data;
         Model.QualifiedSettlementFund = data;
+        if (_showValidationSummary)
+        {
+            RefreshSectionValidationSummary();
+        }
     }
 
     private void RegisterOfficerServicesValidateCallback(Func<List<ValidationItem>> callback)
@@ -522,6 +540,10 @@ public partial class Ownership
     }
 
     private Func<List<string>>? _validateCallback;
+    ///// <summary>
+    ///// RegisterValidateCallback
+    ///// </summary>
+    ///// <param name="callback"></param>
     private void RegisterValidateCallback(Func<List<string>> callback)
     {
         _validateCallback = callback;

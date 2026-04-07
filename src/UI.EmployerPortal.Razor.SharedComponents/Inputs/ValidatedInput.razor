@@ -1,30 +1,31 @@
 @using Microsoft.JSInterop
-@inject IJSRuntime JS
+@inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
-<div class="form-group master-text-field @(ShowError ? "master-text-field--error" : "")">
+<div class="form-group master-text-field @(showError ? "master-text-field--error" : "")">
     <label for="@Id"
-           class="form-label @(ShowError ? "master-label--error" : "")">
+           class="form-label @(showError ? "master-label--error" : "")">
         @Label
     </label>
 
-    <input @ref="_inputRef"
+
+    <input @ref="inputElement"
            type="@InputType"
            id="@Id"
-           class="form-input master-input @(ShowError ? "master-input--error" : "")"
+           class="form-input master-input @(showError ? "master-input--error" : "")"
            style="@(Width > 0 ? $"width:{Width}px;" : "")"
            maxlength="@MaxLength"
            step="@Step"
            min="@Min"
            max="@Max"
            value="@Value"
-           disabled="@Disabled"
+           @onchange="HandleChange"
+           @onblur="HandleBlur"
            @onfocus="HandleFocus"
            @oninput="HandleInput"
-           @onchange="HandleChange"
-           @onblur="HandleBlur" />
+           @onkeyup="HandleKeyUp" />
 
-    @if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage))
+    @if (showError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
         <div class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,48 +43,72 @@
 </div>
 
 @code {
-    private ElementReference _inputRef;
-    private IJSObjectReference? _module;
+    private ElementReference inputElement;
+    private IJSObjectReference? module;
 
+    /// <summary>HTML id for the input element.</summary>
     [Parameter] public string Id { get; set; } = string.Empty;
+
+    /// <summary>Label text displayed above the input.</summary>
     [Parameter] public string Label { get; set; } = string.Empty;
+
+    /// <summary>Input type: "text" or "number". Defaults to "text".</summary>
     [Parameter] public string InputType { get; set; } = "text";
+
+    /// <summary>Current value (string). For numeric fields, parent converts.</summary>
     [Parameter] public string? Value { get; set; }
+
+    /// <summary>Two-way binding callback.</summary>
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>HTML maxlength attribute.</summary>
     [Parameter] public int? MaxLength { get; set; }
+
+    /// <summary>HTML min attribute (for number inputs).</summary>
     [Parameter] public string? Min { get; set; }
+
+    /// <summary>HTML max attribute (for number inputs).</summary>
     [Parameter] public string? Max { get; set; }
+
+    /// <summary>Input width in pixels. Set 0 to omit.</summary>
     [Parameter] public int Width { get; set; }
+
+    /// <summary>Whether the field currently has a validation error.</summary>
     [Parameter] public bool HasError { get; set; }
+
+    /// <summary>Error message to display below the input.</summary>
     [Parameter] public string? ErrorMessage { get; set; }
+
+    /// <summary>Callback invoked on input blur (e.g. to trigger validation).</summary>
     [Parameter] public EventCallback OnBlur { get; set; }
+
+    /// <summary>HTML step attribute (e.g. "0.01" for 2 decimal places).</summary>
     [Parameter] public string? Step { get; set; }
+
+    /// <summary>Disables the input when true.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Callback invoked on input key up (e.g. to trigger validation).</summary>
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyUp { get; set; }
+
+    /// <summary>Visible the input error when true.</summary>
     [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Disables the decimal value when true.</summary>
     [Parameter] public bool NoDecimals { get; set; }
 
-    /// <summary>Tracks whether the user has blurred this field at least once.</summary>
     private bool _touched;
-
-    /// <summary>Tracks whether the field is currently focused — suppresses error while typing.</summary>
-    private bool _focused;
-
-    /// <summary>Show error only when not actively focused, and the field has been touched or forced visible.</summary>
-    private bool ShowError => !_focused && (_touched || Visible) && HasError;
+    private bool _focused = false;
+    private bool showError => !_focused && (_touched || Visible) && HasError;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && InputType == "number" && MaxLength.HasValue)
         {
-            _module = await JS.InvokeAsync<IJSObjectReference>(
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>(
                 "import", "./js/validated-input.js");
-            await _module.InvokeVoidAsync("enforceNumberMaxLength", _inputRef, MaxLength.Value);
+            await module.InvokeVoidAsync("attachNumericOnlyFilter", inputElement, MaxLength.Value);
         }
-    }
-
-    private void HandleFocus()
-    {
-        _focused = true;
     }
 
     private async Task HandleChange(ChangeEventArgs e)
@@ -99,21 +124,53 @@
         await OnBlur.InvokeAsync();
     }
 
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        _touched = true;
+        await OnKeyUp.InvokeAsync(e);
+    }
+
     private async Task HandleInput(ChangeEventArgs e)
     {
-        if (InputType == "number" && NoDecimals)
+        if (InputType == "number")
         {
             var val = e.Value?.ToString() ?? string.Empty;
-            if (val.Contains('.'))
+
+            if (NoDecimals && val.Contains('.'))
             {
-                await ValueChanged.InvokeAsync(val[..val.IndexOf('.')]);
+                val = val[..val.IndexOf(',')];
+                await ValueChanged.InvokeAsync(val);
+                return;
+            }
+            if (MaxLength.HasValue && val.Length > MaxLength.Value)
+            {
+                await ValueChanged.InvokeAsync(val.Substring(0, MaxLength.Value));
+                return;
             }
         }
     }
 
+    private async Task HandleFocus()
+    {
+        //_focused = true;
+    }
+
     public async ValueTask DisposeAsync()
     {
-        if (_module is not null)
-            await _module.DisposeAsync();
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore - the circuit is already disconnected (e.g., page refresh)
+            }
+            catch (ObjectDisposedException)
+            {
+                //Js runtime is alredy been disposed (e.g. during circuit disconnect or page navigation etc.)
+            }
+        }
     }
 }

@@ -1,18 +1,20 @@
 @using System.ComponentModel.DataAnnotations
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.Validation
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 <div class="member-based-section">
     @if (Config.RequiresState)
     {
-        <StateSelect Id="incorporation-state"
+        <StateSelect Id="registration-state"
                      Label="@Config.StateLabel"
                      Value="@RegistrationState"
                      ValueChanged="StateChanged"
-                     InvalidFields="InvalidFields"
-                     ValidationErrors="ValidationErrors"
-                     ErrorMessage="Registration State is required."
-                     CssClass="@(_showAllErrors ? GetFieldCssClass("RegistrationState") : string.Empty)" />
+                     HasError="@FieldErrors.ContainsKey("RegistrationState")"
+                     ErrorMessage="Registration State is required"
+                     CssClass="form-select-medium"
+                     Visible="_showAllErrors"
+                     OnBlur="@(() => ValidateForm())" />
     }
 
     <!-- Owner Information Section -->
@@ -36,8 +38,9 @@
                                     MaxLength="64"
                                     Width="106"
                                     HasError="@FieldErrors.ContainsKey($"Member{index}_FirstName")"
-                                    ErrorMessage="First name is required"
+                                    ErrorMessage="First Name is required"
                                     Visible="_showAllErrors"
+                                    OnKeyUp="@(() => ValidateForm())"
                                     OnBlur="@(() => ValidateForm())" />
 
                     <!-- Middle Initial -->
@@ -52,12 +55,13 @@
                     <ValidatedInput Id="@($"last-name-{index}")"
                                     Label="Last Name"
                                     Value="@member.LastName"
-                                    ValueChanged="@(v => member.LastName = v)"
+                                    ValueChanged="@(v => member.LastName = v)"  
                                     MaxLength="64"
                                     Width="103"
                                     HasError="@FieldErrors.ContainsKey($"Member{index}_LastName")"
-                                    ErrorMessage="Last name is required."
+                                    ErrorMessage="Last Name is required"
                                     Visible="_showAllErrors"
+                                    OnKeyUp="@(() => ValidateForm())"
                                     OnBlur="@(() => ValidateForm())" />
 
                     <SSNInput Id="@($"ssn-{index}")"
@@ -73,55 +77,45 @@
                               HasError="@FieldErrors.ContainsKey($"Member{index}_SSN")"
                               ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_SSN")"
                               Visible="_showAllErrors"
+                              OnKeyUp="@(() => ValidateForm())"
                               OnBlur="@(() => ValidateForm())" />
 
                     <!-- Ownership Percentage -->
                     <ValidatedInput Id="@($"ownership-percentage-{index}")"
                                     Label="Ownership (%)"
                                     InputType="number"
-                                    Value="@(member.OwnershipPercentage?.ToString("0.##"))"
+                                    Value="@(member.OwnershipPercentage?.ToString())"
                                     ValueChanged="@(v => member.OwnershipPercentage = decimal.TryParse(v, out var n) ? n : null)"
                                     Min="0"
                                     Max="100"
-                                    Step="0.01"
-                                    Width="130"
+                                    NoDecimals="true"
                                     MaxLength="3"
+                                    Width="130"
                                     HasError="@FieldErrors.ContainsKey($"Member{index}_OwnershipPercentage")"
                                     ErrorMessage="@FieldErrors.GetValueOrDefault($"Member{index}_OwnershipPercentage")"
                                     Visible="_showAllErrors"
+                                    OnKeyUp="@(() => ValidateForm())"
                                     OnBlur="@(() => ValidateForm())" />
                 </div>
             </div>
         }
 
-        <br />
-
+        <br/>
         <div id="more-than-five-group" class="@(_showAllErrors && InvalidFields.Contains("MoreThanFive") ? "master-text-field--error" : "")">
-            <p class="">More than five?</p>
-
+            <p>More than five?</p>
+            
             @if (_showAllErrors && InvalidFields.Contains("MoreThanFive"))
             {
-                <div class="master-error" aria-live="polite">
-                    <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <mask id="mask0_5694_133" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
-                            <rect y="2" width="12" height="12" fill="#D9D9D9" />
-                        </mask>
-                        <g mask="url(#mask0_5694_133)">
-                            <path d="M6 10.5C6.14167 10.5 6.26042 10.4521 6.35625 10.3563C6.45208 10.2604 6.5 10.1417 6.5 10C6.5 9.85833 6.45208 9.73958 6.35625 9.64375C6.26042 9.54792 6.14167 9.5 6 9.5C5.85833 9.5 5.73958 9.54792 5.64375 9.64375C5.54792 9.73958 5.5 9.85833 5.5 10C5.5 10.1417 5.54792 10.2604 5.64375 10.3563C5.73958 10.4521 5.85833 10.5 6 10.5ZM5.5 8.5H6.5V5.5H5.5V8.5ZM6 13C5.30833 13 4.65833 12.8687 4.05 12.6062C3.44167 12.3438 2.9125 11.9875 2.4625 11.5375C2.0125 11.0875 1.65625 10.5583 1.39375 9.95C1.13125 9.34167 1 8.69167 1 8C1 7.30833 1.13125 6.65833 1.39375 6.05C1.65625 5.44167 2.0125 4.9125 2.4625 4.4625C2.9125 4.0125 3.44167 3.65625 4.05 3.39375C4.65833 3.13125 5.30833 3 6 3C6.69167 3 7.34167 3.13125 7.95 3.39375C8.55833 3.65625 9.0875 4.0125 9.5375 4.4625C9.9875 4.9125 10.3438 5.44167 10.6062 6.05C10.8687 6.65833 11 7.30833 11 8C11 8.69167 10.8687 9.34167 10.6062 9.95C10.3438 10.5583 9.9875 11.0875 9.5375 11.5375C9.0875 11.9875 8.55833 12.3438 7.95 12.6062C7.34167 12.8687 6.69167 13 6 13ZM6 12C7.11667 12 8.0625 11.6125 8.8375 10.8375C9.6125 10.0625 10 9.11667 10 8C10 6.88333 9.6125 5.9375 8.8375 5.1625C8.0625 4.3875 7.11667 4 6 4C4.88333 4 3.9375 4.3875 3.1625 5.1625C2.3875 5.9375 2 6.88333 2 8C2 9.11667 2.3875 10.0625 3.1625 10.8375C3.9375 11.6125 4.88333 12 6 12Z"
-                                  fill="#C82838" />
-                        </g>
-                    </svg>
-                    <span>Please select an option.</span>
-                </div>
+                <ValidationError ErrorMessage="Please select an option" />
             }
-
             <RadioGroup TValue="bool?"
                         Value="MoreThanFive"
                         ValueChanged="OnMoreThanFiveChanged"
-                        ValueExpression="() => MoreThanFive"
-                        Options="@YesNoRadioOptions" />
-            
+                        ValueExpression="@(() => MoreThanFive)"
+                        Options="@YesNoRadioOptions"
+                        CSS="@(_showAllErrors && InvalidFields.Contains("MoreThanFive") ? "invalid" : "valid")"/>            
         </div>
+        <br />
     </div>
 </div>
 
@@ -144,12 +138,6 @@
     [Parameter]
     public Action<Func<List<string>>>? RegisterValidate { get; set; }
 
-    private static readonly IReadOnlyList<RadioOption<bool?>> YesNoRadioOptions = new[]
-    {
-        new RadioOption<bool?> { Value = true, Label = "Yes" },
-        new RadioOption<bool?> { Value = false, Label = "No" }
-    };
-
     private string RegistrationState { get; set; } = string.Empty;
     private bool ShowSSN { get; set; }
     private bool? MoreThanFive { get; set; } = false;
@@ -158,9 +146,9 @@
     private List<ValidationItem> _validationItems { get; set; } = [];
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
-    private bool _showAllErrors;
     private bool _dataRestored;
-
+    private bool _showAllErrors;
+    
     protected override void OnInitialized()
     {
         InitializeMembers();
@@ -291,11 +279,13 @@
         InvalidFields.Clear();
         FieldErrors.Clear();
 
+        // Validate Registration State if required
         if (Config.RequiresState && string.IsNullOrWhiteSpace(RegistrationState))
         {
             AddFieldError("RegistrationState", $"{Config.StateLabel} is required");
         }
 
+        // Validate each member — use member.Role directly as the label
         for (var i = 0; i < Members.Count; i++)
         {
             var member = Members[i];
@@ -339,6 +329,7 @@
                     AddFieldError($"Member{i}_SSN", $"{member.Role} SSN is required");
                 }
 
+                // Ownership Percentage: 0 – 100.00, max 2 decimal places
                 if (member.OwnershipPercentage.HasValue)
                 {
                     if (member.OwnershipPercentage < 0 || member.OwnershipPercentage > 100)
@@ -353,13 +344,14 @@
             }
         }
 
+        // Total must equal exactly 100.00 — use Math.Round to avoid floating-point drift
         var totalPercentage = Members
             .Where(m => m.OwnershipPercentage.HasValue)
             .Sum(m => m.OwnershipPercentage!.Value);
 
         if (totalPercentage > 0 && Math.Round(totalPercentage, 2) != 100)
         {
-            var msg = "Total Ownership Percentage must equal 100.00";
+            var msg = "Total Ownership Percentage must equal 100";
             var firstIdx = Members.FindIndex(m => m.OwnershipPercentage.HasValue);
             var elementId = firstIdx >= 0 ? $"ownership-percentage-{firstIdx}" : string.Empty;
             _validationItems.Add(new ValidationItem(msg, elementId));
@@ -374,6 +366,7 @@
             }
         }
 
+        // Check for duplicate SSNs
         var ssnList = Members.Select(m => (string?)m.SSN).ToList();
         var duplicateErrors = SSNInput.FindDuplicateSSNs(ssnList, i => Members[i].Role);
 
@@ -400,9 +393,10 @@
             }
         }
 
+        // Validate "More than five?" selection
         if (MoreThanFive == null)
         {
-            _validationItems.Add(new ValidationItem("More than five ? selection is required", "more-than-five-group"));
+            _validationItems.Add(new ValidationItem("More than five? selection is required", "more-than-five-group"));
             ValidationErrors.Add("More than five? selection is required");
             InvalidFields.Add("MoreThanFive");
         }
@@ -436,4 +430,11 @@
     {
         return InvalidFields.Contains(fieldName) ? "input-validation-error" : string.Empty;
     }
+
+    public static readonly IReadOnlyList<RadioOption<bool?>> YesNoRadioOptions = new[]
+    {
+      new RadioOption<bool?> {Value =true, Label = "Yes"},
+      new RadioOption<bool?> {Value =false, Label = "No"}
+    };
+
 }

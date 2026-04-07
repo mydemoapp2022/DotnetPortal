@@ -3,7 +3,7 @@ namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 /// <summary>
 /// Data for the UCT-10056-E Corporate Officer Services section
 /// </summary>
-public class CorporateOfficerServicesData
+public class CorporateOfficerServicesModel
 {
     /// <summary>
     /// Do corporate officers perform services or plan to perform services in Wisconsin?
