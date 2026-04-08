@@ -70,8 +70,9 @@
                                 ValueChanged="OnApproximatePayDateChanged"
                                 Min="@DateTime.Today.AddDays(1)"
                                 Width="410"
-                                HasError="@(_showAllErrors && _invalidFields.Contains("ApproximatePayDate"))"
+                                HasError="@(_invalidFields.Contains("ApproximatePayDate"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("ApproximatePayDate")"
+                                OnBlur="@(() => ValidateSection())"
                                 Visible="_showAllErrors"/>
             
             <!-- No Pay Explanation -->
@@ -79,7 +80,11 @@
                                Label="If you do not expect the officers to be paid, please explain:"
                                Value="@(Model.NoPayExplanation)"
                                ValueChanged="OnNoPayExplanationChanged"
-                               Rows="3"/>
+                               Rows="3"
+                               HasError="@_invalidFields.Contains("NoPayExplanation")"
+                               ErrorMessage="@_fieldErrors.GetValueOrDefault("NoPayExplanation")"
+                               OnBlur="@(() => ValidateSection())"
+                               Visible="_showAllErrors" />
         </div>
     }
 </div>
@@ -104,9 +109,32 @@
     private Dictionary<string, string> _fieldErrors = [];
     private List<ValidationItem> _validationItems = [];
     private bool _showAllErrors;
+    private CorporateOfficerServicesModel? _previousModel;
 
-    protected override void OnInitialized()
+    // protected override void OnInitialized()
+    // {
+    //     RegisterValidate?.Invoke(() =>
+    //     {
+    //         _showAllErrors = true;
+    //         return ValidateSection();
+    //     });
+    // }
+
+    protected override void OnParametersSet()
     {
+        // Reset validation state when the parent supplies a new model instance
+        // (e.g. after ownership-type change while the component is reused).
+        if (!ReferenceEquals(Model, _previousModel))
+        {
+            _previousModel = Model;
+            _showAllErrors = false;
+            _invalidFields.Clear();
+            _fieldErrors.Clear();
+            _validationItems.Clear();
+        }
+
+        // Always re-register so the parent holds a valid callback,
+        // even when Blazor reuses this component instance.
         RegisterValidate?.Invoke(() =>
         {
             _showAllErrors = true;
@@ -157,14 +185,31 @@
                 "officers-perform-services-group"));
         }
 
-        if (Model.OfficersPerformServices == true && Model.ApproximatePayDate.HasValue)
+        if (Model.OfficersPerformServices == true)
         {
-            if (Model.ApproximatePayDate.Value <= DateOnly.FromDateTime(DateTime.Today))
+            var hasDate = Model.ApproximatePayDate.HasValue;
+            var hasExplanation = !string.IsNullOrWhiteSpace(Model.NoPayExplanation);
+
+            if (!hasDate && !hasExplanation)
             {
+                // Neither provided — both fields are required
                 _invalidFields.Add("ApproximatePayDate");
-                _fieldErrors["ApproximatePayDate"] = "Approximate pay date must be a future date.";
+                _fieldErrors["ApproximatePayDate"] = "Please provide an approximate pay date or a no-pay explanation";
+
+                _invalidFields.Add("NoPayExplanation");
+                _fieldErrors["NoPayExplanation"] = "Please provide a no-pay explanation or an approximate pay date";
+
                 _validationItems.Add(new ValidationItem(
-                    "Approximate pay date must be a future date.",
+                    "Please provide an approximate pay date or an explanation if officers will not be paid",
+                    "approximate-pay-date"));
+            }
+            else if (hasDate && Model.ApproximatePayDate!.Value <= DateOnly.FromDateTime(DateTime.Today))
+            {
+                // Date provided but not in the future
+                _invalidFields.Add("ApproximatePayDate");
+                _fieldErrors["ApproximatePayDate"] = "Approximate pay date must be a future date";
+                _validationItems.Add(new ValidationItem(
+                    "Approximate pay date must be a future date",
                     "approximate-pay-date"));
             }
         }

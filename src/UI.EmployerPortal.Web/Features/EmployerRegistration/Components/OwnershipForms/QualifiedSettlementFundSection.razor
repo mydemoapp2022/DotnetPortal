@@ -48,8 +48,10 @@
                                 Label="Legal Name"
                                 Value="@Model.EntityLegalName"
                                 ValueChanged="OnEntityLegalNameChanged"
-                                HasError="@(_showAllErrors && _invalidFields.Contains("EntityLegalName"))"
+                                HasError="@(_invalidFields.Contains("EntityLegalName"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("EntityLegalName")"
+                                OnKeyUp="@(() => ValidateSection())"
+                                OnBlur="@(() => ValidateSection())"
                                 Visible="@_showAllErrors"
                                 Width="330" />
             </div>
@@ -59,10 +61,12 @@
                                 Label="Federal ID Number"
                                 Value="@Model.FederalIdNumber"
                                 ValueChanged="OnFederalIdChanged"
-                                HasError="@(_showAllErrors && _invalidFields.Contains("FederalIdNumber"))"
+                                HasError="@(_invalidFields.Contains("FederalIdNumber"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("FederalIdNumber")"
                                 Visible="@_showAllErrors"
                                 MaxLength="10"
+                                OnKeyUp="@(() => ValidateSection())"
+                                OnBlur="@(() => ValidateSection())"
                                 Width="330" />
 
                 <ValidatedInput Id="qsf-wi-ui-account"
@@ -80,8 +84,10 @@
                                 Label="Address Line 1"
                                 Value="@Model.ServiceAddress.AddressLine1"
                                 ValueChanged="OnAddressLine1Changed"
-                                HasError="@(_showAllErrors && _invalidFields.Contains("AddressLine1"))"
+                                HasError="@(_invalidFields.Contains("AddressLine1"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("AddressLine1")"
+                                OnKeyUp="@(() => ValidateSection())"
+                                OnBlur="@(() => ValidateSection())"
                                 Visible="@_showAllErrors"
                                 Width="330" />
 
@@ -98,17 +104,20 @@
                                 Label="City"
                                 Value="@Model.ServiceAddress.City"
                                 ValueChanged="OnCityChanged"
-                                HasError="@(_showAllErrors && _invalidFields.Contains("City"))"
+                                HasError="@(_invalidFields.Contains("City"))"
                                 ErrorMessage="@_fieldErrors.GetValueOrDefault("City")"
+                                OnKeyUp="@(() => ValidateSection())"
+                                OnBlur="@(() => ValidateSection())"
                                 Visible="@_showAllErrors"
                                 Width="330" />
 
-                <StateSelect Id="registration-state"
+                <StateSelect Id="qsf-state"
                              Label="State"
                              Value="@Model.ServiceAddress.State"
                              ValueChanged="OnStateChanged"
-                             HasError="@(_showAllErrors && _invalidFields.Contains("State"))"
+                             HasError="@(_invalidFields.Contains("State"))"
                              ErrorMessage="@_fieldErrors.GetValueOrDefault("State")"
+                             OnBlur="@(() => ValidateSection())"
                              CssClass="master-input form-select-small"
                              Visible="_showAllErrors" />
             </div>
@@ -118,8 +127,10 @@
                                     Label="Zip Code"
                                     Value="@Model.ServiceAddress.ZipCode"
                                     ValueChanged="OnZipCodeChanged"
-                                    HasError="@(_showAllErrors && _invalidFields.Contains("ZipCode"))"
+                                    HasError="@(_invalidFields.Contains("ZipCode"))"
                                     ErrorMessage="@_fieldErrors.GetValueOrDefault("ZipCode")"
+                                    OnKeyUp="@(() => ValidateSection())"
+                                    OnBlur="@(() => ValidateSection())"
                                     Visible="@_showAllErrors"
                                     MaxLength="5"
                                     Width="130" />
@@ -146,8 +157,9 @@
                                Label="Provide reason for payments below"
                                Value="@(Model.PaymentReason)"
                                ValueChanged="OnPaymentReasonChanged"
-                               HasError="@(_showAllErrors && _invalidFields.Contains("PaymentReason"))"
-                               ErrorMessage="@_fieldErrors.GetValueOrDefault("PaymentReason")"
+                               HasError="@(_invalidFields.Contains("PaymentReason"))"
+                               ErrorMessage="@_fieldErrors.GetValueOrDefault("PaymentReason")"                               
+                               OnBlur="@(() => ValidateSection())"
                                Visible="@_showAllErrors"
                                Rows="3" />
         </div>
@@ -192,10 +204,30 @@
     private bool _showAllErrors;
 
     private EditContext _editContext = default!;
+    private QualifiedSettlementFundModel? _previousModel;
 
-    protected override void OnInitialized()
+    // protected override void OnInitialized()
+    // {
+    //     _editContext = new EditContext(Model);
+    //     RegisterValidate?.Invoke(() =>
+    //     {
+    //         _showAllErrors = true;
+    //         return ValidateSection();
+    //     });
+    // }
+
+    protected override void OnParametersSet()
     {
-        _editContext = new EditContext(Model);
+        if (!ReferenceEquals(Model, _previousModel))
+        {
+            _previousModel = Model;
+            _editContext = new EditContext(Model);
+            _showAllErrors = false;
+            _invalidFields.Clear();
+            _fieldErrors.Clear();
+            _validationItems.Clear();
+        }
+
         RegisterValidate?.Invoke(() =>
         {
             _showAllErrors = true;
@@ -305,6 +337,15 @@
                 _validationItems.Add(new ValidationItem(
                     "Please enter the city",
                     "qsf-city"));
+            }
+
+            if (string.IsNullOrWhiteSpace(Model.ServiceAddress.State))
+            {
+                _invalidFields.Add("State");
+                _fieldErrors["State"] = "State is required";
+                _validationItems.Add(new ValidationItem(
+                    "Please select a state",
+                    "qsf-state"));
             }
 
             if (string.IsNullOrWhiteSpace(Model.ServiceAddress.ZipCode))

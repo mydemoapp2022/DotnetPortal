@@ -69,8 +69,9 @@
                                         ValueChanged="OnPlannedSubmissionDateChanged"
                                         Min="@DateTime.Today.AddDays(1)"
                                         Width="330"
-                                        HasError="@(_showAllErrors && _invalidFields.Contains("PlannedSubmissionDate"))"
+                                        HasError="@_invalidFields.Contains("PlannedSubmissionDate")"
                                         ErrorMessage="@_fieldErrors.GetValueOrDefault("PlannedSubmissionDate")"
+                                        OnBlur="@(() => ValidateSection())"
                                         Visible="_showAllErrors" />
                 }
 
@@ -83,8 +84,9 @@
                                         ValueChanged="OnApplicationSubmittedDateChanged"
                                         Max="@DateTime.Today"
                                         Width="330"
-                                        HasError="@(_showAllErrors && _invalidFields.Contains("ApplicationSubmittedDate"))"
+                                        HasError="@_invalidFields.Contains("ApplicationSubmittedDate")"
                                         ErrorMessage="@_fieldErrors.GetValueOrDefault("ApplicationSubmittedDate")"
+                                        OnBlur="@(() => ValidateSection())"
                                         Visible="_showAllErrors" />
                 }
             </div>
@@ -181,9 +183,28 @@
     private List<ValidationItem> _validationItems = [];
     private bool _showAllErrors;
     private bool _showModal;
+    private LlcDocumentationModel? _previousModel;
 
-    protected override void OnInitialized()
+    // protected override void OnInitialized()
+    // {
+    //     RegisterValidate?.Invoke(() =>
+    //     {
+    //         _showAllErrors = true;
+    //         return ValidateSection();
+    //     });
+    // }
+
+    protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(Model, _previousModel))
+        {
+            _previousModel = Model;
+            _showAllErrors = false;
+            _invalidFields.Clear();
+            _fieldErrors.Clear();
+            _validationItems.Clear();
+        }
+
         RegisterValidate?.Invoke(() =>
         {
             _showAllErrors = true;

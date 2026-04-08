@@ -1,0 +1,47 @@
+/* ── Layout ──────────────────────────────────────────────── */
+.qsf-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.qsf-entity-details,
+.qsf-no-services {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ── Two-column form rows ─────────────────────────────────── */
+/*  align-items: flex-start is the KEY fix — keeps the right  */
+/*  column pinned to the top when the left column grows taller */
+/*  due to a validation error message appearing below it.      */
+.form-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* ── Zip row ─────────────────────────────────────────────── */
+.bi-zip-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0;
+}
+
+.bi-zip-dash {
+    align-self: flex-start;
+    margin-top: 28px; /* visually aligns dash with the input box */
+    padding: 0 6px;
+    font-size: 1rem;
+    line-height: 38px;
+}
+
+.bi-zip-field,
+.bi-ext-field {
+    display: flex;
+    flex-direction: column;
+}

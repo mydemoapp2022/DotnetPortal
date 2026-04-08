@@ -47,14 +47,14 @@ public partial class Ownership
     private Func<List<ValidationItem>>? _llcDocValidateCallback;
     private Func<List<ValidationItem>>? _qsfValidateCallback;
     private readonly HashSet<string> _sectionFieldsIds = [];
+    private bool _isValidating;
+    private List<ValidationItem>? _capturedChildItems;
 
     private bool ShowCorporateOfficerServicesSection => Model.OwnershipType is (OwnershipType.Corporation or OwnershipType.LLCCorporation)
                                                         && !HasPaidEmployeesInWI
                                                         && !ExpectsFuturePayroll;
 
-    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation;
-    //&& !HasPaidEmployeesInWI
-    //&& !ExpectsFuturePayroll;
+    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation;    
 
     private bool ShowQsfSection => Model.OwnershipType == OwnershipType.QSF
                                                 && (!HasPaidEmployeesInWI || !ExpectsFuturePayroll);
@@ -78,31 +78,42 @@ public partial class Ownership
     /// </summary>
     public async Task<bool> Validate()
     {
-        _showValidationSummary = true;
-
-        ValidationErrors.Clear();
-        ValidationFieldIds.Clear();
-
-        EnsureOwnershipTypeValidationError();
-        if (_validateCallback != null)
+        _isValidating = true;
+        _capturedChildItems = null;
+        try
         {
-            foreach (var msg in _validateCallback().Distinct())
+            _showValidationSummary = true;
+            ValidationErrors.Clear();
+            ValidationFieldIds.Clear();
+            EnsureOwnershipTypeValidationError();
+            _validateCallback?.Invoke();
+            if (_capturedChildItems is { Count: > 0 })
             {
-                if (!ValidationErrors.Contains(msg))
+                foreach (var item in _capturedChildItems.DistinctBy(i =>
                 {
-                    ValidationErrors.Add(msg);
-                    ValidationFieldIds.Add(string.Empty);
+                    return i.Message;
+                }))
+                {
+                    if (!ValidationErrors.Contains(item.Message))
+                    {
+                        ValidationErrors.Add(item.Message);
+                        ValidationFieldIds.Add(item.FieldId);
+                    }
                 }
             }
+            _sectionFieldsIds.Clear();
+            AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
+            AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
+            AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
+            _showValidationSummary = !IsFormValid();
+            await InvokeAsync(StateHasChanged);
+            return IsFormValid();
         }
-        _sectionFieldsIds.Clear();
-        AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
-        AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
-        AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
-
-        _showValidationSummary = !IsFormValid();
-        await InvokeAsync(StateHasChanged);
-        return IsFormValid();
+        finally
+        {
+            _isValidating = false;
+            _capturedChildItems = null;
+        }
     }
 
     /// <summary>
@@ -388,14 +399,34 @@ public partial class Ownership
 
     private void OnChildValidationChanged(List<ValidationItem> items)
     {
-        ValidationErrors = items.Select(i =>
+        if (_isValidating)
+        {
+            _capturedChildItems = items;
+            return;
+        }
+
+        var distinct = items.DistinctBy(i =>
         {
             return i.Message;
-        }).Distinct().ToList();
-        ValidationFieldIds = items.Select(i =>
+        }).ToList();
+        ValidationErrors = distinct.Select(i =>
+        {
+            return i.Message;
+        }).ToList();
+        ValidationFieldIds = distinct.Select(i =>
         {
             return i.FieldId;
-        }).Distinct().ToList();
+        }).ToList();
+
+        // Re-aggregate section errors so they aren't lost on child-form blur
+        if (_showValidationSummary)
+        {
+            _sectionFieldsIds.Clear();
+            AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
+            AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
+            AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
+        }
+
         StateHasChanged();
     }
 
