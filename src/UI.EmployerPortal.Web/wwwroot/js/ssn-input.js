@@ -70,7 +70,13 @@ export function setSSNDigits(element, digits) {
  * The C# timer in SSNInput will revert to the mask after MaskDelayMs.
  */
 function syncDisplay(element, dotNetRef) {
-    element.value = formatSSN(element._ssnDigits);   // ← real digits, not stars
+    if (element._ssnDigits.length > 0) {
+        const mask = formatMask(element._ssnDigits.length);
+        const lastDigit = element._ssnDigits[element._ssnDigits.length - 1];
+        element.value = mask.slice(0, -1) + lastDigit;  // ← only last digit visible
+    } else {
+        element.value = '';
+    }
     const len = element.value.length;
     element.setSelectionRange(len, len);
     dotNetRef.invokeMethodAsync('OnSSNDigitsChanged', element._ssnDigits);

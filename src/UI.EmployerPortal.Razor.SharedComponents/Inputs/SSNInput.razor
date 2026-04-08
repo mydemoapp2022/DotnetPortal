@@ -62,7 +62,7 @@
     // ── reveal-while-typing ──────────────────────────────────
     private bool _isTyping;
     private System.Threading.Timer? _maskTimer;
-    private const int MaskDelayMs = 1500;
+    private const int MaskDelayMs = 500;
     // ────────────────────────────────────────────────────────
 
     [Parameter] public string Id { get; set; } = "ssn";
@@ -91,9 +91,9 @@
     /// Shows the real formatted SSN while the user is actively typing;
     /// reverts to a fully-masked star pattern otherwise.
     /// </summary>
-    private string DisplayValue => _isTyping
-        ? FormatSSN(_rawDigits)
-        : GenerateDisplayMask(_rawDigits.Length);
+    private string DisplayValue => _isTyping && _rawDigits.Length > 0
+    ? GenerateDisplayMask(_rawDigits.Length)[..^1] + _rawDigits[^1]
+    : GenerateDisplayMask(_rawDigits.Length);
 
     protected override void OnParametersSet()
     {
