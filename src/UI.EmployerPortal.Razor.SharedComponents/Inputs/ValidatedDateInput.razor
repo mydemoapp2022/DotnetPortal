@@ -14,6 +14,7 @@
            max="@FormattedMax"
            disabled="@Disabled"
            @onchange="HandleChange"
+           @oninput="HandleInput"
            @onblur="HandleBlur" />
 
     @if (showError && !string.IsNullOrWhiteSpace(ErrorMessage))
@@ -77,6 +78,16 @@
         DateTime? newValue = DateTime.TryParse(str, out var date) ? date : null;
         await ValueChanged.InvokeAsync(newValue);
         await OnBlur.InvokeAsync();
+    }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var str = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(str) && DateTime.TryParse(str, out var date))
+        {
+            touched = true;
+            await ValueChanged.InvokeAsync(date);
+        }
     }
 
     private async Task HandleBlur()

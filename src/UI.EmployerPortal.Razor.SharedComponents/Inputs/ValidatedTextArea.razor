@@ -11,6 +11,7 @@
               maxlength="@MaxLength"
               disabled="@Disabled"
               @onchange="HandleChange"
+              @oninput="HandleInput"
               @onblur="HandleBlur">@Value</textarea>
 
     @if (showError && !string.IsNullOrWhiteSpace(ErrorMessage))
@@ -70,5 +71,11 @@
     {
         touched = true;
         await OnBlur.InvokeAsync();
+    }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString() ?? string.Empty;
+        await ValueChanged.InvokeAsync(val);
     }
 }

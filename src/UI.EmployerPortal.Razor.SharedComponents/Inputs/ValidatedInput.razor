@@ -132,10 +132,9 @@
 
     private async Task HandleInput(ChangeEventArgs e)
     {
+        var val = e.Value?.ToString() ?? string.Empty;
         if (InputType == "number")
         {
-            var val = e.Value?.ToString() ?? string.Empty;
-
             if (NoDecimals && val.Contains('.'))
             {
                 val = val[..val.IndexOf(',')];
@@ -148,6 +147,7 @@
                 return;
             }
         }
+        await ValueChanged.InvokeAsync(val);
     }
 
     private async Task HandleFocus()

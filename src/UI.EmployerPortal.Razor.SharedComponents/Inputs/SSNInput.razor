@@ -56,58 +56,44 @@
     private IJSObjectReference? module;
     private DotNetObjectReference<SSNInput>? _dotNetRef;
 
-    /// <summary>Raw digits (no dashes) backing the real SSN value.</summary>
     private string _rawDigits = string.Empty;
-
-    /// <summary>True when JS needs to be told about a parent-driven value change.</summary>
     private bool _needsJsSync;
 
+    // ── reveal-while-typing ──────────────────────────────────
+    private bool _isTyping;
+    private System.Threading.Timer? _maskTimer;
+    private const int MaskDelayMs = 1500;
+    // ────────────────────────────────────────────────────────
+
     [Parameter] public string Id { get; set; } = "ssn";
-
     [Parameter] public string Label { get; set; } = "SSN";
-
     [Parameter] public string Value { get; set; } = string.Empty;
-
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
-
     [Parameter] public bool IsFocused { get; set; }
-
     [Parameter] public EventCallback<bool> IsFocusedChanged { get; set; }
-
     [Parameter] public string CssClass { get; set; } = string.Empty;
-
     [Parameter] public bool IsRequired { get; set; } = true;
-
     [Parameter] public int? Width { get; set; } = null;
-
     [Parameter] public bool HasError { get; set; } = false;
-
     [Parameter] public string? ErrorMessage { get; set; }
-
     [Parameter] public HashSet<string> InvalidFields { get; set; } = [];
-
     [Parameter] public List<string> ValidationErrors { get; set; } = [];
-
     [Parameter] public int? Index { get; set; } = null;
-
     [Parameter] public string? MemberRole { get; set; }
-
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyUp { get; set; }
-
-    /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
     [Parameter] public bool Visible { get; set; }
-
-    /// <summary>Callback invoked on blur — allows parent to trigger validation.</summary>
     [Parameter] public EventCallback OnBlur { get; set; }
 
-    /// <summary>Tracks whether the user has blurred this field at least once.</summary>
     private bool _touched;
-
-    /// <summary>Tracks whether the field is currently focused — suppresses error while typing.</summary>
     private bool _focused;
 
-    /// <summary>Always returns a fully-masked star pattern based on current digit count.</summary>
-    private string DisplayValue => GenerateDisplayMask(_rawDigits.Length);
+    /// <summary>
+    /// Shows the real formatted SSN while the user is actively typing;
+    /// reverts to a fully-masked star pattern otherwise.
+    /// </summary>
+    private string DisplayValue => _isTyping
+        ? FormatSSN(_rawDigits)
+        : GenerateDisplayMask(_rawDigits.Length);
 
     protected override void OnParametersSet()
     {
@@ -141,8 +127,17 @@
     public async Task OnSSNDigitsChanged(string digits)
     {
         _rawDigits = digits;
-        var formatted = FormatSSN(digits);
-        await ValueChanged.InvokeAsync(formatted);
+        _isTyping = true;
+
+        // Restart the inactivity timer — mask after MaskDelayMs of no typing
+        _maskTimer?.Dispose();
+        _maskTimer = new System.Threading.Timer(_ =>
+        {
+            _isTyping = false;
+            _ = InvokeAsync(StateHasChanged);
+        }, null, MaskDelayMs, Timeout.Infinite);
+
+        await ValueChanged.InvokeAsync(FormatSSN(digits));
         StateHasChanged();
     }
 
@@ -155,6 +150,12 @@
     private async Task HandleBlur()
     {
         _focused = false;
+
+        // Mask immediately on blur — cancel any pending reveal timer
+        _isTyping = false;
+        _maskTimer?.Dispose();
+        _maskTimer = null;
+
         _touched = true;
         await IsFocusedChanged.InvokeAsync(false);
         await OnBlur.InvokeAsync();
@@ -165,10 +166,8 @@
         await OnKeyUp.InvokeAsync(e);
     }
 
-    //Service logic
-    /// <summary>
-    /// Validates an SSN and returns validation result
-    /// </summary>
+    // ── validation / formatting helpers (unchanged) ──────────
+
     public static SSNValidationResult ValidateSSN(string? ssn, string fieldLabel = "")
     {
         var result = new SSNValidationResult { IsValid = true };
@@ -207,22 +206,15 @@
         return result;
     }
 
-    /// <summary>
-    /// Formats SSN with dashes
-    /// </summary>
     public static string FormatSSN(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             return string.Empty;
-        }
 
         var digitsOnly = new string(value.Where(char.IsDigit).ToArray());
 
         if (digitsOnly.Length > 9)
-        {
             digitsOnly = digitsOnly[..9];
-        }
 
         return digitsOnly.Length > 5
             ? $"{digitsOnly[..3]}-{digitsOnly.Substring(3, 2)}-{digitsOnly[5..]}"
@@ -231,24 +223,15 @@
                 : digitsOnly;
     }
 
-    /// <summary>
-    /// Masks SSN for display — always fully masked with stars, no digits revealed.
-    /// </summary>
     public static string MaskSSN(string? ssn)
     {
         if (string.IsNullOrWhiteSpace(ssn))
-        {
             return string.Empty;
-        }
 
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-
         return GenerateDisplayMask(digitsOnly.Length);
     }
 
-    /// <summary>
-    /// Generates a star-masked display string (e.g. "***-**-****") for the given digit count.
-    /// </summary>
     public static string GenerateDisplayMask(int digitCount)
     {
         if (digitCount <= 0) return string.Empty;
@@ -257,9 +240,6 @@
         return $"***-**-{new string('*', digitCount - 5)}";
     }
 
-    /// <summary>
-    /// Checks for duplicate SSNs in a list
-    /// </summary>
     public static List<string> FindDuplicateSSNs(List<string?> ssnList, Func<int, string> getLabelForIndex)
     {
         var errors = new List<string>();
@@ -268,57 +248,42 @@
         for (var i = 0; i < ssnList.Count; i++)
         {
             var ssn = ssnList[i];
-            if (string.IsNullOrWhiteSpace(ssn))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(ssn)) continue;
 
             var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-
             if (digitsOnly.Length == 9)
             {
                 if (!ssnDict.ContainsKey(digitsOnly))
-                {
                     ssnDict[digitsOnly] = [];
-                }
                 ssnDict[digitsOnly].Add(i);
             }
         }
 
-        foreach (var kvp in ssnDict.Where(x =>
+        foreach (var kvp in ssnDict.Where(x => x.Value.Count > 1))
         {
-            return x.Value.Count > 1;
-        }))
-        {
-            var indices = string.Join(", ", kvp.Value.Select(i =>
-            {
-                return getLabelForIndex(i);
-            }));
+            var indices = string.Join(", ", kvp.Value.Select(i => getLabelForIndex(i)));
             errors.Add($"Duplicate SSN found for: {indices}");
         }
+
         return errors;
     }
 
     public async ValueTask DisposeAsync()
     {
+        _maskTimer?.Dispose();
+
         if (module is not null)
         {
             try
             {
                 await module.DisposeAsync();
             }
-            catch (JSDisconnectedException)
-            {
-                // Ignore - the circuit is already disconnected
-            }
+            catch (JSDisconnectedException) { }
         }
 
         _dotNetRef?.Dispose();
     }
 
-    /// <summary>
-    /// SSN validation result
-    /// </summary>
     public class SSNValidationResult
     {
         public bool IsValid { get; set; }

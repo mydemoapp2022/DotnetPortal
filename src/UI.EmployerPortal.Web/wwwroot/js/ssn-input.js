@@ -2,19 +2,14 @@ export function attachNumericOnlyFilter(element) {
     if (!element) return;
 
     element.addEventListener('keydown', function (e) {
-        // Allow: backspace, delete, tab, escape, enter, and arrow keys
         if ([46, 8, 9, 27, 13, 110].indexOf(e.keyCode) !== -1 ||
-            // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
             (e.keyCode === 65 && e.ctrlKey === true) ||
             (e.keyCode === 67 && e.ctrlKey === true) ||
             (e.keyCode === 86 && e.ctrlKey === true) ||
             (e.keyCode === 88 && e.ctrlKey === true) ||
-            // Allow: home, end, left, right
             (e.keyCode >= 35 && e.keyCode <= 39)) {
             return;
         }
-
-        // Ensure that it is a number and stop the keypress if not
         if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) &&
             (e.keyCode < 96 || e.keyCode > 105)) {
             e.preventDefault();
@@ -22,26 +17,13 @@ export function attachNumericOnlyFilter(element) {
     });
 
     element.addEventListener('paste', function (e) {
-        // Get pasted data via clipboard API
         const pastedData = e.clipboardData?.getData('Text') || '';
-        
-        // Check if pasted data contains only numbers and dashes
         if (!/^[0-9-]*$/.test(pastedData)) {
             e.preventDefault();
         }
     });
 }
 
-
-
-
-/**
- * Attaches a fully-masked SSN input handler.
- * Digits are captured but the field always displays '*' characters.
- * @param {HTMLInputElement} element - The input element.
- * @param {DotNetObjectReference} dotNetRef - .NET reference for callbacks.
- * @param {string} initialDigits - Pre-existing raw digits (no dashes).
- */
 export function attachMaskedSSNInput(element, dotNetRef, initialDigits) {
     element._ssnDigits = initialDigits || '';
     element.value = formatMask(element._ssnDigits.length);
@@ -73,13 +55,9 @@ export function attachMaskedSSNInput(element, dotNetRef, initialDigits) {
         }
     });
 
-    // Block drag-and-drop text into the field
     element.addEventListener('drop', (e) => e.preventDefault());
 }
 
-/**
- * Pushes new digits into the element (e.g. when the parent resets the value).
- */
 export function setSSNDigits(element, digits) {
     element._ssnDigits = digits || '';
     element.value = formatMask(element._ssnDigits.length);
@@ -87,13 +65,26 @@ export function setSSNDigits(element, digits) {
 
 /* ── helpers ─────────────────────────────────────────────── */
 
+/**
+ * Shows the real formatted SSN while the user is typing.
+ * The C# timer in SSNInput will revert to the mask after MaskDelayMs.
+ */
 function syncDisplay(element, dotNetRef) {
-    element.value = formatMask(element._ssnDigits.length);
+    element.value = formatSSN(element._ssnDigits);   // ← real digits, not stars
     const len = element.value.length;
     element.setSelectionRange(len, len);
     dotNetRef.invokeMethodAsync('OnSSNDigitsChanged', element._ssnDigits);
 }
 
+/** Formats raw digits as 999-99-9999 (real characters). */
+function formatSSN(digits) {
+    if (!digits || digits.length === 0) return '';
+    if (digits.length > 5) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+    if (digits.length > 3) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return digits;
+}
+
+/** Formats raw digit count as ***-**-**** (masked stars). */
 function formatMask(digitCount) {
     if (digitCount <= 0) return '';
     if (digitCount <= 3) return '*'.repeat(digitCount);
