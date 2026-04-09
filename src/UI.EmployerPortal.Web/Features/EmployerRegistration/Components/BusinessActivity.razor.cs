@@ -134,10 +134,14 @@ public partial class BusinessActivity : ComponentBase
     }
 
     /// <summary>
-    /// Handle principal activity selection change
+    /// Handle principal activity selection change.
+    /// Clears description fields so stale text from a previous selection is not submitted.
     /// </summary>
     private void OnPrincipalActivityChanged()
     {
+        Model.PrimaryBusinessActivityDescription = string.Empty;
+        Model.WisconsinSpecificBusinessActivity = string.Empty;
+
         CheckConstructionWarning();
         ValidateForm();
     }
