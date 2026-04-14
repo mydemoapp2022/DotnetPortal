@@ -32,13 +32,7 @@ public class QualifiedSettlementFundModel
     // --- File upload (always shown) ---
 
     /// <summary>Uploaded Settlement Agreement file name.</summary>
-    public string? UploadedFileName { get; set; }
-
-    /// <summary>Uploaded Settlement Agreement file content bytes.</summary>
-    public byte[]? UploadedFileContent { get; set; }
-
-    /// <summary>Uploaded Settlement Agreement file MIME content type.</summary>
-    public string? UploadedFileContentType { get; set; }
+    public string? FilePath { get; set; }
 
     /// <summary>
     /// Registrant acknowledges they will provide the Settlement Agreement documentation later.

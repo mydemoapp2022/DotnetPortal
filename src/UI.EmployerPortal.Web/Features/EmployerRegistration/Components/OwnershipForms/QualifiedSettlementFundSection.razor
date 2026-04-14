@@ -166,10 +166,41 @@
     }
 
     <!-- File Upload -->
-    <div class="file-upload-section">
+    <div id="qsf-file-upload-group"
+         class="file-upload-section @(_showAllErrors && _invalidFields.Contains("SettlementAgreement") ? "master-text-field--error" : "")">
         <h3 class="section-subtitle">File upload</h3>
+        <p>Please upload a copy of the court-approved Settlement Agreement.</p>
 
+        @if (_showAllErrors && _invalidFields.Contains("SettlementAgreement"))
+        {
+            <ValidationError ErrorMessage="@_fieldErrors.GetValueOrDefault("SettlementAgreement")" />
+        }
 
+        @if (!Model.WillProvideDocumentationLater)
+        {
+            @if (Model.UploadedFileName is not null)
+            {
+                <div class="uploaded-file-info">
+                    <span class="uploaded-file-name">@Model.UploadedFileName</span>
+                    <button type="button" class="remove-file-btn" @onclick="RemoveFile">Remove</button>
+                </div>
+            }
+            else
+            {
+                <div class="file-input-wrapper">
+                    <InputFile id="qsf-settlement-file"
+                               OnChange="OnFileSelected"
+                               accept=".pdf,.jpg,.jpeg,.heic,.png"
+                               class="file-input" />
+                </div>
+                <p class="file-hint">Accepted formats: PDF, JPG, JPEG, HEIC, PNG (max 20 MB)</p>
+            }
+
+            @if (_fileUploadError is not null)
+            {
+                <ValidationError ErrorMessage="@_fileUploadError" />
+            }
+        }
     </div>
 
     <!-- Will provide documentation later checkbox -->
@@ -183,6 +214,9 @@
 </div>
 
 @code {
+    private const long MaxFileSizeBytes = 20 * 1024 * 1024; // 20 MB
+    private static readonly string[] AllowedExtensions = [".pdf", ".jpg", ".jpeg", ".heic", ".png"];
+
     [Parameter]
     public QualifiedSettlementFundModel Model { get; set; } = new();
 
@@ -202,19 +236,10 @@
     private Dictionary<string, string> _fieldErrors = [];
     private List<ValidationItem> _validationItems = [];
     private bool _showAllErrors;
+    private string? _fileUploadError;
 
     private EditContext _editContext = default!;
     private QualifiedSettlementFundModel? _previousModel;
-
-    // protected override void OnInitialized()
-    // {
-    //     _editContext = new EditContext(Model);
-    //     RegisterValidate?.Invoke(() =>
-    //     {
-    //         _showAllErrors = true;
-    //         return ValidateSection();
-    //     });
-    // }
 
     protected override void OnParametersSet()
     {
@@ -226,6 +251,7 @@
             _invalidFields.Clear();
             _fieldErrors.Clear();
             _validationItems.Clear();
+            _fileUploadError = null;
         }
 
         RegisterValidate?.Invoke(() =>
@@ -274,9 +300,35 @@
     // --- 'No' branch handlers ---
     private void OnPaymentReasonChanged(string value) { Model.PaymentReason = value; NotifyDataChanged(); }
 
+    // --- File upload handlers ---
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _fileUploadError = null;
+        Model.FilePath = file.Name;
+        NotifyDataChanged();
+    }
+
+    private void RemoveFile()
+    {
+        Model.FilePath = null;
+        _fileUploadError = null;
+        NotifyDataChanged();
+    }
+
     private void OnProvideLaterChanged(bool value)
     {
         Model.WillProvideDocumentationLater = value;
+        if (value)
+        {
+            // Clear any uploaded file and file errors when deferring
+            Model.FilePath = null;
+            _fileUploadError = null;
+            if (_invalidFields.Contains("SettlementAgreement"))
+            {
+                _invalidFields.Remove("SettlementAgreement");
+                _fieldErrors.Remove("SettlementAgreement");
+            }
+        }
         NotifyDataChanged();
     }
 
@@ -377,6 +429,16 @@
                     "Please provide a reason for payments",
                     "qsf-payment-reason"));
             }
+        }
+
+        // File upload validation — required unless user defers with the checkbox
+        if (!Model.WillProvideDocumentationLater && string.IsNullOrEmpty(Model.FilePath))
+        {
+            _invalidFields.Add("SettlementAgreement");
+            _fieldErrors["SettlementAgreement"] = "Please upload the court-approved Settlement Agreement or indicate you will provide it later";
+            _validationItems.Add(new ValidationItem(
+                "Please upload the court-approved Settlement Agreement or indicate you will provide it later",
+                "qsf-file-upload-group"));
         }
 
         StateHasChanged();
