@@ -9,7 +9,7 @@ public class EstateFormData
     /// Decedent
     /// </summary>
     public OwnerMember Decedent { get; set; } = new();
-    
+
     /// <summary>
     /// Personal Representative
     /// </summary>

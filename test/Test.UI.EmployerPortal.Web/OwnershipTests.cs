@@ -7,6 +7,7 @@ using UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.OwnershipForms;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 using UI.EmployerPortal.Web.Features.Shared.Accounts.Services;
+using UI.EmployerPortal.Web.Features.Shared.FileUpload.Services;
 
 namespace Test.UI.EmployerPortal.Web.Component.Features.EmployerRegistration;
 
@@ -20,6 +21,7 @@ public class OwnershipTests : BunitContext
         // [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")] for FakeItEasy proxy generation.
         Services.AddSingleton(A.Fake<IEmployerRegistrationService>());
         Services.AddSingleton(A.Fake<IUserAccountService>());
+        Services.AddSingleton(A.Fake<IUploadServices>());
         Services.AddSingleton<EmployerRegistrationModelStore>();
     }
 

@@ -9,12 +9,12 @@ public class LimitedPartnershipFormData
     /// Registration State
     /// </summary>
     public string RegistrationState { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Limited Partnership Name
     /// </summary>
     public string LimitedPartnershipName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// General Partner
     /// </summary>

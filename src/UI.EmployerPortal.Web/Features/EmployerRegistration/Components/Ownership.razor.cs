@@ -54,7 +54,7 @@ public partial class Ownership
                                                         && !HasPaidEmployeesInWI
                                                         && !ExpectsFuturePayroll;
 
-    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation;    
+    private bool ShowLlcDocumentationSection => Model.OwnershipType == OwnershipType.LLCCorporation;
 
     private bool ShowQsfSection => Model.OwnershipType == OwnershipType.QSF
                                                 && (!HasPaidEmployeesInWI || !ExpectsFuturePayroll);
