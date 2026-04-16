@@ -520,9 +520,8 @@ public class BusinessActivityTests : BunitContext
         var cut = RenderActivity(new BusinessActivityModel());
 
         await cut.InvokeAsync(cut.Instance.Validate);
-        cut.WaitForState(() => cut.FindAll(".notification-banner--error").Count > 0);
 
-        Assert.NotEmpty(cut.FindAll(".notification-banner--error"));
+        Assert.Contains("Principal Business Activity is required", cut.Markup);
     }
 
     [Fact]
@@ -531,7 +530,6 @@ public class BusinessActivityTests : BunitContext
         var cut = RenderActivity(new BusinessActivityModel());
 
         await cut.InvokeAsync(cut.Instance.Validate);
-        cut.WaitForState(() => cut.Markup.Contains("Principal Business Activity is required"));
 
         Assert.Contains("Principal Business Activity is required", cut.Markup);
     }
@@ -545,7 +543,6 @@ public class BusinessActivityTests : BunitContext
         });
 
         await cut.InvokeAsync(cut.Instance.Validate);
-        cut.WaitForState(() => cut.Markup.Contains("Primary Business Activity Description is required"));
 
         Assert.Contains("Primary Business Activity Description is required", cut.Markup);
     }
@@ -562,7 +559,6 @@ public class BusinessActivityTests : BunitContext
         });
 
         await cut.InvokeAsync(cut.Instance.Validate);
-        cut.WaitForState(() => cut.Markup.Contains("Date business started"));
 
         Assert.Contains("Date business started", cut.Markup);
     }

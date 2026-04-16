@@ -76,6 +76,7 @@ public partial class BusinessActivity : ComponentBase
             _hasValidationErrors = _editContext.GetValidationMessages().Any();
             StateHasChanged();
         };
+
     }
 
     /// <summary>
