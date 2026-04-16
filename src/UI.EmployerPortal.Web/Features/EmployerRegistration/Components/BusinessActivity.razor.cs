@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using UI.EmployerPortal.Web.Features.EmployerRegistration.Models;
 
 namespace UI.EmployerPortal.Web.Features.EmployerRegistration.Components;
@@ -31,7 +30,6 @@ public partial class BusinessActivity : ComponentBase
     private readonly HashSet<FieldIdentifier> _touchedFields = new();
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
-    [Inject] private ProtectedSessionStorage SessionStorage { get; set; } = default!;
     [Inject] private EmployerRegistrationModelStore ModelStore { get; set; } = default!;
 
     /// <summary>
@@ -71,7 +69,6 @@ public partial class BusinessActivity : ComponentBase
     /// </summary>
     protected override async void OnInitialized()
     {
-        await ClearStoredData();
         _editContext = new EditContext(Model);
         _editContext.OnFieldChanged += (_, e) =>
         {
@@ -79,64 +76,6 @@ public partial class BusinessActivity : ComponentBase
             _hasValidationErrors = _editContext.GetValidationMessages().Any();
             StateHasChanged();
         };
-    }
-
-    /// <summary>
-    /// Load saved form data from session storage
-    /// </summary>
-    private async Task LoadFromSession()
-    {
-        try
-        {
-            var result = await SessionStorage.GetAsync<BusinessActivitySessionData>("BusinessActivityData");
-            if (result.Success && result.Value != null)
-            {
-                var savedData = result.Value;
-                Model.DateBusinessStarted = savedData.DateBusinessStarted;
-                Model.DateFirstPaidEmployeesInWI = savedData.DateFirstPaidEmployeesInWI;
-                Model.DateFirstPaidWagesInWI = savedData.DateFirstPaidWagesInWI;
-                Model.PrincipalBusinessActivity = savedData.PrincipalBusinessActivity;
-                Model.PrimaryBusinessActivityDescription = savedData.PrimaryBusinessActivityDescription;
-                Model.SameAsPrimaryBusinessActivity = savedData.SameAsPrimaryBusinessActivity;
-                Model.WisconsinSpecificBusinessActivity = savedData.WisconsinSpecificBusinessActivity;
-                CheckConstructionWarning();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading from session: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Save form data to session storage
-    /// </summary>
-    private async Task SaveToSession()
-    {
-        try
-        {
-            var sessionData = new BusinessActivitySessionData
-            {
-                DateBusinessStarted = Model.DateBusinessStarted,
-                DateFirstPaidEmployeesInWI = Model.DateFirstPaidEmployeesInWI,
-                DateFirstPaidWagesInWI = Model.DateFirstPaidWagesInWI,
-                PrincipalBusinessActivity = Model.PrincipalBusinessActivity,
-                PrimaryBusinessActivityDescription = Model.PrimaryBusinessActivityDescription,
-                SameAsPrimaryBusinessActivity = Model.SameAsPrimaryBusinessActivity,
-                WisconsinSpecificBusinessActivity = Model.WisconsinSpecificBusinessActivity,
-                SuppliesTemporaryWorkers = Model.SuppliesTemporaryWorkers,
-                ProvidesEmployeeLeasing = Model.ProvidesEmployeeLeasing,
-                EmployerServiceExplanantion = Model.EmployerServiceExplanantion,
-                EmployeeCount = Model.EmployeeCount,
-                EmployeeType = Model.EmployeeType,
-                ServicesDescription = Model.ServicesDescription,
-            };
-            await SessionStorage.SetAsync("BusinessActivityData", sessionData);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving to session: {ex.Message}");
-        }
     }
 
     /// <summary>
@@ -412,24 +351,8 @@ public partial class BusinessActivity : ComponentBase
         }
 
         _showValidationSummary = false;
-        await SaveToSession();
         await InvokeAsync(StateHasChanged);
         return true;
-    }
-
-    /// <summary>
-    /// Clear business activity data from session (call after successful submission)
-    /// </summary>
-    public async Task ClearStoredData()
-    {
-        try
-        {
-            await SessionStorage.DeleteAsync("BusinessActivityData");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error clearing storage: {ex.Message}");
-        }
     }
 
     private static bool IsFutureDate(DateTime date)
