@@ -221,29 +221,78 @@
         });
     }
 
+    private static readonly Dictionary<int, int> FormDisplayOrder = new()
+    {
+        // --- Preliminary Questions ---
+        { (int)SurveyResponseItem.FEIN_NUM,                    10 },
+        { (int)SurveyResponseItem.ER_ACCT_NUM,                 20 },
+        { (int)SurveyResponseItem.PRTL_NON_PRFT_FLG,          30 },  // Q1: Non-profit?
+        { (int)SurveyResponseItem.PRTL_501C3_RULING_FLG,       40 },  // Q1.1: Have ruling?
+        { (int)SurveyResponseItem.PRTL_501C3_UPLD,             50 },  // Q1.1.1: Ruling file
+        { (int)SurveyResponseItem.PRTL_MISS_DOC_501C3_RULING,  60 },  // Q1.1.1: Supply later
+        { (int)SurveyResponseItem.PRTL_APPLY_501C3,            70 },  // Q1.1.2: Applied?
+        { (int)SurveyResponseItem.PRTL_ARTCL_OF_CORP,          80 },  // Q1.1.2.1 / Q1.1.2.2: Articles
+        { (int)SurveyResponseItem.PRTL_IRS_ACCPT,              90 },  // Q1.1.2.1: IRS letter
+        { (int)SurveyResponseItem.PRTL_MISS_DOC_ARTCL_INCORP,  95 },  // Supply later
+        { (int)SurveyResponseItem.PRTL_MISS_DOC_IRS_APP_ACCPT, 97 },  // Supply later
+        { (int)SurveyResponseItem.ACQ_BUS_FLG,                100 },  // Q2: Acquired business?
+        { (int)SurveyResponseItem.ACQ_ACCT_NUM_KNWN,          110 },  // Q2.1: Know account #?
+        { (int)SurveyResponseItem.ACQ_BUS_ACCT_NUM,           120 },  // Q2.1.1: Account #
+        { (int)SurveyResponseItem.ACQ_BUS_NAM,                130 },  // Q2.1.2: Business name
+        { (int)SurveyResponseItem.PAID_EE_FLG,                140 },  // Q3: Paid employees?
+        { (int)SurveyResponseItem.STILL_EE_FLG,               150 },  // Q3.1: Still have employees?
+        { (int)SurveyResponseItem.PRTL_ACCURATE_INFO,          160 },  // Q3.1 Yes: Info accurate
+        { (int)SurveyResponseItem.PRTL_NO_LNGR_EE,            170 },  // Q4: No employee reason
+        { (int)SurveyResponseItem.LAST_EMPL_DT,               180 },  // NotOperatingInWI
+        { (int)SurveyResponseItem.LAST_PYRL_DT,               190 },  // NotOperatingInWI
+        { (int)SurveyResponseItem.PRTL_PEO_NAME,              200 },  // LeasingFromPEO
+        { (int)SurveyResponseItem.PRTL_PEO_NUM,               210 },  // LeasingFromPEO
+        { (int)SurveyResponseItem.PRTL_PEO_DATE,              220 },  // LeasingFromPEO
+        { (int)SurveyResponseItem.PRTL_BUS_WITHOUT_EE,        230 },  // BusinessWithoutEmployees
+        { (int)SurveyResponseItem.PRTL_FSCL_AGNT_NAM,         240 },  // FiscalAgent
+        { (int)SurveyResponseItem.PRTL_FA_UI_ACCT_NUM,        250 },  // FiscalAgent
+        { (int)SurveyResponseItem.PRTL_OTHR_RSN,              260 },  // Other
+        { (int)SurveyResponseItem.EXPT_PAY_EE_FLG,            270 },  // Q3.2: Expect future payroll?
+        { (int)SurveyResponseItem.EXPT_PAY_EE_TIME,           280 },  // Q3.2.1: When?
+    };
+
     private List<Tuple<EmployerRegistrationQuestionDataProxy, SurveyResponse>> GetQuestionsForSection(string sectionName)
     {
-        return Questions.Where(q =>
-            {
-                return q.GroupDescription == sectionName;
-            })
-            .OrderBy(q =>
-            {
-                return q.SortOrder;
-            })
+        return Questions
+            .Where(q => q.GroupDescription == sectionName)
             .Select(q =>
             {
-                var match = SurveyResponses.FirstOrDefault(r =>
-                {
-                    return r._surveyResponseItemSk == q.QuestionSetItemSK;
-                });
-                return match != null
-                    ? Tuple.Create(q, match)
-                    : null;
+                var match = SurveyResponses.FirstOrDefault(r => r._surveyResponseItemSk == q.QuestionSetItemSK);
+                return match != null ? Tuple.Create(q, match) : null;
             })
             .OfType<Tuple<EmployerRegistrationQuestionDataProxy, SurveyResponse>>()
+            .OrderBy(t => FormDisplayOrder.TryGetValue(t.Item1.QuestionSetItemSK, out var order) ? order : t.Item1.SortOrder)
             .ToList();
     }
+
+    // private List<Tuple<EmployerRegistrationQuestionDataProxy, SurveyResponse>> GetQuestionsForSection(string sectionName)
+    // {
+    //     return Questions.Where(q =>
+    //         {
+    //             return q.GroupDescription == sectionName;
+    //         })
+    //         .OrderBy(q =>
+    //         {
+    //             return q.SortOrder;
+    //         })
+    //         .Select(q =>
+    //         {
+    //             var match = SurveyResponses.FirstOrDefault(r =>
+    //             {
+    //                 return r._surveyResponseItemSk == q.QuestionSetItemSK;
+    //             });
+    //             return match != null
+    //                 ? Tuple.Create(q, match)
+    //                 : null;
+    //         })
+    //         .OfType<Tuple<EmployerRegistrationQuestionDataProxy, SurveyResponse>>()
+    //         .ToList();
+    // }
 
     private List<Tuple<RegistrationAddressCode, AddressModel>> GetAddressesForSection(int sectionIndex)
     {
