@@ -82,7 +82,9 @@
                 {
                     <!-- Q1.1 Yes: has ruling -->
                     <p data-questionid="1.1.1">Please upload a copy of your 501(c)(3) ruling from the IRS.</p>
-                    <FileUpload Title="501(c)(3) Ruling from IRS" OnFileUpload="@(_ => _rulingDocUploaded = true)" />
+                    <FileUpload Title="501(c)(3) Ruling from IRS"
+                        OnFileUpload="@(filename => { _rulingDocUploaded = true; Model.RulingDocFilename = filename; })" />
+
                     <FieldError For="@(() => Model.WillSupplyDocumentationLater)" Visible="@_formSubmitted" />
                     <div class="form-check">
                         <label class="form-check-label fw-bold" for="chk-supply-docs-ruling">
@@ -114,9 +116,13 @@
                     @if (ShowAppliedUpload)
                     {
                         <!-- Q1.1.2 Yes: applied -->
-                        <p data-questionid="1.1.2.1">Please upload your articles of incorporation and the application acceptance letter from the IRS.</p>
-                        <FileUpload Title="Articles of Incorporation" OnFileUpload="@(_ => _appliedDocUploaded = true)" />
-                        <FileUpload Title="IRS Acceptance Letter" OnFileUpload="@(_ => _appliedDocUploaded = true)" />
+                        <p data-questionid="1.1.2.1">Please upload your articles of incorporation and the application acceptance letter from the IRS.</p>                        
+                        <FileUpload Title="Articles of Incorporation"
+                            OnFileUpload="@(filename => { _appliedDocUploaded = true; Model.ArticlesOfIncorporationFilename = filename; })" />
+
+                        <FileUpload Title="IRS Acceptance Letter"
+                            OnFileUpload="@(filename => { _appliedDocUploaded = true; Model.IRSAcceptanceLetterFilename = filename; })" />
+
                         <FieldError For="@(() => Model.WillSupplyDocumentationLater)" Visible="@_formSubmitted" />
                         <div class="form-check">
                             <label class="form-check-label fw-bold" for="chk-supply-docs-applied">
@@ -142,7 +148,8 @@
                             Once your 501(c)(3) application has been accepted by the IRS, please submit a copy of
                             your application acceptance letter.
                         </p>
-                        <FileUpload Title="Articles of Incorporation" OnFileUpload="@(_ => _notAppliedDocUploaded = true)" />
+                        <FileUpload Title="Articles of Incorporation"
+                            OnFileUpload="@(filename => { _notAppliedDocUploaded = true; Model.ArticlesOfIncorporationFilename = filename; })" />
                         <FieldError For="@(() => Model.WillSupplyDocumentationLater)" Visible="@_formSubmitted" />
                         <div class="form-check">
                             <label class="form-check-label fw-bold" for="chk-supply-docs-not-applied">

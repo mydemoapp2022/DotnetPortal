@@ -157,6 +157,15 @@ public class PreliminaryQuestionsModel : IEmployerRegistrationModelSection
     /// </summary>
     public NoEmployeeReason? SelectedNoEmployeeReason { get; set; } = null;
 
+    /// <summary>Filename of the uploaded 501(c)(3) ruling from the IRS.</summary>
+    public string? RulingDocFilename { get; set; }
+
+    /// <summary>Filename of the uploaded Articles of Incorporation.</summary>
+    public string? ArticlesOfIncorporationFilename { get; set; }
+
+    /// <summary>Filename of the uploaded IRS Acceptance Letter.</summary>
+    public string? IRSAcceptanceLetterFilename { get; set; }
+
 
     /// <inheritdoc/>
     public List<Tuple<RegistrationAddressCode, AddressModel>> GetSurveyAddresses()
@@ -274,6 +283,77 @@ public class PreliminaryQuestionsModel : IEmployerRegistrationModelSection
             responses.Add(new SurveyResponse() { _surveyResponseItemSk = (int) SurveyResponseItem.STILL_EE_FLG, _response = IEmployerRegistrationModelSection.ConvertBooleanResponseToString(HaveEmployeesCurrentlyWorkingInWisconsin.Value), _responseDisplay = IEmployerRegistrationModelSection.ConvertBooleanResponseToDisplayString(HaveEmployeesCurrentlyWorkingInWisconsin.Value) });
         }
 
+        // InformationIsAccurate — shown when Q3.1 Yes (still have employees in WI)
+        var visibilityCheckboxInfoAccurate = visibilityQ3_1 && HaveEmployeesCurrentlyWorkingInWisconsin == true;
+        if (visibilityCheckboxInfoAccurate)
+        {
+            responses.Add(new SurveyResponse()
+            {
+                _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_ACCURATE_INFO,
+                _response = InformationIsAccurate ? "Y" : "N",
+                _responseDisplay = InformationIsAccurate ? "Yes" : "No"
+            });
+        }
+
+        // SelectedNoEmployeeReason — shown when Q4 (Q3.1 No)
+        if (visibilityQ4 && SelectedNoEmployeeReason.HasValue)
+        {
+            var reasonDisplay = SelectedNoEmployeeReason.Value switch
+            {
+                NoEmployeeReason.BusinessActivityEnded => "Business activity has ended but business has not been sold",
+                NoEmployeeReason.NotOperatingInWisconsin => "No longer operating in Wisconsin but still operating in another state",
+                NoEmployeeReason.HaveSoldOrTransferredBusiness => "Business activity sold or transferred",
+                NoEmployeeReason.BusiessWithoutEmployees => "Business continuing without employees",
+                NoEmployeeReason.EmployingIndependentContractors => "Employing Independent Contractors",
+                NoEmployeeReason.Death => "Death",
+                NoEmployeeReason.LeasingFromPEO => "Leasing employees from Professional Employer Organization (PEO)",
+                NoEmployeeReason.FiscalAgent => "Fiscal Agent electing to be employer",
+                NoEmployeeReason.Other => "Other",
+                _ => SelectedNoEmployeeReason.Value.ToString()
+            };
+            responses.Add(new SurveyResponse()
+            {
+                _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_NO_LNGR_EE,
+                _response = SelectedNoEmployeeReason.Value.ToString(),
+                _responseDisplay = reasonDisplay
+            });
+        }
+
+        // File upload filenames
+        var showRulingUpload = show501c3SubTree && HasRulingFrom501c3IRS == true;
+        var showAppliedUpload = show501c3SubTree && HasRulingFrom501c3IRS == false && HasAppliedFor501c3WithIRS == true;
+        var showNotAppliedText = show501c3SubTree && HasRulingFrom501c3IRS == false && HasAppliedFor501c3WithIRS == false;
+
+        if (showRulingUpload && !string.IsNullOrWhiteSpace(RulingDocFilename))
+        {
+            responses.Add(new SurveyResponse()
+            {
+                _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_501C3_UPLD,
+                _response = RulingDocFilename,
+                _responseDisplay = RulingDocFilename
+            });
+        }
+
+        if ((showAppliedUpload || showNotAppliedText) && !string.IsNullOrWhiteSpace(ArticlesOfIncorporationFilename))
+        {
+            responses.Add(new SurveyResponse()
+            {
+                _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_ARTCL_OF_CORP,
+                _response = ArticlesOfIncorporationFilename,
+                _responseDisplay = ArticlesOfIncorporationFilename
+            });
+        }
+
+        if (showAppliedUpload && !string.IsNullOrWhiteSpace(IRSAcceptanceLetterFilename))
+        {
+            responses.Add(new SurveyResponse()
+            {
+                _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_IRS_ACCPT,
+                _response = IRSAcceptanceLetterFilename,
+                _responseDisplay = IRSAcceptanceLetterFilename
+            });
+        }
+
         if (visibilityQ3_2 && ExpectFuturePayroll.HasValue)
         {
             responses.Add(new SurveyResponse() { _surveyResponseItemSk = (int) SurveyResponseItem.EXPT_PAY_EE_FLG, _response = IEmployerRegistrationModelSection.ConvertBooleanResponseToString(ExpectFuturePayroll.Value), _responseDisplay = IEmployerRegistrationModelSection.ConvertBooleanResponseToDisplayString(ExpectFuturePayroll.Value) });
@@ -332,6 +412,11 @@ public class PreliminaryQuestionsModel : IEmployerRegistrationModelSection
         if (visibilityQ4 && !string.IsNullOrWhiteSpace(FiscalAgentUIAccountNumber))
         {
             responses.Add(new SurveyResponse() { _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_FA_UI_ACCT_NUM, _response = FiscalAgentUIAccountNumber.Replace("-", string.Empty) });
+        }
+
+        if (visibilityQ4 && !string.IsNullOrWhiteSpace(FiscalAgentFEIN))
+        {
+            responses.Add(new SurveyResponse() { _surveyResponseItemSk = (int) SurveyResponseItem.PRTL_FA_FEIN, _response = FiscalAgentFEIN.Replace("-", string.Empty) });
         }
 
         return responses;
