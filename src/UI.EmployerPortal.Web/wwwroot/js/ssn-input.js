@@ -56,6 +56,11 @@ export function attachMaskedSSNInput(element, dotNetRef, initialDigits) {
     });
 
     element.addEventListener('drop', (e) => e.preventDefault());
+
+    // On blur, immediately revert the displayed value to masked stars
+    element.addEventListener('blur', () => {
+        element.value = formatMask(element._ssnDigits.length);
+    });
 }
 
 export function setSSNDigits(element, digits) {
@@ -65,18 +70,9 @@ export function setSSNDigits(element, digits) {
 
 /* ── helpers ─────────────────────────────────────────────── */
 
-/**
- * Shows the real formatted SSN while the user is typing.
- * The C# timer in SSNInput will revert to the mask after MaskDelayMs.
- */
+/** Shows the full formatted SSN while the user is typing. */
 function syncDisplay(element, dotNetRef) {
-    if (element._ssnDigits.length > 0) {
-        const mask = formatMask(element._ssnDigits.length);
-        const lastDigit = element._ssnDigits[element._ssnDigits.length - 1];
-        element.value = mask.slice(0, -1) + lastDigit;  // ← only last digit visible
-    } else {
-        element.value = '';
-    }
+    element.value = formatSSN(element._ssnDigits);
     const len = element.value.length;
     element.setSelectionRange(len, len);
     dotNetRef.invokeMethodAsync('OnSSNDigitsChanged', element._ssnDigits);
