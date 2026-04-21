@@ -1,0 +1,255 @@
+@using UI.EmployerPortal.Generated.ServiceClients.EmployerRegistrationService
+@using UI.EmployerPortal.Razor.SharedComponents.Model
+@using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
+
+<div class="accordion accordion-flush" id="preliminaryQuestions">
+    @foreach (var (sectionName, index) in _sections.Select((section, index) => (section, index)))
+    {
+        @if (index + 1 <= CurrentStep
+            && SectionHasAnsweredQuestions(sectionName))
+        {
+            <div class="accordion-item mb-3">
+                <h2 class="accordion-header" id=@($"{_camelSections[index]}Heading")>
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target=@($"#{_camelSections[index]}Collapse") aria-expanded="true" aria-controls=@($"{_camelSections[index]}Collapse")>
+                        <span class="vf-page-subheader">@sectionName</span>
+                    </button>
+                </h2>
+                <div id=@($"{_camelSections[index]}Collapse") class="accordion-collapse collapse show" aria-labelledby=@($"{_camelSections[index]}Heading") data-bs-parent=@($"#{_camelSections[index]}")>
+                    <div class="accordion-body">
+                        @if (ShowEditSection)
+                        {
+                            <div class="vf-accordion-section edit-section">
+                                <div class="row">
+                                    <div class="offset-md-10 col-md-2">
+                                        <div class="row justify-content-end">
+                                            <button id=@($"{_camelSections[index]}Button")
+                                                class="vf-edit-button"
+                                                type="button"
+                                                @onclick="@(() => EditClicked(index))"
+                                                title=@($"Edit {sectionName}") aria-label=@($"Edit {sectionName}")>
+                                                <img class="vf-edit-button-img" src=@EditIconURI alt=@sectionName>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @foreach (var (question, response) in GetQuestionsForSection(sectionName))
+                        {
+                            <div class="vf-accordion-section">
+                                <div class="row">
+                                    <div class="col-md-10 text-start">
+                                        <span class="vf-accordion-text">@question.QuestionText</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-10 text-start">
+                                        <span class="vf-accordion-answer">@(response._responseDisplay ?? response._response)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (index == 1) // Ownership -> contacts
+                        {
+                            foreach(var contact in Contacts)
+                            {
+                                <div class="vf-accordion-section">
+                                    <div class="row">
+                                        <div class="col-md-10 text-start">
+                                            <span class="vf-accordion-text">@($"{GetIndividualPrefix(contact._surveyIndividualCode)}Name")</span>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-10 text-start">
+                                            <span class="vf-accordion-answer">@($"{contact._firstName}{(string.IsNullOrWhiteSpace(contact._middleName) ? string.Empty : $" {contact._middleName}")} {contact._lastName}")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="vf-accordion-section">
+                                    <div class="row">
+                                        <div class="col-md-10 text-start">
+                                            <span class="vf-accordion-text">@($"{GetIndividualPrefix(contact._surveyIndividualCode)}Social Security Number")</span>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-10 text-start">
+                                            <span class="vf-accordion-answer">@contact._socialSecurityNumber</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(contact._ownershipPercentage))
+                                {
+                                    <div class="vf-accordion-section">
+                                        <div class="row">
+                                            <div class="col-md-10 text-start">
+                                                <span class="vf-accordion-text">@($"{GetIndividualPrefix(contact._surveyIndividualCode)}Ownership Percentage")</span>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-10 text-start">
+                                                <span class="vf-accordion-answer">@contact._ownershipPercentage</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+
+                        @foreach (var (addressCode, address) in GetAddressesForSection(index))
+                        {
+                            <div class="vf-accordion-section">
+                                <div class="row">
+                                    <div class="col-md-10 text-start">
+                                        <span class="vf-accordion-text">@(AddressDescription.TryGetValue(addressCode, out var description) ? description : "Address")</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-10 text-start">
+                                        <span class="vf-accordion-answer">
+                                            @foreach (var line in address.GetDisplayLines())
+                                            {
+                                                @line<br/>
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int CurrentStep { get; set; } = 0;
+
+    [Parameter]
+    public List<SurveyResponse> SurveyResponses { get; set; } = new();
+
+    [Parameter]
+    public List<EmployerRegistrationQuestionDataProxy> Questions { get; set; } = new();
+
+    [Parameter]
+    public List<SurveyContact> Contacts { get; set; } = new();
+
+    [Parameter]
+    public List<Tuple<RegistrationAddressCode, AddressModel>> Addresses { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<int> OnNavigateToStep { get; set; }
+
+    [Parameter]
+    public bool ShowEditSection { get; set; } = false;
+
+    private string EditIconURI => "_content/UI.EmployerPortal.Razor.SharedComponents/icons/edit-icon.svg";
+
+    private static readonly List<string> _sections = new()
+    {
+        "Preliminary Questions",
+        "Ownership",
+        "Business Information",
+        "Business Contact",
+        "Business Activity",
+        "UI Subjectivity",
+    };
+
+    private static string ToCamel (string value)
+    {
+        var intermediate = value.Replace(" ", string.Empty);
+        return char.ToLowerInvariant(intermediate[0]) + intermediate[1..];
+    }
+
+    private readonly List<string> _camelSections = _sections.Select(ToCamel).ToList();
+
+    private static readonly List<List<RegistrationAddressCode>> addressCodesForSection = new()
+    {
+        new() { RegistrationAddressCode.Acquired_Business },
+        new() { },
+        new() { RegistrationAddressCode.Main_Business_Mailing, RegistrationAddressCode.Physical_Location },
+        new() { RegistrationAddressCode.Contact },
+        new() { },
+        new() { RegistrationAddressCode.Fiscal_Agent },
+    };
+
+    private static readonly Dictionary<int, string> ContactDescription = new()
+    {
+        { 1, "Sole Proprietor" },
+        { 2, "Decedent" },
+        { 3, "Personal Representative" },
+        { 4, "Partner" },
+        { 5, "General Partner" },
+        { 6, "Member" },
+        { 7, "Principal Officer" },
+        { 8, "President" },
+        { 9, "Vice President" },
+        { 10, "Secretary" },
+        { 11, "Treasurer" },
+    };
+
+    private static string GetIndividualPrefix(int individualCode)
+    {
+        return ContactDescription.TryGetValue(individualCode, out var individualDescription) ? $"{individualDescription} " : string.Empty;
+    }
+
+    private static readonly Dictionary<RegistrationAddressCode, string> AddressDescription = new()
+    {
+        { RegistrationAddressCode.Main_Business_Mailing, "Main Business Mailing Address" },
+        { RegistrationAddressCode.Contact, "Contact Address" },
+        { RegistrationAddressCode.Physical_Location, "Physical Location Address" },
+        { RegistrationAddressCode.Acquired_Business, "Acquired Business Address" },
+        { RegistrationAddressCode.Fiscal_Agent, "Financial Institution Address" },
+    };
+
+    private void EditClicked(int step)
+    {
+        OnNavigateToStep.InvokeAsync(step + 1);
+    }
+
+    private bool SectionHasAnsweredQuestions(string sectionName)
+    {
+        return Questions.Any(q =>
+        {
+            return q.GroupDescription == sectionName
+                && SurveyResponses.Any(r =>
+                {
+                    return q.QuestionSetItemSK == r._surveyResponseItemSk;
+                });
+        });
+    }
+
+    private List<Tuple<EmployerRegistrationQuestionDataProxy, SurveyResponse>> GetQuestionsForSection(string sectionName)
+    {
+        return Questions.Where(q =>
+            {
+                return q.GroupDescription == sectionName;
+            })
+            .OrderBy(q =>
+            {
+                return q.SortOrder;
+            })
+            .Select(q =>
+            {
+                var match = SurveyResponses.FirstOrDefault(r =>
+                {
+                    return r._surveyResponseItemSk == q.QuestionSetItemSK;
+                });
+                return match != null
+                    ? Tuple.Create(q, match)
+                    : null;
+            })
+            .OfType<Tuple<EmployerRegistrationQuestionDataProxy, SurveyResponse>>()
+            .ToList();
+    }
+
+    private List<Tuple<RegistrationAddressCode, AddressModel>> GetAddressesForSection(int sectionIndex)
+    {
+        return Addresses.Where(address =>
+        {
+            return addressCodesForSection[sectionIndex].Contains(address.Item1);
+        }).ToList();
+    }
+}

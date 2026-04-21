@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -16,7 +17,31 @@ public partial class PreliminaryQuestions
     private bool _formSubmitted = false;
     private EditContext _editContext = default!;
     private ValidationMessageStore _messageStore = default!;
+    private readonly HashSet<FieldIdentifier> _touchedFields = new();
 
+    // Tracks whether a file has been uploaded in each 501(c)(3) upload section.
+    // If false the user must check WillSupplyDocumentationLater to proceed.
+    private bool _rulingDocUploaded = false;
+    private bool _appliedDocUploaded = false;
+    private bool _notAppliedDocUploaded = false;
+
+    private List<string> ValidationErrors { get; set; } = new();
+    private List<string> ValidationFieldIds { get; set; } = new();
+
+    private bool IsVisible<T>(Expression<Func<T>> fieldExpression)
+    {
+        var field = FieldIdentifier.Create(fieldExpression);
+        return _formSubmitted || _touchedFields.Contains(field);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Parameter] public string? Value { get; set; }
+    /// <summary>
+    /// 
+    /// </summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
     /// <summary>
     /// 
     /// </summary>
@@ -26,13 +51,17 @@ public partial class PreliminaryQuestions
     /// <summary>
     /// 
     /// </summary>
-    public static readonly IReadOnlyList<RadioOption<BusinessCategory?>> BusinessCategoryOptions = new[]
+    public static readonly IReadOnlyList<RadioOption<NoEmployeeReason?>> NoEmployeReasonOptions = new[]
     {
-      new RadioOption<BusinessCategory?> {Value = BusinessCategory.Commercial, Label = "Commercial"},
-      new RadioOption<BusinessCategory?> {Value = BusinessCategory.Domestic, Label = "Domestic (in a private home)"},
-      new RadioOption<BusinessCategory?> {Value = BusinessCategory.Agricultural, Label = "Agricultural (Farming)"},
-      new RadioOption<BusinessCategory?> {Value = BusinessCategory.NonProfit_501c3, Label = "Non-Profit with 501(c)(3) Ruling from IRS"},
-      new RadioOption<BusinessCategory?> {Value = BusinessCategory.NonProfit_Other, Label = "Non-Profit (other)"},
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.BusinessActivityEnded, Label = "Business activity has ended but business has not been sold" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.NotOperatingInWisconsin, Label = "No longer operating in Wisconsin but still operating in another state" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.HaveSoldOrTransferredBusiness, Label = "Business activity sold or transferred" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.BusiessWithoutEmployees, Label = "Business continuing without employees" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.EmployingIndependentContractors, Label = "Employing Independent Contractors" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.Death, Label = "Death" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.LeasingFromPEO, Label = "Leasing employees from Professional Employer Organization (PEO)" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.FiscalAgent, Label = "Fiscal Agent electing to be employer" },
+      new RadioOption<NoEmployeeReason?> { Value = NoEmployeeReason.Other, Label = "Other" }
     };
 
     /// <summary>
@@ -56,6 +85,14 @@ public partial class PreliminaryQuestions
         new SelectOption {Value = FuturePayPeriod.MoreThanOneYear.ToString(), Text = "More than a year"},
     };
 
+    // 501(c)(3) visibility — driven by the Yes/No non-profit question
+    private bool Show501c3SubTree => Model.IsNonProfitOrg == true;
+    private bool ShowRulingUpload => Show501c3SubTree && Model.HasRulingFrom501c3IRS == true;
+    private bool ShowHasAppliedQuestion => Show501c3SubTree && Model.HasRulingFrom501c3IRS == false;
+    private bool ShowAppliedUpload => ShowHasAppliedQuestion && Model.HasAppliedFor501c3WithIRS == true;
+    private bool ShowNotAppliedText => ShowHasAppliedQuestion && Model.HasAppliedFor501c3WithIRS == false;
+
+
     // visibility delegates
     private bool VisibilityQuestion_2_1 => Model.AcquiredExistingBusiness.HasValue && Model.AcquiredExistingBusiness.Value;
     private bool VisibilityQuestion_2_1_1 => VisibilityQuestion_2_1 && Model.KnowAcquiredBusinessAccountNumber.HasValue && Model.KnowAcquiredBusinessAccountNumber.Value;
@@ -65,8 +102,20 @@ public partial class PreliminaryQuestions
     private bool VisibilityQuestion_3_1_2 => VisibilityQuestion_3_1 && Model.HaveEmployeesCurrentlyWorkingInWisconsin.HasValue && !Model.HaveEmployeesCurrentlyWorkingInWisconsin.Value;
     private bool VisibilityQuestion_3_2 => VisibilityQuestion_3 && Model.HavePaidEmployeesForWorkInWisconsin.HasValue && !Model.HavePaidEmployeesForWorkInWisconsin.Value;
     private bool VisibilityQuestion_3_2_1 => VisibilityQuestion_3_2 && Model.ExpectFuturePayroll.HasValue && Model.ExpectFuturePayroll.Value;
-    private bool VisibilityQuestion_4 => Model.ExpectFuturePayroll.HasValue && !Model.ExpectFuturePayroll.Value;
+    //private bool VisibilityQuestion_4 => Model.ExpectFuturePayroll.HasValue && !Model.ExpectFuturePayroll.Value;
+    private bool VisibilityCheckbox_InfoAccurate => VisibilityQuestion_3_1 && Model.HaveEmployeesCurrentlyWorkingInWisconsin == true;
+    private bool VisibilityQuestion_4 => VisibilityQuestion_3_1 && Model.HaveEmployeesCurrentlyWorkingInWisconsin == false;
 
+    private string? LeasingStartDateAsString
+    {
+        get => Model.LeasingStartDate?.ToString("yyyy-MM-dd");
+        set
+        {
+            Model.LeasingStartDate = string.IsNullOrWhiteSpace(value)
+                ? null
+                : DateOnly.ParseExact(value, "yyyy-MM-dd");
+        }
+    }
 
     // data type fascades
     private string? LastEmploymentDateAsString
@@ -104,21 +153,69 @@ public partial class PreliminaryQuestions
     }
 
     // change handlers
-    private void OnBusinessCategoryChanged(BusinessCategory? value)
+    private void OnIsNonProfitOrgChanged(bool? value)
     {
-        Model.BusinessCategory = value;
-        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.BusinessCategory)));
+        Model.IsNonProfitOrg = value;
+        if (value != true)
+        {
+            Model.HasRulingFrom501c3IRS = null;
+            Model.HasAppliedFor501c3WithIRS = null;
+            Model.WillSupplyDocumentationLater = false;
+
+            ResetField(() => Model.HasRulingFrom501c3IRS);
+            ResetField(() => Model.HasAppliedFor501c3WithIRS);
+        }
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.IsNonProfitOrg)));
     }
 
     private void OnAcquiredExistingBusinessChanged(bool? value)
     {
         Model.AcquiredExistingBusiness = value;
+
+        // Clear Q2 branch fields
+        Model.KnowAcquiredBusinessAccountNumber = null;
+        Model.AcquiredBusinessAccountNumber = string.Empty;
+        Model.AcquiredBusinessName = string.Empty;
+        Model.AcquiredBusinessAddress = null;
+
+        // Clear Q3 branch fields (hidden when AcquiredExistingBusiness = Yes)
+        Model.HavePaidEmployeesForWorkInWisconsin = null;
+        Model.HaveEmployeesCurrentlyWorkingInWisconsin = null;
+        Model.InformationIsAccurate = false;
+        Model.ExpectFuturePayroll = null;
+        Model.ExpectedFuturePayrollPeriod = null;
+        Model.SelectedNoEmployeeReason = null;
+        Model.NoEmployeeExplanation = null;
+        Model.PEOName = null;
+        Model.PEOUIAccountNumber = null;
+        Model.PEOFEIN = null;
+        Model.LeasingStartDate = null;
+        Model.FiscalAgentName = null;
+        Model.FiscalAgentUIAccountNumber = null;
+        Model.OtherReason = null;
+        Model.LastEmploymentDate = null;
+        Model.LastPayrollDate = null;
+
+        ResetField(() => Model.KnowAcquiredBusinessAccountNumber);
+        ResetField(() => Model.AcquiredBusinessAccountNumber);
+        ResetField(() => Model.AcquiredBusinessName);
+        ResetField(() => Model.AcquiredBusinessAddress);
+        ResetField(() => Model.HavePaidEmployeesForWorkInWisconsin);
+        ResetField(() => Model.HaveEmployeesCurrentlyWorkingInWisconsin);
+        ResetField(() => Model.ExpectFuturePayroll);
+        ResetField(() => Model.ExpectedFuturePayrollPeriod);
+        ResetField(() => Model.SelectedNoEmployeeReason);
+
         _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.AcquiredExistingBusiness)));
     }
 
     private void OnKnowAcquiredBusinessAccountNumberChanged(bool? value)
     {
         Model.KnowAcquiredBusinessAccountNumber = value;
+
+        ResetField(() => Model.AcquiredBusinessAccountNumber);
+        ResetField(() => Model.AcquiredBusinessName);
+        ResetField(() => Model.AcquiredBusinessAddress);
 
         // Note: When the AcquiredBusinessAddress model is null, it isn't validated
         Model.AcquiredBusinessAddress = !(value ?? true) ? new() : null;
@@ -128,27 +225,128 @@ public partial class PreliminaryQuestions
     private void OnHavePaidEmployeesForWorkInWisconsinChanged(bool? value)
     {
         Model.HavePaidEmployeesForWorkInWisconsin = value;
+
+        // Clear Q3.1 branch (shown when Yes)
+        Model.HaveEmployeesCurrentlyWorkingInWisconsin = null;
+        Model.InformationIsAccurate = false;
+
+        // Clear Q3.2 branch (shown when No)
+        Model.ExpectFuturePayroll = null;
+        Model.ExpectedFuturePayrollPeriod = null;
+
+        // Clear Q4 branch
+        Model.SelectedNoEmployeeReason = null;
+        Model.NoEmployeeExplanation = null;
+        Model.PEOName = null;
+        Model.PEOUIAccountNumber = null;
+        Model.PEOFEIN = null;
+        Model.LeasingStartDate = null;
+        Model.FiscalAgentName = null;
+        Model.FiscalAgentUIAccountNumber = null;
+        Model.OtherReason = null;
+        Model.LastEmploymentDate = null;
+        Model.LastPayrollDate = null;
+
+        ResetField(() => Model.HaveEmployeesCurrentlyWorkingInWisconsin);
+        ResetField(() => Model.ExpectFuturePayroll);
+        ResetField(() => Model.ExpectedFuturePayrollPeriod);
+        ResetField(() => Model.SelectedNoEmployeeReason);
+
         _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.HavePaidEmployeesForWorkInWisconsin)));
     }
 
     private void OnHaveEmployeesCurrentlyWorkingInWisconsinChanged(bool? value)
     {
         Model.HaveEmployeesCurrentlyWorkingInWisconsin = value;
+        Model.InformationIsAccurate = false;
+
+        // Clear Q4 branch (shown when No)
+        Model.SelectedNoEmployeeReason = null;
+        Model.NoEmployeeExplanation = null;
+        Model.PEOName = null;
+        Model.PEOUIAccountNumber = null;
+        Model.PEOFEIN = null;
+        Model.LeasingStartDate = null;
+        Model.FiscalAgentName = null;
+        Model.FiscalAgentUIAccountNumber = null;
+        Model.OtherReason = null;
+        Model.LastEmploymentDate = null;
+        Model.LastPayrollDate = null;
+
+        ResetField(() => Model.SelectedNoEmployeeReason);
+
+        _messageStore.Clear(_editContext.Field(nameof(Model.InformationIsAccurate)));
         _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.HaveEmployeesCurrentlyWorkingInWisconsin)));
     }
 
     private void OnExpectFuturePayrollChanged(bool? value)
     {
         Model.ExpectFuturePayroll = value;
+
+        // Clear Q3.2.1 (shown only when Yes)
+        Model.ExpectedFuturePayrollPeriod = null;
+
+        ResetField(() => Model.ExpectedFuturePayrollPeriod);
+
         _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.ExpectFuturePayroll)));
     }
-
-    private void OnHaveSoldOrTransferredBusinessChanged(bool? value)
+    private void OnInformationIsAccurateChanged()
     {
-        Model.HaveSoldOrTransferredBusiness = value;
-        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.HaveSoldOrTransferredBusiness)));
+        _messageStore.Clear(_editContext.Field(nameof(Model.InformationIsAccurate)));
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.InformationIsAccurate)));
+    }
+    //private void OnHaveSoldOrTransferredBusinessChanged(bool? value)
+    //{
+    //    Model.HaveSoldOrTransferredBusiness = value;
+    //    _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.HaveSoldOrTransferredBusiness)));
+    //}
+
+    private void OnNoEmployeReasonChanged(NoEmployeeReason? value)
+    {
+        Model.SelectedNoEmployeeReason = value;
+        Model.NoEmployeeExplanation = null;
+        Model.PEOName = null;
+        Model.PEOUIAccountNumber = null;
+        Model.PEOFEIN = null;
+        Model.LeasingStartDate = null;
+        Model.FiscalAgentName = null;
+        Model.FiscalAgentUIAccountNumber = null;
+        Model.OtherReason = null;
+        Model.LastPayrollDate = null;
+        Model.LastEmploymentDate = null;
+
+        ResetField(() => Model.NoEmployeeExplanation);
+        ResetField(() => Model.PEOName);
+        ResetField(() => Model.PEOUIAccountNumber);
+        ResetField(() => Model.PEOFEIN);
+        ResetField(() => Model.LeasingStartDate);
+        ResetField(() => Model.FiscalAgentName);
+        ResetField(() => Model.FiscalAgentUIAccountNumber);
+        ResetField(() => Model.OtherReason);
+        ResetField(() => Model.LastEmploymentDate);
+        ResetField(() => Model.LastPayrollDate);
+
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.SelectedNoEmployeeReason)));
+
+        RunValidation();
     }
 
+    //private async Task OnInput(string? value)
+    //{
+    //    var digits = new string((value ?? "").Where(char.IsDigit).ToArray());
+    //    if (digits.Length > 9)
+    //    {
+    //        digits = digits[..9];
+    //    }
+
+    //    _peoValue = digits.Length switch
+    //    {
+    //        > 2 => $"{digits[..2]}-{digits[2..]}",
+    //        _ => digits
+    //    };
+    //    Model.PEOFEIN = _peoValue;
+    //    _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.PEOFEIN)));
+    //}
     /// <inheritdoc/>
     protected override void OnInitialized()
     {
@@ -158,12 +356,65 @@ public partial class PreliminaryQuestions
         //Track validation state as user interacts
         _editContext.OnFieldChanged += (_, f) =>
         {
-            _messageStore.Clear(f.FieldIdentifier);
+            _touchedFields.Add(f.FieldIdentifier);
+            RunValidation(f.FieldIdentifier);
+
+            _editContext.NotifyValidationStateChanged();
         };
         _editContext.OnValidationRequested += (_, __) =>
         {
-            ValidateModel();
+            RunValidation();
         };
+    }
+
+    private void RunValidation(FieldIdentifier? changedField = null)
+    {
+        if (changedField.HasValue)
+        {
+            // Clear only that field’s errors
+            _messageStore.Clear(changedField.Value);
+        }
+        else
+        {
+            // Full validation (on submit)
+            _messageStore.Clear();
+        }
+
+        ValidateModel();
+        _editContext.NotifyValidationStateChanged();
+    }
+
+    private void ResetField<T>(Expression<Func<T>> fieldExpression)
+    {
+        var field = FieldIdentifier.Create(fieldExpression);
+        _messageStore.Clear(field);
+        _touchedFields.Remove(field);
+    }
+
+    private void OnHasRulingFrom501c3IRSChanged(bool? value)
+    {
+        Model.HasRulingFrom501c3IRS = value;
+        Model.HasAppliedFor501c3WithIRS = null;
+        Model.WillSupplyDocumentationLater = false;
+        _rulingDocUploaded = false;
+        _appliedDocUploaded = false;
+        _notAppliedDocUploaded = false;
+        ResetField(() => Model.HasAppliedFor501c3WithIRS);
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.HasRulingFrom501c3IRS)));
+    }
+
+    private void OnHasAppliedFor501c3WithIRSChanged(bool? value)
+    {
+        Model.HasAppliedFor501c3WithIRS = value;
+        Model.WillSupplyDocumentationLater = false;
+        _appliedDocUploaded = false;
+        _notAppliedDocUploaded = false;
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.HasAppliedFor501c3WithIRS)));
+    }
+
+    private void OnWillSupplyDocumentationLaterChanged()
+    {
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(Model.WillSupplyDocumentationLater)));
     }
 
     ///<Summary>
@@ -173,7 +424,7 @@ public partial class PreliminaryQuestions
     {
         _formSubmitted = true;
         _messageStore.Clear();
-        ValidateModel();
+        RunValidation();
         _editContext.NotifyValidationStateChanged();
         StateHasChanged();
 
@@ -186,177 +437,377 @@ public partial class PreliminaryQuestions
     private void ValidateModel()
     {
         _messageStore.Clear();
+        ValidationErrors.Clear();
+        ValidationFieldIds.Clear();
 
-        // FEIN
-        if (string.IsNullOrWhiteSpace(Model.FEIN))
-        {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.FEIN)),
-                "Enter the FEIN of the business.");
-        }
-        else if (!string.IsNullOrWhiteSpace(Model.FEIN)
-            && !Regex.IsMatch(Model.FEIN, @"^\d{2}-\d{7}$"))
-        {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.FEIN)),
-                "FEIN must match the given format.");
-        }
+        var addressErrors = new Dictionary<FieldIdentifier, List<string>>();
 
-        // UI Account Number
-        if (!string.IsNullOrWhiteSpace(Model.UIAccountNumber))
+        // FEIN — all rules delegated to FEINField.ValidateFEIN()
+        if (IsVisible(() => Model.FEIN))
         {
-            if (!Regex.IsMatch(Model.UIAccountNumber, _uiAccountNumberRegex))
+            var feinResult = FEINField.ValidateFEIN(Model.FEIN);
+            if (!feinResult.IsValid)
             {
-                _messageStore.Add(
-                    _editContext.Field(nameof(Model.UIAccountNumber)),
-                    "Employer UI Account Number must match the given format.");
+                _messageStore.Add(_editContext.Field(nameof(Model.FEIN)), feinResult.ErrorMessage);
             }
         }
-
-        // Question 1
-        if (!Model.BusinessCategory.HasValue)
+        // UI Account Number
+        if (IsVisible(() => Model.UIAccountNumber) && !string.IsNullOrWhiteSpace(Model.UIAccountNumber))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.BusinessCategory)),
-                "Select your business category.");
+            var field = _editContext.Field(nameof(Model.UIAccountNumber));
+            if (!Regex.IsMatch(Model.UIAccountNumber, _uiAccountNumberRegex))
+            {
+                _messageStore.Add(field, "Account Number is not a valid format (999999-999-9)");
+            }
         }
-
-        // Question 2
-        if (!Model.AcquiredExistingBusiness.HasValue)
+        // Non-profit question
+        if (IsVisible(() => Model.IsNonProfitOrg))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.AcquiredExistingBusiness)),
-                "Select if you acquired an existing business.");
+            var field = _editContext.Field(nameof(Model.IsNonProfitOrg));
+            if (!Model.IsNonProfitOrg.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you are a non-profit organization as described in s.501(c)(3) of the IRS code");
+            }
         }
-
+        // 501(c)(3) sub-tree validation
+        if (Show501c3SubTree && IsVisible(() => Model.HasRulingFrom501c3IRS))
+        {
+            var field = _editContext.Field(nameof(Model.HasRulingFrom501c3IRS));
+            if (!Model.HasRulingFrom501c3IRS.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you have a 501(c)(3) ruling from the IRS.");
+            }
+        }
+        if (ShowHasAppliedQuestion && IsVisible(() => Model.HasAppliedFor501c3WithIRS))
+        {
+            var field = _editContext.Field(nameof(Model.HasAppliedFor501c3WithIRS));
+            if (!Model.HasAppliedFor501c3WithIRS.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you have applied for 501(c)(3) status with the IRS.");
+            }
+        }
+        // Require a file upload OR the "supply later" checkbox for each visible upload section
+        var supplyLaterField = _editContext.Field(nameof(Model.WillSupplyDocumentationLater));
+        const string UploadOrCheckboxMsg = "Please upload the required documentation or select 'I will supply required documentation at a later date'";
+        if (ShowRulingUpload && !_rulingDocUploaded && !Model.WillSupplyDocumentationLater)
+        {
+            _messageStore.Add(supplyLaterField, UploadOrCheckboxMsg);
+        }
+        if (ShowAppliedUpload && !_appliedDocUploaded && !Model.WillSupplyDocumentationLater)
+        {
+            _messageStore.Add(supplyLaterField, UploadOrCheckboxMsg);
+        }
+        if (ShowNotAppliedText && !_notAppliedDocUploaded && !Model.WillSupplyDocumentationLater)
+        {
+            _messageStore.Add(supplyLaterField, UploadOrCheckboxMsg);
+        }
+        // Acquired Existing Business
+        if (IsVisible(() => Model.AcquiredExistingBusiness))
+        {
+            var field = _editContext.Field(nameof(Model.AcquiredExistingBusiness));
+            if (!Model.AcquiredExistingBusiness.HasValue)
+            {
+                _messageStore.Add(field, "Select if you acquired an existing business");
+            }
+        }
         // Question 2.1
-        if (VisibilityQuestion_2_1
-            && !Model.KnowAcquiredBusinessAccountNumber.HasValue)
+        if (VisibilityQuestion_2_1 && IsVisible(() => Model.KnowAcquiredBusinessAccountNumber))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.KnowAcquiredBusinessAccountNumber)),
-                "Answer if you know the Account Number of the acquired business.");
+            var field = _editContext.Field(nameof(Model.KnowAcquiredBusinessAccountNumber));
+            if (!Model.KnowAcquiredBusinessAccountNumber.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you know the Account Number of the acquired business");
+            }
         }
-
         // Question 2.1.1
-        if (VisibilityQuestion_2_1_1
-            && string.IsNullOrWhiteSpace(Model.AcquiredBusinessAccountNumber))
+        if (VisibilityQuestion_2_1_1 && IsVisible(() => Model.AcquiredBusinessAccountNumber))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.AcquiredBusinessAccountNumber)),
-                "Enter the Account Number of the acquired business.");
+            var field = _editContext.Field(nameof(Model.AcquiredBusinessAccountNumber));
+            if (string.IsNullOrWhiteSpace(Model.AcquiredBusinessAccountNumber))
+            {
+                _messageStore.Add(field, "Enter the Account Number of the acquired business");
+            }
+            else if (VisibilityQuestion_2_1_1
+         && !Regex.IsMatch(Model.AcquiredBusinessAccountNumber, _uiAccountNumberRegex))
+            {
+                _messageStore.Add(
+                    _editContext.Field(nameof(Model.AcquiredBusinessAccountNumber)),
+                    "Account Number is not a valid format (999999-999-9)");
+            }
         }
-        else if (VisibilityQuestion_2_1_1
-            && !Regex.IsMatch(Model.AcquiredBusinessAccountNumber, _uiAccountNumberRegex))
-        {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.AcquiredBusinessAccountNumber)),
-                "The Acquired Business UI Account Number must match the given format.");
-        }
-
         // Question 2.1.2
         if (VisibilityQuestion_2_1_2)
         {
-            if (string.IsNullOrWhiteSpace(Model.AcquiredBusinessName))
+            if (IsVisible(() => Model.AcquiredBusinessName))
             {
-                _messageStore.Add(
-                    _editContext.Field(nameof(Model.AcquiredBusinessName)),
-                    "Enter the Name of the acquired business.");
+                var field = _editContext.Field(nameof(Model.AcquiredBusinessName));
+                if (string.IsNullOrWhiteSpace(Model.AcquiredBusinessName))
+                {
+                    _messageStore.Add(field, "Enter the Name of the acquired business");
+                }
             }
-
             if (Model.AcquiredBusinessAddress is not null)
             {
-                ValidateAddressAnnotations(Model.AcquiredBusinessAddress);
+                addressErrors = ValidateAddressAnnotations(Model.AcquiredBusinessAddress);
             }
         }
-
         // Question 3
         if (VisibilityQuestion_3
-            && !Model.HavePaidEmployeesForWorkInWisconsin.HasValue)
+            && IsVisible(() => Model.HavePaidEmployeesForWorkInWisconsin))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.HavePaidEmployeesForWorkInWisconsin)),
-                "Answer if you have paid employees for work completed in the State of Wisconsin.");
+            var field = _editContext.Field(nameof(Model.HavePaidEmployeesForWorkInWisconsin));
+            if (!Model.HavePaidEmployeesForWorkInWisconsin.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you have paid employees for work completed in Wisconsin");
+            }
         }
-
         // Question 3.1
         if (VisibilityQuestion_3_1
-            && !Model.HaveEmployeesCurrentlyWorkingInWisconsin.HasValue)
+            && IsVisible(() => Model.HaveEmployeesCurrentlyWorkingInWisconsin))
+        {
+            var field = _editContext.Field(nameof(Model.HaveEmployeesCurrentlyWorkingInWisconsin));
+            if (!Model.HaveEmployeesCurrentlyWorkingInWisconsin.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you currently have employees working in the State of Wisconsin");
+            }
+        }
+        // Acknowledgement checkbox (Q3.1 Yes)
+        if (VisibilityCheckbox_InfoAccurate && !Model.InformationIsAccurate)
         {
             _messageStore.Add(
-                _editContext.Field(nameof(Model.HaveEmployeesCurrentlyWorkingInWisconsin)),
-                "Answer if you currently have employees working in the State of Wisconsin.");
+                _editContext.Field(nameof(Model.InformationIsAccurate)),
+                "You must confirm that the information provided is true and accurate");
         }
 
         // Question 3.1.2
-        if (VisibilityQuestion_3_1_2)
-        {
-            if (!Model.LastEmploymentDate.HasValue)
-            {
-                _messageStore.Add(
-                    _editContext.Field(nameof(Model.LastEmploymentDate)),
-                    "Enter the date that you last had employees employed for work in the State of Wisconsin.");
-            }
-
-            if (!Model.LastPayrollDate.HasValue)
-            {
-                _messageStore.Add(
-                    _editContext.Field(nameof(Model.LastPayrollDate)),
-                    "Enter the last date that you paid employees for work in the State of Wisconsin.");
-            }
-        }
-
+        //if (VisibilityQuestion_3_1_2)
+        //{
+        //    if (IsVisible(() => Model.LastEmploymentDate))
+        //    {
+        //        var field = _editContext.Field(nameof(Model.LastEmploymentDate));
+        //        if (!Model.LastEmploymentDate.HasValue)
+        //        {
+        //            _messageStore.Add(field, "Enter the last employment date.");
+        //        }
+        //    }
+        //    if (IsVisible(() => Model.LastPayrollDate))
+        //    {
+        //        var field = _editContext.Field(nameof(Model.LastPayrollDate));
+        //        if (!Model.LastPayrollDate.HasValue)
+        //        {
+        //            _messageStore.Add(field, "Enter the last payroll date.");
+        //        }
+        //    }
+        //---No longer needed as per story 171}
         // Question 3.2
-        if (VisibilityQuestion_3_2
-            && !Model.ExpectFuturePayroll.HasValue)
+        if (VisibilityQuestion_3_2 && IsVisible(() => Model.ExpectFuturePayroll))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.ExpectFuturePayroll)),
-                "Answer if you expect to pay for work completed in the State of Wisconsin in the future.");
+            var field = _editContext.Field(nameof(Model.ExpectFuturePayroll));
+            if (!Model.ExpectFuturePayroll.HasValue)
+            {
+                _messageStore.Add(field, "Answer if you expect to pay for work completed in the State of Wisconsin in the future");
+            }
         }
-
         // Question 3.2.1
-        if (VisibilityQuestion_3_2_1
-            && !Model.ExpectedFuturePayrollPeriod.HasValue)
+        if (VisibilityQuestion_3_2_1 && IsVisible(() => Model.ExpectedFuturePayrollPeriod))
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.ExpectedFuturePayrollPeriod)),
-                "Pick the future time at which you expect to pay for work completed in the State of Wisconsin.");
+            var field = _editContext.Field(nameof(Model.ExpectedFuturePayrollPeriod));
+            if (!Model.ExpectedFuturePayrollPeriod.HasValue)
+            {
+                _messageStore.Add(field, "Pick the future time at which you expect to pay for work completed in the State of Wisconsin");
+            }
+        }
+        // Question 4
+        if (VisibilityQuestion_4 && IsVisible(() => Model.SelectedNoEmployeeReason))
+        {
+            var field = _editContext.Field(nameof(Model.SelectedNoEmployeeReason));
+            if (!Model.SelectedNoEmployeeReason.HasValue)
+            {
+                _messageStore.Add(field, "Select the reason you no longer have paid employees working in Wisconsin");
+            }
+        }
+        // Conditional cases
+        if (Model.SelectedNoEmployeeReason.HasValue)
+        {
+            switch (Model.SelectedNoEmployeeReason.Value)
+            {
+                case NoEmployeeReason.BusiessWithoutEmployees:
+                    if (IsVisible(() => Model.NoEmployeeExplanation) &&
+                        string.IsNullOrWhiteSpace(Model.NoEmployeeExplanation))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.NoEmployeeExplanation)),
+                            "Enter the reason for business continuation");
+                    }
+                    break;
+                case NoEmployeeReason.LeasingFromPEO:
+                    if (IsVisible(() => Model.PEOName) &&
+                        string.IsNullOrWhiteSpace(Model.PEOName))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.PEOName)),
+                            "Enter the PEO Name");
+                    }
+                    if (IsVisible(() => Model.PEOUIAccountNumber) &&
+                        string.IsNullOrWhiteSpace(Model.PEOUIAccountNumber) &&
+                        string.IsNullOrWhiteSpace(Model.PEOFEIN))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.PEOUIAccountNumber)),
+                            "Enter PEO UI Account Number or PEO FEIN");
+                    }
+                    if (!string.IsNullOrWhiteSpace(Model.PEOUIAccountNumber) &&
+                       !Regex.IsMatch(Model.PEOUIAccountNumber, _uiAccountNumberRegex))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.PEOUIAccountNumber)),
+                            "PEO UI Account Number must match the given format");
+                    }
+                    if (IsVisible(() => Model.LeasingStartDate) &&
+                        !Model.LeasingStartDate.HasValue)
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.LeasingStartDate)),
+                            "Enter the date leasing agreement started");
+                    }
+                    break;
+                case NoEmployeeReason.FiscalAgent:
+                    if (IsVisible(() => Model.FiscalAgentName) &&
+                        string.IsNullOrWhiteSpace(Model.FiscalAgentName))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.FiscalAgentName)),
+                            "Enter the Fiscal Agent Name");
+                    }
+                    if (IsVisible(() => Model.FiscalAgentUIAccountNumber) &&
+                        string.IsNullOrWhiteSpace(Model.FiscalAgentUIAccountNumber))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.FiscalAgentUIAccountNumber)),
+                            "Enter the Fiscal Agent UI Account Number");
+                    }
+                    if (!string.IsNullOrWhiteSpace(Model.FiscalAgentUIAccountNumber) &&
+                        !Regex.IsMatch(Model.FiscalAgentUIAccountNumber, _uiAccountNumberRegex))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.FiscalAgentUIAccountNumber)),
+                            "Fiscal Agent UI Account Number must match the given format");
+                    }
+                    break;
+                case NoEmployeeReason.Other:
+                    if (IsVisible(() => Model.OtherReason) &&
+                        string.IsNullOrWhiteSpace(Model.OtherReason))
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.OtherReason)),
+                            "Enter the reason");
+                    }
+                    break;
+                case NoEmployeeReason.NotOperatingInWisconsin:
+                    if (IsVisible(() => Model.LastEmploymentDate))
+                    {
+                        var lastEmpField = _editContext.Field(nameof(Model.LastEmploymentDate));
+                        if (!Model.LastEmploymentDate.HasValue)
+                        {
+                            _messageStore.Add(lastEmpField, "Last Employment Date must be in a valid format (mm/dd/yyyy).");
+                        }
+                        else if (Model.LastEmploymentDate.Value > DateOnly.FromDateTime(DateTime.Today.AddDays(14)))
+                        {
+                            _messageStore.Add(lastEmpField, "Last Employment Date must be no later than today plus 2 weeks.");
+                        }
+                    }
+                    if (IsVisible(() => Model.LastPayrollDate) &&
+                        !Model.LastPayrollDate.HasValue)
+                    {
+                        _messageStore.Add(
+                            _editContext.Field(nameof(Model.LastPayrollDate)),
+                            "Last Payroll Date must be in a valid format (mm/dd/yyyy).");
+                    }
+                    break;
+            }
         }
 
-        // Question 4
-        if (VisibilityQuestion_4
-            && !Model.HaveSoldOrTransferredBusiness.HasValue)
+        //Bind Notification Banner
+        var properties = Model.GetType().GetProperties();
+        foreach (var prop in properties)
         {
-            _messageStore.Add(
-                _editContext.Field(nameof(Model.HaveSoldOrTransferredBusiness)),
-                "Answer if you have sold or transferred your business.");
+            var fieldId = new FieldIdentifier(Model, prop.Name);
+            var errors = _editContext.GetValidationMessages(fieldId);
+
+            foreach (var error in errors)
+            {
+                ValidationErrors.Add(error);
+                ValidationFieldIds.Add(prop.Name);
+            }
+        }
+
+        //validation for address
+        if (addressErrors.Count != 0)
+        {
+            ValidationErrors.AddRange(addressErrors.Values.SelectMany(v =>
+            {
+                return v;
+            }).ToList());
+            ValidationFieldIds.AddRange(addressErrors.Keys.Select(k =>
+            {
+                return k.FieldName.ToString() ?? string.Empty;
+            }).ToList());
         }
 
         _editContext.NotifyValidationStateChanged();
     }
 
-    private void ValidateAddressAnnotations(AddressModel address)
-    {
-        var results = new List<ValidationResult>();
-        var context = new ValidationContext(address);
+    //private void ValidateAddressAnnotations(AddressModel address)
+    //{
+    //    var results = new List<ValidationResult>();
+    //    var context = new ValidationContext(address);
 
-        Validator.TryValidateObject(address, context, results, validateAllProperties: true);
+    //    Validator.TryValidateObject(address, context, results, validateAllProperties: true);
+
+    //    foreach (var result in results)
+    //    {
+    //        if (result.MemberNames != null && result.MemberNames.Any())
+    //        {
+    //            foreach (var memberName in result.MemberNames)
+    //            {
+    //                var fieldIdentifier = new FieldIdentifier(address, memberName);
+    //                _messageStore.Add(fieldIdentifier, result.ErrorMessage ?? "Invalid value.");
+    //            }
+    //        }
+    //        else
+    //        {
+    //            _messageStore.Add(new FieldIdentifier(address, string.Empty), result.ErrorMessage ?? "Invalid address.");
+    //        }
+    //    }
+    //}
+
+    /// <summary>Runs DataAnnotations validation on the contact address model.</summary>
+    private Dictionary<FieldIdentifier, List<string>> ValidateAddressAnnotations(AddressModel address)
+    {
+        var errors = new Dictionary<FieldIdentifier, List<string>>();
+        var ctx = new ValidationContext(address);
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(address, ctx, results, true);
 
         foreach (var result in results)
         {
-            if (result.MemberNames != null && result.MemberNames.Any())
+            foreach (var memberName in result.MemberNames)
             {
-                foreach (var memberName in result.MemberNames)
+                var fi = new FieldIdentifier(address, memberName);
+
+                if (_touchedFields.Contains(fi))
                 {
-                    var fieldIdentifier = new FieldIdentifier(address, memberName);
-                    _messageStore.Add(fieldIdentifier, result.ErrorMessage ?? "Invalid value.");
+                    _messageStore.Add(fi, result.ErrorMessage ?? "Invalid value.");
                 }
-            }
-            else
-            {
-                _messageStore.Add(new FieldIdentifier(address, string.Empty), result.ErrorMessage ?? "Invalid address.");
+
+                if (!errors.ContainsKey(fi))
+                {
+                    errors[fi] = new List<string>();
+                }
+                errors[fi].Add(result.ErrorMessage ?? "This field is invalid");
             }
         }
+        return errors;
     }
+
 }

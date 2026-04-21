@@ -10,6 +10,9 @@
               rows="@Rows"
               maxlength="@MaxLength"
               disabled="@Disabled"
+              aria-required="@IsRequired"
+              aria-invalid="@HasError"
+              aria-describedby="@AriaDescribedBy"
               value="@Value"
               @onchange="HandleChange"
               @oninput="HandleInput"
@@ -17,7 +20,7 @@
 
     @if (showError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
-        <ValidationError ErrorMessage="@ErrorMessage" />
+        <ValidationError Id="@ErrorId" ErrorMessage="@ErrorMessage" />
     }
 </div>
 
@@ -58,9 +61,29 @@
     /// <summary>Visible the input error when true.</summary>
     [Parameter] public bool Visible { get; set; }
 
-    private bool touched;
+    /// <summary>Marks the field as required for assistive technologies.</summary>
+    [Parameter] public bool IsRequired { get; set; }
 
+    /// <summary>
+    /// Optional id of an external hint/instruction element to associate via aria-describedby.
+    /// </summary>
+    [Parameter] public string? HintId { get; set; }
+
+    private bool touched;
     private bool showError => (touched || Visible) && HasError;
+
+    private string ErrorId => $"{Id}-error";
+
+    private string? AriaDescribedBy
+    {
+        get
+        {
+            var ids = new List<string>();
+            if (!string.IsNullOrWhiteSpace(HintId)) ids.Add(HintId!);
+            if (showError && !string.IsNullOrWhiteSpace(ErrorMessage)) ids.Add(ErrorId);
+            return ids.Count > 0 ? string.Join(" ", ids) : null;
+        }
+    }
 
     private async Task HandleChange(ChangeEventArgs e)
     {

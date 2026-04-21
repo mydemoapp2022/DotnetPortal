@@ -40,16 +40,16 @@ public partial class Ownership
     private CorporateOfficerServicesSection? _officerServicesSectionRef;
     private LlcDocumentationSection? _llcDocSectionRef;
     private QualifiedSettlementFundSection? _qsfSectionRef;
+    private GovernmentEmpDocumentation? _owaSectionRef;
     private CorporateOfficerServicesModel _corporateOfficerServicesData = new();
     private LlcDocumentationModel _llcDocumentationData = new();
     private QualifiedSettlementFundModel _qsfData = new();
+    private OwnershipAgency _owaData = new();
     private Func<List<ValidationItem>>? _officerServicesValidateCallback;
     private Func<List<ValidationItem>>? _llcDocValidateCallback;
     private Func<List<ValidationItem>>? _qsfValidateCallback;
+    private Func<List<ValidationItem>>? _owagencyDocValidateCallback;
     private readonly HashSet<string> _sectionFieldsIds = [];
-    private bool _isValidating;
-    private List<ValidationItem>? _capturedChildItems;
-
     private bool ShowCorporateOfficerServicesSection => Model.OwnershipType is (OwnershipType.Corporation or OwnershipType.LLCCorporation)
                                                         && !HasPaidEmployeesInWI
                                                         && !ExpectsFuturePayroll;
@@ -59,6 +59,17 @@ public partial class Ownership
     private bool ShowQsfSection => Model.OwnershipType == OwnershipType.QSF
                                                 && (!HasPaidEmployeesInWI || !ExpectsFuturePayroll);
 
+    private bool ShowOWASection => Model.OwnershipType == OwnershipType.CityGovernmentAgency;
+    private bool ShowOWACSection => Model.OwnershipType == OwnershipType.CountyGovernmentAgency;
+    private bool ShowOWAFSection => Model.OwnershipType == OwnershipType.FederalGovernmentAgency;
+    private bool ShowOWALSection => Model.OwnershipType == OwnershipType.LocalGovernmentUnitNotListed;
+    private bool ShowOWASCSection => Model.OwnershipType == OwnershipType.SchoolDistrict;
+    private bool ShowOWASTSection => Model.OwnershipType == OwnershipType.StateGovernmentAgency;
+    private bool ShowOWASTUSection => Model.OwnershipType == OwnershipType.StateGovernmentUnitNotListed;
+    private bool ShowOWATSection => Model.OwnershipType == OwnershipType.Township;
+    private bool ShowOWAVSection => Model.OwnershipType == OwnershipType.Village;
+    private bool _isValidating = false;
+    private List<ValidationItem>? _capturedChildItems;
     /// <inheritdoc/>
     protected override void OnInitialized()
     {
@@ -105,6 +116,16 @@ public partial class Ownership
             AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
             AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
             AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
+            AggregateSectionErrors(ShowOWASection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWACSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWAFSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWALSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWASCSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWASTSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWASTUSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWATSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWAVSection, _owagencyDocValidateCallback);
+
             _showValidationSummary = !IsFormValid();
             await InvokeAsync(StateHasChanged);
             return IsFormValid();
@@ -156,11 +177,18 @@ public partial class Ownership
             }
         }
         _sectionFieldsIds.Clear();
-
         AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
         AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
         AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
-
+        AggregateSectionErrors(ShowOWASection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWACSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWAFSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWALSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWASCSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWASTSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWASTUSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWATSection, _owagencyDocValidateCallback);
+        AggregateSectionErrors(ShowOWAVSection, _owagencyDocValidateCallback);
         StateHasChanged();
     }
 
@@ -175,7 +203,11 @@ public partial class Ownership
         { OwnershipType.Partnership, typeof(MemberBasedOwnershipForm) },
         { OwnershipType.SoleProprietorship, typeof(SoleProprietorshipOwnershipForm) },
         { OwnershipType.Individual, typeof(SoleProprietorshipOwnershipForm) },
-        { OwnershipType.Estate, typeof(EstateOwnershipForm) }
+        { OwnershipType.Estate, typeof(EstateOwnershipForm) },
+        //{ OwnershipType.CityGovernmentAgency, typeof(GovernmentEmpDocumentation) },
+        //{ OwnershipType.CountyGovernmentAgency, typeof(GovernmentEmpDocumentation) },
+        //{ OwnershipType.StateGovernmentAgency, typeof(GovernmentEmpDocumentation) },
+        //{ OwnershipType.FederalGovernmentAgency, typeof(GovernmentEmpDocumentation) }
     };
 
     // Configuration mapping using enum
@@ -284,7 +316,15 @@ public partial class Ownership
                 TypeDisplayName = "Estate",
                 MaxEntries = 2
             }
-        }
+        }, {
+            OwnershipType.CityGovernmentAgency,
+            new OwnershipFormConfig
+            {
+                OwnershipTypeValue = "citygovagency",
+                TypeDisplayName = "CityGovernmentAgency",
+                MaxEntries = 1
+            }
+        },
     };
 
     private void EnsureOwnershipTypeValidationError()
@@ -324,14 +364,17 @@ public partial class Ownership
             _officerServicesValidateCallback = null;
             _llcDocValidateCallback = null;
             _qsfValidateCallback = null;
-
+            _owagencyDocValidateCallback = null;
             // Reset section data when ownership type changes
             _corporateOfficerServicesData = new();
             _llcDocumentationData = new();
             _qsfData = new();
+            _owaData = new();
             Model.CorporateOfficerServices = null;
             Model.LlcDocumentation = null;
             Model.QualifiedSettlementFund = null;
+
+
 
             StateHasChanged();
             await Task.Delay(100);
@@ -391,6 +434,14 @@ public partial class Ownership
                     parameters.Add("OnDataChanged",
                         EventCallback.Factory.Create<EstateFormData>(this, OnFormDataChanged));
                     break;
+                case OwnershipType.CityGovernmentAgency:
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<OwnershipAgency>(this, OnFormDataChanged));
+                    break;
+                case OwnershipType.CountyGovernmentAgency:
+                    parameters.Add("OnDataChanged",
+                        EventCallback.Factory.Create<OwnershipAgency>(this, OnFormDataChanged));
+                    break;
             }
         }
 
@@ -404,7 +455,6 @@ public partial class Ownership
             _capturedChildItems = items;
             return;
         }
-
         var distinct = items.DistinctBy(i =>
         {
             return i.Message;
@@ -417,16 +467,22 @@ public partial class Ownership
         {
             return i.FieldId;
         }).ToList();
-
-        // Re-aggregate section errors so they aren't lost on child-form blur
         if (_showValidationSummary)
         {
             _sectionFieldsIds.Clear();
             AggregateSectionErrors(ShowLlcDocumentationSection, _llcDocValidateCallback);
             AggregateSectionErrors(ShowCorporateOfficerServicesSection, _officerServicesValidateCallback);
             AggregateSectionErrors(ShowQsfSection, _qsfValidateCallback);
+            AggregateSectionErrors(ShowOWASection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWACSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWAFSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWALSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWASCSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWASTSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWASTUSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWATSection, _owagencyDocValidateCallback);
+            AggregateSectionErrors(ShowOWAVSection, _owagencyDocValidateCallback);
         }
-
         StateHasChanged();
     }
 
@@ -488,6 +544,21 @@ public partial class Ownership
                         Model.PersonalRepresentative = estateData.PersonalRepresentative;
                     }
                     break;
+                case OwnershipType.CityGovernmentAgency:
+                    if (_childFormData is OwnershipAgency ownershipAgency)
+                    {
+                        Model.OwnershipAgencies?.HasFile = ownershipAgency.HasFile;
+                        Model.OwnershipAgencies?.NoHasFile = ownershipAgency.NoHasFile;
+                    }
+                    break;
+                case OwnershipType.CountyGovernmentAgency:
+                    if (_childFormData is OwnershipAgency cownershipAgency)
+                    {
+                        Model.OwnershipAgencies?.HasFile = cownershipAgency.HasFile;
+                        Model.OwnershipAgencies?.NoHasFile = cownershipAgency.NoHasFile;
+                    }
+                    break;
+
             }
         }
     }
@@ -522,6 +593,17 @@ public partial class Ownership
         }
     }
 
+    private void OnOwaDataChanged(OwnershipAgency data)
+    {
+        _owaData = data;
+        Model.OwnershipAgencies = data;
+
+        if (_showValidationSummary)
+        {
+            RefreshSectionValidationSummary();
+        }
+    }
+
     private void RegisterOfficerServicesValidateCallback(Func<List<ValidationItem>> callback)
     {
         _officerServicesValidateCallback = callback;
@@ -536,7 +618,10 @@ public partial class Ownership
     {
         _qsfValidateCallback = callback;
     }
-
+    private void RegisterOWAValidateCallback(Func<List<ValidationItem>> callback)
+    {
+        _owagencyDocValidateCallback = callback;
+    }
     /// <summary>
     /// Restores section data from the model (for back-navigation/session continuity).
     /// </summary>
@@ -556,6 +641,11 @@ public partial class Ownership
         {
             _qsfData = Model.QualifiedSettlementFund;
         }
+        if (Model.OwnershipAgencies != null)
+        {
+            _owaData = Model.OwnershipAgencies;
+        }
+
     }
 
     private bool IsFormValid()

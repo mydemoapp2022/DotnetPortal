@@ -1,3 +1,4 @@
+@using UI.EmployerPortal.Razor.SharedComponents.Validation
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Models
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components.Shared
 @using UI.EmployerPortal.Web.Features.EmployerRegistration.Components
@@ -13,14 +14,14 @@
                   OnInvalidSubmit="OnInvalid"
                   FormName="Business Activity">
             <DataAnnotationsValidator />
-
             @if (_showValidationSummary && ValidationErrors.Any())
             {
                 <NotificationBanner NotificationType="NotificationType.Alert"
                                     MessageStyle="MessageStyle.MultiLine"
                                     Messages="ValidationErrors"
                                     MessageFieldIds="ValidationFieldIds"
-                                    DismissButton="false" />
+                                    DismissButton="false">
+                </NotificationBanner>
                 <br />
             }
 
@@ -31,35 +32,38 @@
             else
             {
                 <div class="form-section">
+                    <!-- Date fields - Row 1 -->
                     @if (ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.HavePaidEmployeesForWorkInWisconsin.HasValue
-                        && ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.HavePaidEmployeesForWorkInWisconsin.Value)
+                                    && ModelStore.EmployerRegistrationModel.PreliminaryQuestionsModel.HavePaidEmployeesForWorkInWisconsin.Value)
                     {
-                        <!-- Date fields - Row 1 -->
                         <div class="form-row row">
                             <div class="form-group col-md-6">
                                 <ValidatedDateInput Id="dateStarted"
                                                     Label="Date business started or acquired"
                                                     Value="@Model.DateBusinessStarted"
-                                                    ValueChanged="@(v => { Model.DateBusinessStarted = v; ValidateForm(); OnFieldChanged("DateBusinessStarted"); })"
+                                                    ValueChanged="@(v => {Model.DateBusinessStarted = v; ValidateForm(); OnFieldChanged("DateBusinessStarted");})"
                                                     Max="DateTime.Today"
                                                     Width="350"
                                                     HasError="@(FieldErrors.ContainsKey("DateBusinessStarted"))"
                                                     ErrorMessage="@FieldErrors.GetValueOrDefault("DateBusinessStarted")"
                                                     Visible="_showAllErrors"
-                                                    OnBlur="@(() => ValidateForm())" />
+                                                    OnBlur="@(() => ValidateForm())"
+                                                    FocusKey="response:3180"/>
                             </div>
+
                             <div class="form-group col-md-6">
                                 <ValidatedDateInput Id="dateFirstPaid"
                                                     Label="Date you first had paid employees working in WI"
                                                     Value="@Model.DateFirstPaidEmployeesInWI"
-                                                    ValueChanged="@(v => { Model.DateFirstPaidEmployeesInWI = v; ValidateForm(); OnFieldChanged("DateFirstPaidEmployeesInWI"); })"
+                                                    ValueChanged="@(v => {Model.DateFirstPaidEmployeesInWI = v;ValidateForm(); OnFieldChanged("DateFirstPaidEmployeesInWI");})"
                                                     Max="DateTime.Today"
                                                     Width="360"
-                                                    CSS="master-text-field-full"
+                                                    CSS="master-text-field"
                                                     HasError="@(FieldErrors.ContainsKey("DateFirstPaidEmployeesInWI"))"
                                                     ErrorMessage="@FieldErrors.GetValueOrDefault("DateFirstPaidEmployeesInWI")"
                                                     Visible="_showAllErrors"
-                                                    OnBlur="@(() => ValidateForm())" />
+                                                    OnBlur="@(() => ValidateForm())"
+                                                    FocusKey="response:3181"/>
                             </div>
                         </div>
 
@@ -69,20 +73,21 @@
                                 <ValidatedDateInput Id="dateFirstWages"
                                                     Label="Date first paid wages for work performed in WI"
                                                     Value="@Model.DateFirstPaidWagesInWI"
-                                                    ValueChanged="@(v => { Model.DateFirstPaidWagesInWI = v; ValidateForm(); OnFieldChanged("DateBusinessStarted"); })"
+                                                    ValueChanged="@(v => {Model.DateFirstPaidWagesInWI = v; ValidateForm(); OnFieldChanged("DateBusinessStarted");})"
                                                     Max="DateTime.Today"
                                                     Width="350"
                                                     HasError="@(FieldErrors.ContainsKey("DateFirstPaidWagesInWI"))"
                                                     ErrorMessage="@FieldErrors.GetValueOrDefault("DateFirstPaidWagesInWI")"
                                                     Visible="_showAllErrors"
-                                                    OnBlur="@(() => ValidateForm())" />
+                                                    OnBlur="@(() => ValidateForm())"
+                                                    FocusKey="response:3182"/>
                             </div>
                         </div>
                     }
-
                     <!-- Principal Business Activity -->
                     <div class="activity-section">
                         <p>Select your principal business activity from the list below.</p>
+
                         <div class="form-row row">
                             <div class="col-12">
                                 <PrincipalBusinessActivitySelect Id="principal-activity"
@@ -117,15 +122,20 @@
 
                     @if (Model.PrincipalBusinessActivity == PrincipalBusinessActivityType.EmployerServices)
                     {
-                        <!-- Question 1 -->
-                        <div class="bc-question">
-                            <p id="tempWorkers" aria-label="address-different" class="bc-question-text">
+                        <!--Question 1-->
+                        <div id="tempWorkers"
+                             class="bc-question @(_showAllErrors && InvalidFields.Contains("SuppliesTemporaryWorkers") ? "master-text-field--error" : "")">
+                            <p aria-label="address-different" class="bc-question-text">
                                 Will this entity contract with clients to supply individuals to perform services for
                                 the client on a temporary basis to support or supplement the workforce of the
                                 client in situations such as personnel absences, temporary personnel shortages,
                                 and workload changes resulting from seasonal demands or special assignments
                                 or projects?
                             </p>
+                            @if (_showAllErrors && InvalidFields.Contains("SuppliesTemporaryWorkers"))
+                            {
+                                <ValidationError ErrorMessage="The question must be answered to continue" />
+                            }
                             <div class="bc-radio-group" aria-label="radio-options">
                                 <FieldError For="@(() => Model.SuppliesTemporaryWorkers)"
                                             Visible="@_showAllErrors" />
@@ -133,41 +143,48 @@
                                             Value="Model.SuppliesTemporaryWorkers"
                                             ValueChanged="OnTempWorkersChanged"
                                             ValueExpression="() => Model.SuppliesTemporaryWorkers"
+                                            CSS="@(_showAllErrors && InvalidFields.Contains("SuppliesTemporaryWorkers") ? "invalid" : "valid")"
                                             Options="@YesNoRadioOptions" />
                             </div>
                         </div>
                         <br />
 
-                        <!-- Question 2 -->
-                        <div class="bc-question">
-                            <p id="employeeLeasing" class="bc-question-text">
+                        <!--Question 2-->
+                        <div id="employeeLeasing"
+                             class="bc-question @(_showAllErrors && InvalidFields.Contains("ProvidesEmployeeLeasing") ? "master-text-field--error" : "")">
+                            <p class="bc-question-text">
                                 Will this entity contract to provide the non-temporary, ongoing employee workforce
                                 under a written leasing contract and report all of the workers of its client firms,
                                 including corporate officers, under one unemployment account?
                             </p>
+                            @if (_showAllErrors && InvalidFields.Contains("ProvidesEmployeeLeasing"))
+                            {   
+                                <ValidationError ErrorMessage="The question must be answered to continue" />
+                            }
                             <div class="bc-radio-group" aria-label="radio-options">
                                 <FieldError For="@(() => Model.ProvidesEmployeeLeasing)"
                                             Visible="@_showAllErrors" />
                                 <RadioGroup TValue="bool?"
                                             Value="Model.ProvidesEmployeeLeasing"
                                             ValueChanged="OnEmployeeLeasingChanged"
-                                            ValueExpression="() => Model.ProvidesEmployeeLeasing"
+                                            ValueExpression="()=>Model.ProvidesEmployeeLeasing"
+                                            CSS="@(_showAllErrors && InvalidFields.Contains("ProvidesEmployeeLeasing") ? "invalid" : "valid")"
                                             Options="@YesNoRadioOptions" />
                             </div>
                         </div>
 
                         @if (Model.SuppliesTemporaryWorkers == false && Model.ProvidesEmployeeLeasing == false)
                         {
-                            <!-- Explanation -->
-                            <div class="question-block">
-                                <p id="employeeExplanation" class="question-text">
+                            <!--Explanantion-->
+                            <div id="employeeExplanation" class="question-block">
+                                <p class="question-text">
                                     <strong>Please explain why you've indicated Employer Services is your principal business activity:</strong>
                                 </p>
                                 <FieldError For="@(() => Model.EmployerServiceExplanantion)"
                                             Visible="@_showAllErrors" />
                                 <ValidatedTextArea Id="employerExplanation"
                                                    Value="@Model.EmployerServiceExplanantion"
-                                                   ValueChanged="@(v => { Model.EmployerServiceExplanantion = v; ValidateForm(); OnFieldChanged("EmployerServiceExplanantion"); })"
+                                                   ValueChanged="@(v => {Model.EmployerServiceExplanantion = v; ValidateForm(); OnFieldChanged("EmployerServiceExplanantion");})"
                                                    Rows="4"
                                                    Width="684"
                                                    MaxLength="255"
@@ -178,11 +195,10 @@
                             </div>
                         }
                     }
-
                     @if (Model.PrincipalBusinessActivity == PrincipalBusinessActivityType.EmployerServicesPayrollService)
                     {
                         <div class="payroll-container">
-                            <!-- Question 1 -->
+                            <!--Question 1-->
                             <div class="question-block">
                                 <p class="question-text">
                                     For employees that are working in Wisconsin, are they your own employees (i.e.,
@@ -191,7 +207,7 @@
                                 </p>
                                 <ValidatedTextArea Id="employeeType"
                                                    Value="@Model.EmployeeType"
-                                                   ValueChanged="@(v => { Model.EmployeeType = v; ValidateForm(); OnFieldChanged("EmployeeType"); })"
+                                                   ValueChanged="@(v => {Model.EmployeeType = v; ValidateForm(); OnFieldChanged("EmployeeType");})"
                                                    Rows="4"
                                                    Width="684"
                                                    MaxLength="255"
@@ -201,25 +217,37 @@
                                                    OnBlur="@(() => ValidateForm())" />
                             </div>
 
-                            <!-- Question 2 -->
+                            <!--Question 2-->
                             <div class="question-block">
                                 <p class="question-text">How many employees do you currently have performing services in Wisconsin?</p>
                                 <div class="numeric-wrapper">
-                                    <OutlinedTextField Id="employeeCount"
+                                    @* <OutlinedTextField Id="employeeCount"
                                                        InputMode="numeric"
                                                        @bind-Value="Model.EmployeeCount"
                                                        MaxLength="5"
                                                        For="() => Model.EmployeeCount"
-                                                       Visible="@IsVisible(() => Model.EmployeeCount)" />
+                                                       Visible="_showAllErrors" /> *@
+                                    <ValidatedInput Id="employeeCount"
+                                                    InputType="number"
+                                                    Label=""
+                                                    Value="@Model.EmployeeCount"
+                                                    ValueChanged="@(v => Model.EmployeeCount = v)"
+                                                    MaxLength="5"                 
+                                                    Width="210"
+                                                    HasError="@FieldErrors.ContainsKey("EmployeeCount")"
+                                                    ErrorMessage="Employee Count is required"
+                                                    Visible="_showAllErrors"
+                                                    OnKeyUp="@(() => ValidateForm())"
+                                                    OnBlur="@(() => ValidateForm())" />
                                 </div>
                             </div>
 
-                            <!-- Question 3 -->
+                            <!--Question 3-->
                             <div class="question-block">
-                                <p class="question-text">What services are being performed by the employee(s) working in Wisconsin?</p>
+                                <p class="question-text">What services are being performed by the employee(s) working in Wisconsin?  </p>
                                 <ValidatedTextArea Id="servicesDescription"
                                                    Value="@Model.ServicesDescription"
-                                                   ValueChanged="@(v => { Model.ServicesDescription = v; ValidateForm(); OnFieldChanged("ServicesDescription"); })"
+                                                   ValueChanged="@(v => {Model.ServicesDescription = v; ValidateForm(); OnFieldChanged("ServicesDescription");})"
                                                    Rows="4"
                                                    Width="684"
                                                    MaxLength="255"
@@ -230,7 +258,6 @@
                             </div>
                         </div>
                     }
-
                     <!-- Primary Business Activity Description -->
                     <div class="activity-section">
                         <p>
@@ -241,7 +268,7 @@
                             <div class="col-12">
                                 <ValidatedTextArea Id="primaryDescription"
                                                    Value="@Model.PrimaryBusinessActivityDescription"
-                                                   ValueChanged="@(v => { Model.PrimaryBusinessActivityDescription = v; ValidateForm(); OnFieldChanged("PrimaryBusinessActivityDescription"); })"
+                                                   ValueChanged="@(v => {Model.PrimaryBusinessActivityDescription = v; ValidateForm(); OnFieldChanged("PrimaryBusinessActivityDescription");})"
                                                    Rows="4"
                                                    Width="750"
                                                    MaxLength="255"
@@ -267,14 +294,13 @@
                                 <span><strong>Same as the primary business activity.</strong></span>
                             </label>
                         </div>
-
                         @if (!Model.SameAsPrimaryBusinessActivity)
                         {
                             <div class="form-row row">
                                 <div class="col-12">
                                     <ValidatedTextArea Id="wiDescription"
                                                        Value="@Model.WisconsinSpecificBusinessActivity"
-                                                       ValueChanged="@(v => { Model.WisconsinSpecificBusinessActivity = v; ValidateForm(); OnFieldChanged("WisconsinSpecificBusinessActivity"); })"
+                                                       ValueChanged="@(v => {Model.WisconsinSpecificBusinessActivity = v; ValidateForm(); OnFieldChanged("WisconsinSpecificBusinessActivity");})"
                                                        Rows="4"
                                                        Width="750"
                                                        MaxLength="255"

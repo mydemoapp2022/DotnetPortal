@@ -14,38 +14,49 @@ public partial class BusinessActivity : ComponentBase
     /// Business activity form model
     /// </summary>
     [Parameter] public BusinessActivityModel Model { get; set; } = new();
+
     private bool _showValidationSummary = false;
     private bool _isSessionLoaded = false;
     private bool _showConstructionWarning = false;
     private bool _showAllErrors = false;
+
     private List<string> ValidationErrors { get; set; } = [];
     private List<string> ValidationFieldIds { get; set; } = new();
     private HashSet<string> InvalidFields { get; set; } = [];
     private Dictionary<string, string> FieldErrors { get; set; } = [];
     private HashSet<string> TouchedFields { get; set; } = [];
 
+
     /// <summary>Tracks whether the form has been submitted at least once.</summary>
     private bool _formSubmitted = false;
+
     /// <summary>Tracks which fields have been interacted with so errors show on blur.</summary>
+
     private readonly HashSet<FieldIdentifier> _touchedFields = new();
 
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
     [Inject] private EmployerRegistrationModelStore ModelStore { get; set; } = default!;
 
     /// <summary>
     /// OnBackClicked
     /// </summary>
-    [Parameter] public EventCallback OnBackClicked { get; set; }
+    [Parameter]
+    public EventCallback OnBackClicked { get; set; }
 
     /// <summary>
     /// OnSaveAndQuitClicked
     /// </summary>
-    [Parameter] public EventCallback OnSaveAndQuitClicked { get; set; }
+    [Parameter]
+    public EventCallback OnSaveAndQuitClicked { get; set; }
 
     /// <summary>
     /// OnContinueClicked
     /// </summary>
-    [Parameter] public EventCallback OnContinueClicked { get; set; }
+    [Parameter]
+    public EventCallback OnContinueClicked { get; set; }
 
     /// <summary>
     /// Load session data after first render
@@ -67,6 +78,7 @@ public partial class BusinessActivity : ComponentBase
     /// <summary>
     /// Initialize fields on startup
     /// </summary>
+    /// <returns></returns>
     protected override async void OnInitialized()
     {
         _editContext = new EditContext(Model);
@@ -76,7 +88,7 @@ public partial class BusinessActivity : ComponentBase
             _hasValidationErrors = _editContext.GetValidationMessages().Any();
             StateHasChanged();
         };
-
+        CheckConstructionWarning();
     }
 
     /// <summary>
@@ -86,12 +98,15 @@ public partial class BusinessActivity : ComponentBase
     {
         Model.PrimaryBusinessActivityDescription = string.Empty;
         Model.WisconsinSpecificBusinessActivity = string.Empty;
+
         Model.SuppliesTemporaryWorkers = null;
         Model.ProvidesEmployeeLeasing = null;
         Model.EmployerServiceExplanantion = string.Empty;
+
         Model.EmployeeType = string.Empty;
         Model.EmployeeCount = string.Empty;
         Model.ServicesDescription = string.Empty;
+
         InvokeAsync(StateHasChanged);
         CheckConstructionWarning();
         ValidateForm();
@@ -100,6 +115,7 @@ public partial class BusinessActivity : ComponentBase
     private void OnTempWorkersChanged(bool? value)
     {
         Model.SuppliesTemporaryWorkers = value;
+
         if (value == true || Model.ProvidesEmployeeLeasing == true)
         {
             Model.EmployerServiceExplanantion = string.Empty;
@@ -111,6 +127,7 @@ public partial class BusinessActivity : ComponentBase
     private void OnEmployeeLeasingChanged(bool? value)
     {
         Model.ProvidesEmployeeLeasing = value;
+
         if (value == true || Model.SuppliesTemporaryWorkers == true)
         {
             Model.EmployerServiceExplanantion = string.Empty;
@@ -128,17 +145,19 @@ public partial class BusinessActivity : ComponentBase
     }
 
     /// <summary>
-    /// Yes/No radio button options
+    /// 
     /// </summary>
     public static readonly IReadOnlyList<RadioOption<bool?>> YesNoRadioOptions = new[]
     {
-        new RadioOption<bool?> { Value = true, Label = "Yes" },
-        new RadioOption<bool?> { Value = false, Label = "No" }
+      new RadioOption<bool?> {Value =true, Label = "Yes"},
+      new RadioOption<bool?> {Value =false, Label = "No"}
     };
 
     /// <summary>
     /// IsFieldTouched
     /// </summary>
+    /// <param name="fieldKey"></param>
+    /// <returns></returns>
     private bool IsFieldTouched(string fieldKey)
     {
         return TouchedFields.Contains(fieldKey);
@@ -149,25 +168,25 @@ public partial class BusinessActivity : ComponentBase
     /// </summary>
     private void TouchAllFields()
     {
-        TouchedFields =
-        [
-            "DateBusinessStarted",
-            "DateFirstPaidEmployeesInWI",
-            "DateFirstPaidWagesInWI",
-            "PrincipalBusinessActivity",
-            "PrimaryBusinessActivityDescription",
-            "WisconsinSpecificBusinessActivity",
-            "SuppliesTemporaryWorkers",
-            "ProvidesEmployeeLeasing",
-            "EmployerServiceExplanantion",
-            "EmployeeType",
-            "ServicesDescription"
-        ];
+        TouchedFields = [
+                "DateBusinessStarted",
+                "DateFirstPaidEmployeesInWI",
+                "DateFirstPaidWagesInWI",
+                "PrincipalBusinessActivity",
+                "PrimaryBusinessActivityDescription",
+                "WisconsinSpecificBusinessActivity",
+                "SuppliesTemporaryWorkers",
+                "ProvidesEmployeeLeasing",
+                "EmployerServiceExplanantion",
+                "EmployeeType",
+                "ServicesDescription",
+                "EmployeeCount",
+            ];
     }
-
     /// <summary>
     /// OnFieldChanged
     /// </summary>
+    /// <param name="fieldKey"></param>
     private void OnFieldChanged(string fieldKey)
     {
         TouchedFields.Add(fieldKey);
@@ -175,13 +194,14 @@ public partial class BusinessActivity : ComponentBase
     }
 
     private void OnFieldBlur(Expression<Func<object?>> fieldExpression)
+
     {
         var fieldIdentifier = FieldIdentifier.Create(fieldExpression);
         _touchedFields.Add(fieldIdentifier);
+
         ValidateForm();
         StateHasChanged();
     }
-
     private bool IsVisible(Expression<Func<string?>> @for)
     {
         return _formSubmitted || _touchedFields.Contains(FieldIdentifier.Create(@for));
@@ -203,6 +223,7 @@ public partial class BusinessActivity : ComponentBase
             "EmployeeType" => "employeeType",
             "EmployeeCount" => "employeeCount",
             "ServicesDescription" => "servicesDescription",
+
             _ => string.Empty
         };
     }
@@ -245,18 +266,19 @@ public partial class BusinessActivity : ComponentBase
             }
             else if (IsFutureDate(Model.DateFirstPaidEmployeesInWI.Value))
             {
-                AddFieldError("DateFirstPaidEmployeesInWI", "Date you first had employees working in Wisconsin must be today or earlier.");
+                AddFieldError("DateFirstPaidEmployeesInWI", "Date you first had employees working in Wisconsin must be today or earlier");
             }
 
             // Date First Paid Wages In WI
             if (!Model.DateFirstPaidWagesInWI.HasValue)
             {
-                AddFieldError("DateFirstPaidWagesInWI", "Date you first paid wages for work performed in Wisconsin is not valid. Format example: mm/dd/yyyy.");
+                AddFieldError("DateFirstPaidWagesInWI", "Date you first paid wages for work performed in Wisconsin is not valid. Format example: mm/dd/yyyy");
             }
             else
             {
                 var wagesDate = Model.DateFirstPaidWagesInWI.Value.Date;
 
+                //Must be between Date Business Started and today
                 if (IsFutureDate(Model.DateFirstPaidWagesInWI.Value))
                 {
                     AddFieldError("DateFirstPaidWagesInWI", "Date you first paid wages for work performed in Wisconsin must be today or earlier");
@@ -296,12 +318,10 @@ public partial class BusinessActivity : ComponentBase
             {
                 AddFieldError("SuppliesTemporaryWorkers", "The question must be answered to continue");
             }
-
             if (!Model.ProvidesEmployeeLeasing.HasValue)
             {
                 AddFieldError("ProvidesEmployeeLeasing", "The question must be answered to continue");
             }
-
             if (Model.SuppliesTemporaryWorkers == false && Model.ProvidesEmployeeLeasing == false && string.IsNullOrWhiteSpace(Model.EmployerServiceExplanantion))
             {
                 AddFieldError("EmployerServiceExplanantion", "Explanation is required");
@@ -314,12 +334,10 @@ public partial class BusinessActivity : ComponentBase
             {
                 AddFieldError("EmployeeType", "The question must be answered to continue");
             }
-
             if (string.IsNullOrWhiteSpace(Model.EmployeeCount))
             {
                 AddFieldError("EmployeeCount", "You must enter the number of employees performing services in Wisconsin");
             }
-
             if (string.IsNullOrWhiteSpace(Model.ServicesDescription))
             {
                 AddFieldError("ServicesDescription", "The question must be answered to continue");
@@ -369,10 +387,13 @@ public partial class BusinessActivity : ComponentBase
     }
 
     /// <summary>Called by EditForm when top-level validation fails.</summary>
+
     private void OnInvalid()
     {
         _formSubmitted = true;
         _hasValidationErrors = true;
         StateHasChanged();
     }
+
+
 }

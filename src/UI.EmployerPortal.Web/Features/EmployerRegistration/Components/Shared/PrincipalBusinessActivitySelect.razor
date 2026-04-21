@@ -15,7 +15,10 @@
                  class="@GetCssClass()"
                  @bind-Value="Value"
                  @bind-Value:after="OnValueChanged"
-                 disabled="@Disabled">
+                 disabled="@Disabled"
+                 aria-required="@IsRequired"
+                 aria-invalid="@ShowError"
+                 aria-describedby="@AriaDescribedBy">
         <option value="@PrincipalBusinessActivityType.None">-- Select Principal Business Activity --</option>
         @foreach (var activity in GetAllActivities())
         {
@@ -25,7 +28,7 @@
 
     @if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
-        <div class="master-error" aria-live="polite">
+        <div id="@ErrorId" class="master-error" aria-live="polite">
             <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <mask id="mask0_5694_133" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
                     <rect y="2" width="12" height="12" fill="#D9D9D9" />
@@ -62,11 +65,31 @@
     /// <summary>When true, forces error display regardless of touch state (e.g. on form submit).</summary>
     [Parameter] public bool Visible { get; set; }
 
+    /// <summary>
+    /// Optional id of an external hint/instruction element to associate via aria-describedby.
+    /// </summary>
+    [Parameter] public string? HintId { get; set; }
+
     /// <summary>Tracks whether the user has interacted with this field.</summary>
     private bool _touched;
 
-    /// <summary>Returns true when the error should be displayed — matches OutlinedTextField pattern.</summary>
+    /// <summary>Returns true when the error should be displayed.</summary>
     private bool ShowError => (_touched || Visible) && HasError;
+
+    /// <summary>Id for the error message element, used by aria-describedby.</summary>
+    private string ErrorId => $"{Id}-error";
+
+    /// <summary>Combines HintId and ErrorId for aria-describedby.</summary>
+    private string? AriaDescribedBy
+    {
+        get
+        {
+            var ids = new List<string>();
+            if (!string.IsNullOrWhiteSpace(HintId)) ids.Add(HintId!);
+            if (ShowError && !string.IsNullOrWhiteSpace(ErrorMessage)) ids.Add(ErrorId);
+            return ids.Count > 0 ? string.Join(" ", ids) : null;
+        }
+    }
 
     private void HandleBlur()
     {
