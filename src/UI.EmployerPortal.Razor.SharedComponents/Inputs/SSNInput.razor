@@ -4,7 +4,7 @@
 
 @{
     var hasError = HasError || InvalidFields.Contains($"Member{Index}_SSN");
-    var showError = !_focused && (_touched || Visible) && hasError;
+    var showError = (_touched || Visible) && hasError;
     var displayMessage = !string.IsNullOrWhiteSpace(ErrorMessage)
         ? ErrorMessage
         : ValidationErrors.FirstOrDefault(p =>
@@ -23,7 +23,7 @@
                autocomplete="off"
                id="@Id"
                class="@($"form-input ssn-input {CssClass}") master-input @(showError ? "master-input--error" : "")"
-               placeholder="X*X-XX-XXXX"
+               placeholder="XXX-XX-XXXX"
                maxlength="11"
                inputmode="numeric"
                value="@DisplayValue"
@@ -62,7 +62,7 @@
     // ── reveal-while-typing ──────────────────────────────────
     private bool _isTyping;
     private System.Threading.Timer? _maskTimer;
-    private const int MaskDelayMs = 500;
+    private const int MaskDelayMs = 300;
     // ────────────────────────────────────────────────────────
 
     [Parameter] public string Id { get; set; } = "ssn";
@@ -85,15 +85,14 @@
     [Parameter] public EventCallback OnBlur { get; set; }
 
     private bool _touched;
-    private bool _focused;
 
     /// <summary>
     /// Shows the real formatted SSN while the user is actively typing;
     /// reverts to a fully-masked star pattern otherwise.
     /// </summary>
     private string DisplayValue => _isTyping && _rawDigits.Length > 0
-    ? GenerateDisplayMask(_rawDigits.Length)[..^1] + _rawDigits[^1]
-    : GenerateDisplayMask(_rawDigits.Length);
+        ? GenerateDisplayMask(_rawDigits.Length)[..^1] + _rawDigits[^1]
+        : GenerateDisplayMask(_rawDigits.Length);
 
     protected override void OnParametersSet()
     {
@@ -143,14 +142,11 @@
 
     private async Task HandleFocus()
     {
-        _focused = true;
         await IsFocusedChanged.InvokeAsync(true);
     }
 
     private async Task HandleBlur()
     {
-        _focused = false;
-
         // Mask immediately on blur — cancel any pending reveal timer
         _isTyping = false;
         _maskTimer?.Dispose();
