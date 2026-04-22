@@ -26,7 +26,8 @@ export function attachNumericOnlyFilter(element) {
 
 export function attachMaskedSSNInput(element, dotNetRef, initialDigits) {
     element._ssnDigits = initialDigits || '';
-    element.value = formatMask(element._ssnDigits.length);
+    element._locked = false;
+    element.value = element._ssnDigits.length > 0 ? formatMask(element._ssnDigits.length) : '';
 
     element.addEventListener('beforeinput', (e) => {
         e.preventDefault();
@@ -57,22 +58,35 @@ export function attachMaskedSSNInput(element, dotNetRef, initialDigits) {
 
     element.addEventListener('drop', (e) => e.preventDefault());
 
-    // On blur, immediately revert the displayed value to masked stars
+    // On first blur: lock permanently — never show digits again
     element.addEventListener('blur', () => {
+        element._locked = true;
         element.value = formatMask(element._ssnDigits.length);
     });
 }
 
 export function setSSNDigits(element, digits) {
     element._ssnDigits = digits || '';
-    element.value = formatMask(element._ssnDigits.length);
+    // If already locked (was blurred before), keep stars
+    element.value = element._locked
+        ? formatMask(element._ssnDigits.length)
+        : formatMask(element._ssnDigits.length); // also stars on programmatic set
 }
 
 /* ── helpers ─────────────────────────────────────────────── */
 
-/** Shows the full formatted SSN while the user is typing. */
+/**
+ * While _locked: keeps stars (digits update silently).
+ * Before first blur: shows full formatted digits.
+ */
 function syncDisplay(element, dotNetRef) {
-    element.value = formatSSN(element._ssnDigits);
+    if (element._locked) {
+        // Digits change internally but display stays as stars
+        element.value = formatMask(element._ssnDigits.length);
+    } else {
+        // Before first blur — show real digits while typing
+        element.value = formatSSN(element._ssnDigits);
+    }
     const len = element.value.length;
     element.setSelectionRange(len, len);
     dotNetRef.invokeMethodAsync('OnSSNDigitsChanged', element._ssnDigits);
@@ -86,7 +100,7 @@ function formatSSN(digits) {
     return digits;
 }
 
-/** Formats raw digit count as ***-**-**** (masked stars). */
+/** Formats digit count as ***-**-**** (full stars). */
 function formatMask(digitCount) {
     if (digitCount <= 0) return '';
     if (digitCount <= 3) return '*'.repeat(digitCount);

@@ -77,6 +77,7 @@
     [Parameter] public EventCallback OnBlur { get; set; }
 
     private bool _touched;
+    private bool _permanentlyMasked;
 
     /// <summary>Always renders as masked stars; JS shows digits live while typing.</summary>
     private string DisplayValue => GenerateDisplayMask(_rawDigits.Length);
@@ -124,10 +125,11 @@
 
     private async Task HandleBlur()
     {
+        _permanentlyMasked = true;
         _touched = true;
         await IsFocusedChanged.InvokeAsync(false);
         await OnBlur.InvokeAsync();
-        StateHasChanged(); // re-render forces Blazor to set input value back to mask
+        StateHasChanged();
     }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)
@@ -200,6 +202,15 @@
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
         return GenerateDisplayMask(digitsOnly.Length);
     }
+    /// <summary>Masks only the first 3 digits; shows the rest as real digits. e.g. ***-45-6789</summary>
+    public static string GenerateStartMask(string digits)
+    {
+        if (string.IsNullOrWhiteSpace(digits)) return string.Empty;
+        if (digits.Length <= 3) return new string('*', digits.Length);
+        if (digits.Length <= 5) return $"***-{digits[3..]}";
+        return $"***-{digits[3..5]}-{digits[5..]}";
+    }
+
 
     public static string GenerateDisplayMask(int digitCount)
     {
