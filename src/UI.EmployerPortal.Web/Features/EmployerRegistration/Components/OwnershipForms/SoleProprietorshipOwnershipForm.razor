@@ -45,8 +45,6 @@
                           ValueChanged="@((string value) => OnSSNChanged(value))"
                           IsFocused="@Owner.IsSSNFocused"
                           IsFocusedChanged="@((bool focused) => Owner.IsSSNFocused = focused)"
-                          ShowSSN="@ShowSSN"
-                          ShowSSNChanged="@((bool show) => ShowSSN = show)"
                           IsRequired="true"
                           Width="175"
                           HasError="@FieldErrors.ContainsKey("SSN")"

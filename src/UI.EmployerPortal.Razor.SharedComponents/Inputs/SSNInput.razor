@@ -77,7 +77,6 @@
     [Parameter] public EventCallback OnBlur { get; set; }
 
     private bool _touched;
-    private bool _permanentlyMasked;
 
     /// <summary>Always renders as masked stars; JS shows digits live while typing.</summary>
     private string DisplayValue => GenerateDisplayMask(_rawDigits.Length);
@@ -110,13 +109,13 @@
     }
 
     /// <summary>Called from JavaScript when the user types or deletes a digit.</summary>
-    [JSInvokable]
-    public async Task OnSSNDigitsChanged(string digits)
-    {
-        _rawDigits = digits;
-        await ValueChanged.InvokeAsync(FormatSSN(digits));
-        StateHasChanged();
-    }
+    // [JSInvokable]
+    // public async Task OnSSNDigitsChanged(string digits)
+    // {
+    //     _rawDigits = digits;
+    //     await ValueChanged.InvokeAsync(FormatSSN(digits));
+    //     //StateHasChanged();
+    // }
 
     private async Task HandleFocus()
     {
@@ -125,7 +124,6 @@
 
     private async Task HandleBlur()
     {
-        _permanentlyMasked = true;
         _touched = true;
         await IsFocusedChanged.InvokeAsync(false);
         await OnBlur.InvokeAsync();
@@ -200,7 +198,9 @@
             return string.Empty;
 
         var digitsOnly = new string(ssn.Where(char.IsDigit).ToArray());
-        return GenerateDisplayMask(digitsOnly.Length);
+        //return GenerateDisplayMask(digitsOnly.Length);
+        // Only show full mask when all 9 digits are present
+        return digitsOnly.Length == 9 ? "***-**-****" : string.Empty;
     }
     /// <summary>Masks only the first 3 digits; shows the rest as real digits. e.g. ***-45-6789</summary>
     public static string GenerateStartMask(string digits)
@@ -214,10 +214,12 @@
 
     public static string GenerateDisplayMask(int digitCount)
     {
-        if (digitCount <= 0) return string.Empty;
-        if (digitCount <= 3) return new string('*', digitCount);
-        if (digitCount <= 5) return $"***-{new string('*', digitCount - 3)}";
-        return $"***-**-{new string('*', digitCount - 5)}";
+        // if (digitCount <= 0) return string.Empty;
+        // if (digitCount <= 3) return new string('*', digitCount);
+        // if (digitCount <= 5) return $"***-{new string('*', digitCount - 3)}";
+        // return $"***-**-{new string('*', digitCount - 5)}";
+        // Only show full mask when all 9 digits are present
+        return digitCount == 9 ? "***-**-****" : string.Empty;
     }
 
     public static List<string> FindDuplicateSSNs(List<string?> ssnList, Func<int, string> getLabelForIndex)

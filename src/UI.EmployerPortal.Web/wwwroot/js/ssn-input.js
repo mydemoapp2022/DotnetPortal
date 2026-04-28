@@ -94,10 +94,11 @@ function syncDisplay(element, dotNetRef) {
 
 /** Formats raw digits as 999-99-9999 (real characters). */
 function formatSSN(digits) {
-    if (!digits || digits.length === 0) return '';
-    if (digits.length > 5) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
-    if (digits.length > 3) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-    return digits;
+    //if (!digits || digits.length === 0) return '';
+    //if (digits.length > 5) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+    //if (digits.length > 3) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    //return digits;
+    return digitCount === 9 ? '***-**-****' : '';
 }
 
 /** Formats digit count as ***-**-**** (full stars). */

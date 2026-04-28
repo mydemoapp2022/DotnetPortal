@@ -70,8 +70,6 @@
                               ValueChanged="@((string value) => OnSSNChanged(index, value))"
                               IsFocused="@member.IsSSNFocused"
                               IsFocusedChanged="@((bool focused) => OnSSNFocusChanged(index, focused))"
-                              ShowSSN="false"
-                              ShowSSNChanged="@((bool show) => ShowSSN = show)"
                               IsRequired="true"
                               Width="175"
                               HasError="@FieldErrors.ContainsKey($"Member{index}_SSN")"
