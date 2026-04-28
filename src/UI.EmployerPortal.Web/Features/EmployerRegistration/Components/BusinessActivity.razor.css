@@ -648,3 +648,51 @@
     font-weight: 700 !important;
     color: #0D6EFD;
 }
+
+
+/* Focus indicator: min 3:1 contrast against white (#FFFFFF). */
+.master-input:focus,
+.master-input:focus-visible,
+.form-check-input:focus,
+.form-check-input:focus-visible,
+.form-control:focus,
+.form-control:focus-visible {
+    outline: 3px solid #0052CC;
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    color: #005FAD;
+}
+::-webkit-date-and-time-value {
+    color: #1A1A1A;
+}
+
+input[type="date"]:hover,
+.master-input[type="date"]:hover {
+    background-color: transparent;
+    border-color: #0052CC;
+}
+
+input[type="date"],
+.master-input[type="date"] {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.form-group,
+.master-text-field {
+    overflow: visible;
+    max-width: 100%;
+}
+
+.master-input.valid,
+.master-input.modified,
+.form-input.valid,
+.form-control.valid,
+.form-check-input.valid {
+    border-color: #767676;
+    box-shadow: none;
+}

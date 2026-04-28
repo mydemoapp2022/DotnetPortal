@@ -1,4 +1,4 @@
-<div class="master-error" aria-live="polite">
+<div id="@Id" class="master-error" aria-live="polite">
     <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <mask id="mask0_cos_2" maskUnits="userSpaceOnUse" x="0" y="2" width="12" height="12">
             <rect y="2" width="12" height="12" fill="#D9D9D9" />
@@ -12,6 +12,8 @@
 </div>
 
 @code {
+    /// <summary>Optional id so consumers can reference this error via aria-describedby.</summary>
+    [Parameter] public string? ErrorId { get; set; }
+
     [Parameter] public string? ErrorMessage { get; set; }
-}
 }
