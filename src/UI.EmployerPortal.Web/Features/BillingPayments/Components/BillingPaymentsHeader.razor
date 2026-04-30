@@ -1,0 +1,13 @@
+<div class="billing-header">
+    <div class="billing-header-content fs-sm">
+        <span class="detail-label fw-bold">Balance Due</span>
+        <div class="billing-header-right">
+            <span class="balance-amount fw-bold">@BalanceDue.ToString("C")</span>
+            <a href="#" class="amount-due-link">Amount Due Details</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal BalanceDue { get; set; }
+}

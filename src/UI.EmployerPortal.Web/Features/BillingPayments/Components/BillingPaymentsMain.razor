@@ -1,0 +1,112 @@
+<div class="billing-main">
+
+    <!-- Make a Payment Section -->
+    <div class="billing-section">
+        <h2 class="billing-section-title fw-bold">Make a Payment</h2>
+        <hr class="section-divider" />
+        <p class="section-description">Select the payment options you wish to use.</p>
+
+        <!-- Bank Account Payments (ACH) -->
+        <div class="payment-option-card" @onclick='() => SelectPaymentOption("ach")' role="button" tabindex="0">
+            <div class="payment-option-header">
+                <span class="payment-option-icon">
+                    <img src="images/billing/bank.svg" alt="Bank" width="20" height="20" />
+                </span>
+                <h3 class="payment-option-title fw-bold">Bank Account Payments(ACH)</h3>
+            </div>
+            <hr class="option-divider" />
+            <p class="payment-option-description">
+                Pay your UI taxes electronically online by instructing DWD-UI to deduct payment from your financial
+                institution for a specific payment amount on a day of your choosing.
+            </p>
+        </div>
+
+        <!-- Credit/Debit Card Payment -->
+        <div class="payment-option-card" @onclick='() => SelectPaymentOption("card")' role="button" tabindex="0">
+            <div class="payment-option-header">
+                <span class="payment-option-icon">
+                    <img src="images/billing/credit-card.svg" alt="Credit Card" width="20" height="20" />
+                </span>
+                <h3 class="payment-option-title fw-bold">Credit/Debit Card Payment</h3>
+            </div>
+            <hr class="option-divider" />
+            <p class="payment-option-description">
+                Select this option to make a payment by credit or debit card.
+            </p>
+        </div>
+    </div>
+
+    <!-- Other Options Section -->
+    <div class="billing-section">
+        <h3 class="other-options-title fw-bold">Other Options</h3>
+        <hr class="section-divider" />
+
+        <div class="other-option-item">
+            <a href="/voluntary-contribution" class="other-option-link fw-bold">Voluntary Contribution Payment</a>
+            <p class="other-option-description">Takes you to the Voluntary Contribution calculator.</p>
+        </div>
+
+        <div class="other-option-item">
+            <a href="/pay-by-check" class="other-option-link fw-bold">Pay by Check</a>
+            <p class="other-option-description">Print out a payment coupon you can send in to us with your payment.</p>
+        </div>
+
+        <div class="other-option-item">
+            <a href="#" target="_blank" class="other-option-link fw-bold">
+                ACH Credit Payment
+                <span class="external-link-icon">&#x29C9;</span>
+            </a>
+            <p class="other-option-description">
+                Information you need if you are going to have your financial institution send a payment electronically to the
+                states financial institution.
+            </p>
+        </div>
+
+        <div class="other-option-item">
+            <a href="#" target="_blank" class="other-option-link fw-bold">
+                Blocking ACH Payments From Being Deducted
+                <span class="external-link-icon">&#x29C9;</span>
+            </a>
+            <p class="other-option-description">
+                Information you need if you have a debit block on your bank account and want to authorize DWD-UI to be able
+                to deduct payments from your bank account.
+            </p>
+        </div>
+
+        <div class="other-option-item">
+            <span class="other-option-link fw-bold">Payment Plan for Delinquent UI Tax</span>
+            <p class="other-option-description">
+                If you are interested in setting up a payment plan for the delinquent tax on your UI account,
+                <a href="/contact-us" class="inline-link">Contact Us</a> for instructions.
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="billing-footer">
+        <div class="footer-left">
+            <a href="/employer-dashboard" class="btn btn-outline-secondary">&#8249; BACK</a>
+            <a href="/employer-dashboard" class="btn btn-link text-secondary fw-bold">CANCEL</a>
+        </div>
+        <button class="btn btn-primary fw-bold" @onclick="MakePayment" disabled="@(_selectedOption is null)">
+            MAKE A PAYMENT &#8250;
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal BalanceDue { get; set; }
+
+    private string? _selectedOption;
+
+    private void SelectPaymentOption(string option)
+    {
+        _selectedOption = option;
+    }
+
+    private void MakePayment()
+    {
+        if (_selectedOption is null) return;
+        // Navigate based on selected option
+    }
+}

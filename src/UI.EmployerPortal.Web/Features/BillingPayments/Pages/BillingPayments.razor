@@ -1,6 +1,12 @@
 @page "/billing-payments"
+@using UI.EmployerPortal.Web.Features.BillingPayments.Components
 
-<div class="section-page">
-    <h1 class="section-header fw-bold">Billing & Payments</h1>
-    <p class="section-description">You are in the Billing & Payments section.</p>
+<PageTitle>Billing & Payments</PageTitle>
+<div class="billing-payments-container">
+    <BillingPaymentsHeader BalanceDue="@_balanceDue" />
+    <BillingPaymentsMain BalanceDue="@_balanceDue" />
 </div>
+
+@code {
+    private decimal _balanceDue = 10000.00m;
+}
