@@ -7,14 +7,14 @@
         <p class="section-description">Select the payment options you wish to use.</p>
 
         <!-- Bank Account Payments (ACH) -->
-        <div class="payment-option-card" @onclick='() => SelectPaymentOption("ach")' role="button" tabindex="0">
+        <div class="payment-option-card @(_selectedOption == "ach" ? "selected" : "")"
+             @onclick="SelectAch" role="button" tabindex="0">
             <div class="payment-option-header">
                 <span class="payment-option-icon">
                     <img src="images/billing/bank.svg" alt="Bank" width="20" height="20" />
                 </span>
                 <h3 class="payment-option-title fw-bold">Bank Account Payments(ACH)</h3>
             </div>
-            <hr class="option-divider" />
             <p class="payment-option-description">
                 Pay your UI taxes electronically online by instructing DWD-UI to deduct payment from your financial
                 institution for a specific payment amount on a day of your choosing.
@@ -22,14 +22,14 @@
         </div>
 
         <!-- Credit/Debit Card Payment -->
-        <div class="payment-option-card" @onclick='() => SelectPaymentOption("card")' role="button" tabindex="0">
+        <div class="payment-option-card @(_selectedOption == "card" ? "selected" : "")"
+             @onclick="SelectCard" role="button" tabindex="0">
             <div class="payment-option-header">
                 <span class="payment-option-icon">
                     <img src="images/billing/credit-card.svg" alt="Credit Card" width="20" height="20" />
                 </span>
                 <h3 class="payment-option-title fw-bold">Credit/Debit Card Payment</h3>
             </div>
-            <hr class="option-divider" />
             <p class="payment-option-description">
                 Select this option to make a payment by credit or debit card.
             </p>
@@ -98,6 +98,9 @@
     [Parameter] public decimal BalanceDue { get; set; }
 
     private string? _selectedOption;
+
+    private void SelectAch() => SelectPaymentOption("ach");
+    private void SelectCard() => SelectPaymentOption("card");
 
     private void SelectPaymentOption(string option)
     {

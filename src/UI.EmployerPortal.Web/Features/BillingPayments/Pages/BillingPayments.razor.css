@@ -17,9 +17,16 @@
 }
 
 .billing-payments-container {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+@media (max-width: 575px) {
+    .billing-payments-container {
+        gap: var(--spacing-md);
+    }
 }
 
 /* Header */
