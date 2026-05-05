@@ -1,12 +1,26 @@
+@using UI.EmployerPortal.Razor.SharedComponents
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models
 @using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
 @inject NavigationManager Nav;
 
 <div class="billing-main">
 
+    <!-- Validation Error Summary -->
+    @if (_showValidationSummary && _validationErrors.Any())
+    {
+        <NotificationBanner NotificationType="NotificationType.Alert"
+                            MessageStyle="MessageStyle.MultiLine"
+                            Messages="_validationErrors"
+                            DismissButton="false">
+        </NotificationBanner>
+        <br />
+    }
+
     <!-- Make a Payment Section -->
     <section class="billing-section" aria-labelledby="make-payment-heading">
         <h2 id="make-payment-heading" class="billing-section-title fw-bold">Make a Payment</h2>
-        <hr class="section-divider" aria-hidden="true"/>
+        <hr class="section-divider" aria-hidden="true" />
         <p id="payment-options-description" class="section-description">Select the payment options you wish to use.</p>
 
         <div role="radiogroup"
@@ -62,7 +76,7 @@
     <!-- Other Options Section -->
     <section class="billing-section" aria-labelledby="other-options-heading">
         <h3 id="other-options-heading" class="other-options-title fw-bold">Other Options</h3>
-        <hr class="section-divider" aria-hidden="true"/>
+        <hr class="section-divider" aria-hidden="true" />
 
         <div class="other-option-item">
             <a href="/voluntary-contribution" class="other-option-link fw-bold" aria-describedby="desc-voluntary">Voluntary Contribution Payment</a>
@@ -76,10 +90,10 @@
 
         <div class="other-option-item">
             <a href="#" target="_blank"
-                class="other-option-link fw-bold"
-                aria-describedby="desc-ach-credit"
-                aria-label="ACH Credit Payment"
-                rel="noreferrer">
+                   class="other-option-link fw-bold"
+                   aria-describedby="desc-ach-credit"
+                   aria-label="ACH Credit Payment"
+                   rel="noreferrer">
                 ACH Credit Payment
                 <span class="external-link-icon" aria-hidden="true">&#x29C9;</span>
             </a>
@@ -91,10 +105,10 @@
 
         <div class="other-option-item">
             <a href="#" target="_blank"
-                        rel="noreferrer"
-                        aria-describedby="desc-block-ach"
-                        aria-label="Blocking ACH Payments From Being Deducted"
-                        class="other-option-link fw-bold">
+                   rel="noreferrer"
+                   aria-describedby="desc-block-ach"
+                   aria-label="Blocking ACH Payments From Being Deducted"
+                   class="other-option-link fw-bold">
                 Blocking ACH Payments From Being Deducted
                 <span class="external-link-icon" aria-hidden="true">&#x29C9;</span>
             </a>
@@ -104,7 +118,7 @@
             </p>
         </div>
 
-        <div class="other-option-item">            
+        <div class="other-option-item">
             <p class="other-option-description">
                 <strong class="other-option-link">Payment Plan for Delinquent UI Tax</strong>
                 If you are interested in setting up a payment plan for the delinquent tax on your UI account,
@@ -115,23 +129,14 @@
 
     <!-- Footer Actions -->
     <nav class="billing-footer" aria-label="Page actions">
-        @* <div class="footer-left">
-            <a href="/employer-dashboard" class="btn btn-lg btn-outline-secondary no-flex-grow" aria-label="Go back to Employee Dashboard">&#8249; BACK</a>
-        </div>
-        <button class="btn btn-lg btn-outline-primary no-flex-grow"
-                @onclick="MakePayment"
-                aria-disabled="@(_selectedOption is null ? "true" : "false")"
-                aria-describedby="make-payment-heading"
-                disabled="@(_selectedOption is null)">
-            MAKE A PAYMENT &#8250;
-        </button> *@
-        <BillingButtonBar ShowBack="true"
-                   ShowContinue="true"
-                   ShowCancel="false"
-                   OnBack="GoBack"
-                   OnContinue="HandleContinue"
-                   ContinueText="MAKE A PAYMENT"
-                   ButtonWidth="200">
+        <BillingButtonBar ShowBack="@IsFlowEntry"
+                          ShowContinue="true"
+                          ShowCancel="@IsFlowEntry"
+                          OnBack="GoBack"
+                          OnCancel="HandleCancel"
+                          OnContinue="HandleContinue"
+                          ContinueText="MAKE A PAYMENT"
+                          ButtonWidth="200">
         </BillingButtonBar>
     </nav>
 </div>
@@ -140,8 +145,18 @@
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Parameter] public EmployerAccount? EmployerAccount { get; set; }
 
+    /// <summary>
+    /// Indicates how the user arrived at this page.
+    /// Menu = hide Back/Cancel; Flow = show Back/Cancel.
+    /// </summary>
+    [Parameter] public NavigationSource Source { get; set; } = NavigationSource.Menu;
+
+    private bool IsFlowEntry => Source == NavigationSource.Flow;
+
     private string? _selectedOption;
     private string _selectionAnnouncement = string.Empty;
+    private bool _showValidationSummary;
+    private List<string> _validationErrors = new();
 
     private void SelectAch() => SelectPaymentOption("ach", "Bank Account Payments (ACH) selected");
     private void SelectCard() => SelectPaymentOption("card", "Credit/Debit card payment selected");
@@ -150,45 +165,92 @@
     {
         _selectedOption = option;
         _selectionAnnouncement = announcement;
+        _showValidationSummary = false;
+        _validationErrors.Clear();
     }
 
     private void HandleCardKeyDown(KeyboardEventArgs eventArgs, Action selectAction)
     {
-        if(eventArgs.Key is "Enter" or " ")
+        if (eventArgs.Key is "Enter" or " ")
         {
             selectAction();
         }
     }
 
-    private void MakePayment()
-    {
-        if (_selectedOption is null) return;
-        // Navigate based on selected option
-    }
-
-    private async Task NavigateHere(string linkClicked)
-    {
-        NavigationManager.NavigateTo(linkClicked, true);
-    }
-
     private void GoBack()
     {
-        var baseUri = new Uri(Nav.BaseUri);
-        var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/billing");
-        Nav.NavigateTo(pathBase);
+        try
+        {
+            var pathBase = BuildPath("/billing-payments/billing");
+            Nav.NavigateTo(pathBase);
+        }
+        catch (Exception)
+        {
+            ShowNavigationError();
+        }
+    }
+
+    private void HandleCancel()
+    {
+        try
+        {
+            // Exit the payment flow back to the employer dashboard
+            Nav.NavigateTo("/employer-dashboard");
+        }
+        catch (Exception)
+        {
+            ShowNavigationError();
+        }
     }
 
     private void HandleContinue()
     {
-        ValidatePayment();        
-        StateHasChanged();
-        var baseUri = new Uri(Nav.BaseUri);
-        var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/payment-history");
-        Nav.NavigateTo(pathBase);
+        if (!ValidatePayment())
+        {
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            var pathBase = BuildPath("/billing-payments/payment-history");
+            Nav.NavigateTo(pathBase);
+        }
+        catch (Exception)
+        {
+            ShowNavigationError();
+        }
     }
 
-    private void ValidatePayment()
+    private bool ValidatePayment()
     {
+        _validationErrors.Clear();
+
+        if (_selectedOption is null)
+        {
+            _validationErrors.Add("Please select a payment option to continue.");
+            _showValidationSummary = true;
+            return false;
+        }
+
+        _showValidationSummary = false;
+        return true;
+    }
+
+    /// <summary>
+    /// Builds an absolute path relative to the app's base URI.
+    /// </summary>
+    private string BuildPath(string relativePath)
+    {
+        var baseUri = new Uri(Nav.BaseUri);
+        return new PathString(baseUri.AbsolutePath.TrimEnd('/') + relativePath);
+    }
+
+    private void ShowNavigationError()
+    {
+        _validationErrors.Clear();
+        _validationErrors.Add("Navigation failed. Please try again or return to the dashboard.");
+        _showValidationSummary = true;
         StateHasChanged();
-    } 
+    }
 }

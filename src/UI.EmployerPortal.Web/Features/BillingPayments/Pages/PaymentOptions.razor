@@ -1,5 +1,6 @@
 @page "/billing-payments/payment-options"
 @using UI.EmployerPortal.Web.Features.BillingPayments.Components
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models
 @using UI.EmployerPortal.Web.Features.Dashboard
 @using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
 @inject IDashboardOrchestrator DashboardOrchestrator
@@ -8,10 +9,24 @@
 <main id="main-content" aria-label="Billing and Payments">
     <div class="billing-payments-container">
         <BillingPaymentsHeader EmployerAccount="@_employerAccount" />
-        <BillingPaymentsMain EmployerAccount="@_employerAccount" />
+        <BillingPaymentsMain EmployerAccount="@_employerAccount"
+                             Source="@_navigationSource" />
     </div>
 </main>
+
 @code {
+    /// <summary>
+    /// Populated from ?source=flow when entering from the payment workflow (e.g. Billing page Next button).
+    /// Defaults to null (treated as Menu entry — Back/Cancel hidden).
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "source")]
+    public string? Source { get; set; }
+
+    private NavigationSource _navigationSource =>
+        string.Equals(Source, "flow", StringComparison.OrdinalIgnoreCase)
+            ? NavigationSource.Flow
+            : NavigationSource.Menu;
+
     private EmployerAccount? _employerAccount;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -22,5 +37,4 @@
             StateHasChanged();
         }
     }
-    
 }
