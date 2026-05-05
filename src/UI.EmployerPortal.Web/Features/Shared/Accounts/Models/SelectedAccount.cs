@@ -14,3 +14,6 @@ public sealed record SelectedAccount : ISessionModel
     /// </summary>
     public Account? Account { get; init; }
 }
+
+
+

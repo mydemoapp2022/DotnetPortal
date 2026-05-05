@@ -1,0 +1,173 @@
+<nav class="button-bar d-flex align-items-center mt-auto pt-3"
+     role="navigation"
+     aria-label="Form navigation actions">
+    <div class="button-bar-left d-flex align-items-center"
+         role="group"
+         aria-label="Secondary actions">
+        @if (ShowBack)
+        {
+            <button type="button"
+                    class="btn-outline-secondary no-flex-grow"
+                    disabled="@BackDisabled"
+                    aria-label="@($"Go back: {BackText}")"
+                    aria-disabled="@BackDisabled.ToString().ToLower()"
+                    @onclick="() => OnBack.InvokeAsync(null)">
+                <img src="/icons/button-previous.svg"
+                     alt=""
+                     role="presentation"
+                     class="button-icon" />
+                <span class="btn-secondary-label">
+                    @BackText
+                </span>
+            </button>
+        }
+        
+        @if (ShowCancel)
+        {
+            <button type="button"
+                    class="btn-cancel no-flex-grow"
+                    disabled="@CancelDisabled"
+                    aria-label="@($"Cancel: {CancelText}")"
+                    aria-disabled="@CancelDisabled.ToString().ToLower()"
+                    @onclick="() => OnCancel.InvokeAsync(null)">
+                <span class="btn-cancel-label">
+                    @CancelText
+                </span>
+            </button>
+        }
+    </div>
+    <div class="flex-grow-1" />
+    <div class="button-bar-right d-flex align-items-center"
+         role="group"
+         aria-label="Primary actions">
+        
+        @if (ShowContinue)
+        {
+            <button type="submit"
+                    class="btn-outline-primary no-flex-grow"
+                    disabled="@(!ContinueEnabled)"
+                    style="@GetButtonStyle()"
+                    aria-label="@($"Proceed to next step: {ContinueText}")"
+                    aria-disabled="@((!ContinueEnabled).ToString().ToLower())"
+                    @onclick="() => OnContinue.InvokeAsync(null)">
+                <span class="btn-primary-label">
+                    @ContinueText
+                </span>
+                <img src="/icons/button-next.svg"
+                     alt=""
+                     role="presentation"
+                     class="button-icon primary" />
+            </button>
+        }
+    </div>
+</nav>
+ 
+@code {
+    // ----------------------
+    // Visibility controls
+    // ----------------------
+ 
+    /// <summary>
+    /// Controls visibility of the Back button.
+    /// Used to hide Back on the first step of the flow.
+    /// </summary>
+    [Parameter] public bool ShowBack { get; set; } = true;
+ 
+    /// <summary>
+    /// Controls visibility of the Continue (Next) button.
+    /// Allows steps that only navigate backward.
+    /// </summary>
+    [Parameter] public bool ShowContinue { get; set; } = true;
+ 
+    /// <summary>
+    /// Controls visibility of the Cancel button.
+    /// Typically shown on steps where the user can discard changes.
+    /// </summary>
+    [Parameter] public bool ShowCancel { get; set; } = false;
+
+ 
+    // ----------------------
+    // State controls
+    // ----------------------
+ 
+    /// <summary>
+    /// Enables or disables the Continue button.
+    /// Typically bound to form validation state.
+    /// </summary>
+    [Parameter] public bool ContinueEnabled { get; set; } = true;
+ 
+    /// <summary>
+    /// Enables or disables the Back button.
+    /// Useful during async operations or navigation.
+    /// </summary>
+    [Parameter] public bool BackDisabled { get; set; } = false;
+ 
+    /// <summary>
+    /// Enables or disables the Cancel button.
+    /// Useful during async operations to prevent accidental cancellation.
+    /// </summary>
+    [Parameter] public bool CancelDisabled { get; set; } = false;
+  
+    // ----------------------
+    // Text customization
+    // ----------------------
+ 
+    /// <summary>
+    /// Display text for the Back button.
+    /// Defaults to "BACK".
+    /// </summary>
+    [Parameter] public string BackText { get; set; } = "BACK";
+ 
+    /// <summary>
+    /// Display text for the Continue button.
+    /// Defaults to "NEXT". Can be overridden per step
+    /// (e.g., "PROCEED TO REGISTRATION", "SUBMIT").
+    /// </summary>
+    [Parameter] public string ContinueText { get; set; } = "NEXT";
+ 
+    /// <summary>
+    /// Display text for the Cancel button.
+    /// Defaults to "CANCEL".
+    /// </summary>
+    [Parameter] public string CancelText { get; set; } = "CANCEL";
+  
+    // ----------------------
+    // Events
+    // ----------------------
+ 
+    /// <summary>
+    /// Callback invoked when Back button is clicked.
+    /// Navigation logic must be handled by the parent page.
+    /// </summary>
+    [Parameter] public EventCallback OnBack { get; set; }
+ 
+    /// <summary>
+    /// Callback invoked when Cancel button is clicked.
+    /// Parent page should handle confirmation dialog and navigation.
+    /// </summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+ 
+    /// <summary>
+    /// Callback invoked when Save &amp; Quit button is clicked.
+    /// Parent page should handle saving partial progress and navigation.
+    /// </summary>
+    [Parameter] public EventCallback OnContinue { get; set; }
+ 
+    // ----------------------
+    // Styling
+    // ----------------------
+ 
+    /// <summary>
+    /// Optional width override for the Continue button.
+    /// Defaults to "112px". Set to null or empty to use auto width.
+    /// Useful for longer button text like "PROCEED TO REGISTRATION".
+    /// </summary>
+    [Parameter] public string? ButtonWidth { get; set; } = "112px";
+ 
+    /// <summary>
+    /// Computes inline style for the Continue button width.
+    /// Returns empty string if ButtonWidth is null/empty (auto sizing).
+    /// </summary>
+    private string GetButtonStyle()
+        => string.IsNullOrWhiteSpace(ButtonWidth) ? string.Empty : $"width: {ButtonWidth}px;";
+}

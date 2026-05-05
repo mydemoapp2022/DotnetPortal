@@ -13,7 +13,13 @@ public interface IDashboardOrchestrator
     /// Retrieves the currently selected employer account from session storage. 
     /// </summary>
     /// <returns>The selected account if available; otherwise null.</returns>
-    Task<Account?> GetSelectedAccountAsync();
+    Task<EmployerAccount?> GetSelectedEmployerAccountAsync();
+
+    /// <summary>
+    /// Remvoe curretly selected employer. This will be required in case if user select guest account.
+    /// </summary>
+    /// <returns></returns>
+    Task RemoveEmployerAccountFromSession();
 }
 
 /// <summary>
@@ -34,9 +40,15 @@ public class DashboardOrchestrator : IDashboardOrchestrator
     }
 
     ///<inheritdoc />
-    public async Task<Account?> GetSelectedAccountAsync()
+    public async Task<EmployerAccount?> GetSelectedEmployerAccountAsync()
     {
-        var selectedAccount = await _sessionManager.GetAsync<SelectedAccount>();
-        return selectedAccount?.Account;
+        var selectedAccount = await _sessionManager.GetAsync<SelectedEmployerAccount>();
+        return selectedAccount?.EmployerAccount;
+    }
+
+    ///<inheritdoc />
+    public async Task RemoveEmployerAccountFromSession()
+    {
+        await _sessionManager.ClearAsync<SelectedEmployerAccount>();
     }
 }

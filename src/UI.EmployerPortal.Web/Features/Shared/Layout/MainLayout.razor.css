@@ -10,9 +10,11 @@
     flex-direction: row;
     max-width: var(--width-page-max);
     width: 100%;
-    margin: 0 auto;
+    margin: -19px auto;
+    margin-left: initial;
     gap: var(--spacing-lg);
     box-sizing: border-box;
+    margin-bottom: auto;
 }
 
 main {
@@ -21,9 +23,9 @@ main {
     min-width: 0;
 }
 
-main.with-menu {
-    flex: 1;
-}
+    main.with-menu {
+        flex: 1;
+    }
 
 /* Tablet styles */
 @media (max-width: 1023px) {

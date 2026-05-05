@@ -2,11 +2,7 @@
 @using UI.EmployerPortal.Web.Features.BillingPayments.Components
 
 <PageTitle>Billing & Payments</PageTitle>
-<div class="billing-payments-container">
-    <BillingPaymentsHeader BalanceDue="@_balanceDue" />
-    <BillingPaymentsMain BalanceDue="@_balanceDue" />
+<div class="section-page">
+    
+    <Billing />
 </div>
-
-@code {
-    private decimal _balanceDue = 10000.00m;
-}

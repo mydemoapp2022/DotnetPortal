@@ -1,7 +1,6 @@
 .billing-main {
     width: 100%;
     max-width: var(--width-content);
-    margin: 0 auto;
     padding: 0 var(--spacing-md);
     box-sizing: border-box;
 }
@@ -18,9 +17,13 @@
 }
 
 .other-options-title {
-    font-size: var(--font-size-lg);
-    color: var(--color-header-nav);
-    margin: 0 0 var(--spacing-xs) 0;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 160%;
+    letter-spacing: 0%;
+    color: #003663;
 }
 
 .section-description {
@@ -31,8 +34,9 @@
 .section-divider,
 .option-divider {
     border: none;
-    border-top: 1px solid var(--color-gray-medium);
+    border-top: 1px solid #003663;
     margin: var(--spacing-sm) 0;
+    gap: 16px;
 }
 
 /* Payment Option Cards — mirrors .dashboard-card */
@@ -50,16 +54,16 @@
     gap: var(--spacing-sm);
 }
 
-.payment-option-card:hover,
-.payment-option-card:focus {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    outline: none;
-}
+    .payment-option-card:hover,
+    .payment-option-card:focus {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        outline: none;
+    }
 
-.payment-option-card.selected {
-    border-color: var(--color-header-nav);
-    box-shadow: 0 0 0 2px var(--color-header-nav);
-}
+    .payment-option-card.selected {
+        border-color: var(--color-header-nav);
+        box-shadow: 0 0 0 2px var(--color-header-nav);
+    }
 
 /* Card header — mirrors .card-header */
 .payment-option-header {
@@ -102,9 +106,9 @@
     margin-bottom: var(--spacing-xs);
 }
 
-.other-option-link:hover {
-    text-decoration: underline;
-}
+    .other-option-link:hover {
+        text-decoration: underline;
+    }
 
 .other-option-description {
     margin: 0;
@@ -116,9 +120,9 @@
     text-decoration: none;
 }
 
-.inline-link:hover {
-    text-decoration: underline;
-}
+    .inline-link:hover {
+        text-decoration: underline;
+    }
 
 .external-link-icon {
     font-size: 0.75rem;
@@ -127,7 +131,7 @@
 
 /* Footer — action bar */
 .billing-footer {
-    display: flex;
+    /*display: flex;*/
     justify-content: space-between;
     align-items: center;
     padding-top: var(--spacing-lg);

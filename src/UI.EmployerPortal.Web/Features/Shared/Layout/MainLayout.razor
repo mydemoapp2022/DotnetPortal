@@ -1,14 +1,25 @@
 @using Microsoft.AspNetCore.Components.Authorization;
+@using Microsoft.AspNetCore.Components;
+@using Microsoft.JSInterop;
 @using UI.EmployerPortal.Web.Auth
 @using UI.EmployerPortal.Web.Features.Shared.Accounts.Services
+@using UI.EmployerPortal.Web.Features.Landing.Pages;
+
 @inherits LayoutComponentBase
-@inject IUserAccountService userAccountService
 
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
 <div class="page">
-    <Header />
-
+    @if (ShowTopHeader)
+    {
+        <TopHeader showTopHeader="@_isAuthenticated"></TopHeader>
+    }
+    @if (ShowSubHeader)
+    {
+        <SubHeader showEmployerNavigation="@ShowEmployerNavigation"
+                   IsLandingPage="@IsLandingPage"
+                   IsDashboardPage="@IsDashboardPage"></SubHeader>
+    }
     <div class="main-content-wrapper">
         @if (ShowSideMenu)
         {
@@ -19,20 +30,21 @@
             <article class="content">
                 <AuthorizeView>
                     <Authorized>
-                        <div style="text-align: right; width: 100%;">@GetAuthenticatedUserInformation()</div>
-                        <div style="text-align: right; width: 100%;"><a href="/auth/logout">Logout</a></div>
-                        
+                        @*  <div style="text-align: right; width: 100%;">
+                            <a href="@_logoutUrl">Logout</a>
+                        </div> *@
+                        @Body
                     </Authorized>
                     <NotAuthorized>
-                        <div style="text-align: right; width: 100%"><a href="/auth/login">Login</a></div>                        
+
                     </NotAuthorized>
                 </AuthorizeView>
-                @Body
             </article>
         </main>
     </div>
 
     <Footer />
+    <TagVersion />
 </div>
 
 <div id="blazor-error-ui" data-nosnippet role="alert">
@@ -42,15 +54,3 @@
         <span aria-hidden="true">&times;</span>
     </button>
 </div>
-
-@code {
-    string GetAuthenticatedUserInformation()
-    {
-        var dwdClaims = userAccountService.GetClaims().GetDwdClaims();
-        return $"{dwdClaims.FirstName} {dwdClaims.LastName}, {dwdClaims.UserID} | UUID: {dwdClaims.OktaUUID} | SecureUserSK: {dwdClaims.SecureUserSK}";
-
-        //var dwdClaims = userAccountService.GetClaims().GetDwdClaims();
-        //return $"ABc Xyz, 123 | UUID: 123456789112345789 | SecureUserSK: 123456";
-
-    }
-}

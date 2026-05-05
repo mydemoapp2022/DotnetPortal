@@ -1,0 +1,313 @@
+/*
+   ButtonBar scoped styles
+   -------------------------
+   These styles apply ONLY to ButtonBar due to Blazor CSS isolation.
+*/
+/* Maintain consistent spacing between buttons */
+.button-bar {
+    gap: 0.75rem;
+}
+    /* Ensure buttons and icons align correctly */
+    .button-bar .btn {
+        display: inline-flex;
+        align-items: center;
+    }
+/* Prevent buttons from stretching in flex layout */
+.no-flex-grow {
+    flex: 0 0 auto;
+}
+/* ----------------------
+  Button icon styles
+  Shared across Back and Continue icons
+  ---------------------- */
+.button-icon {
+    width: 4.93px;
+    height: 8px;
+    opacity: 1;
+    top: 4px;
+    left: 5.33px;
+    vertical-align: middle;
+}
+/* ----------------------
+  Continue / Next button (primary action)
+  - Dark background with white text
+  - Appears on the right side of the bar
+  ---------------------- */
+.btn-outline-primary {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-relaxed);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    background-color: var(--color-header-nav);
+    border-color: var(--color-header-nav);
+    color: var(--color-white);
+    width: 112px;
+    height: 46px;
+    padding-top: 10px;
+    padding-right: 8px;
+    padding-bottom: 10px;
+    padding-left: 8px;
+    gap: 8px;
+    opacity: 1;
+    border-radius: 6px;
+    /* Visible focus ring for keyboard navigation (accessibility) */
+    outline: none;
+}
+    /* Focus state for keyboard accessibility */
+    .btn-outline-primary:focus-visible {
+        outline: 2px solid var(--color-header-nav);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(0, 85, 150, 0.25);
+    }
+    /* Disabled state - reduced opacity to indicate non-interactive */
+    .btn-outline-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    /* Hover state for visual feedback */
+    .btn-outline-primary:hover:not(:disabled) {
+        opacity: 0.85;
+        cursor: pointer;
+    }
+/* Primary button label text */
+.btn-primary-label {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: 16px;
+    line-height: 160%;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    vertical-align: middle;
+    color: var(--color-white);
+}
+/* ----------------------
+  Back button (secondary action)
+  - Outline style with border
+  - Appears on the left side of the bar
+  ---------------------- */
+.btn-outline-secondary {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-relaxed);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    width: 112px;
+    height: 46px;
+    padding-top: 10px;
+    padding-right: 8px;
+    padding-bottom: 10px;
+    padding-left: 8px;
+    gap: 8px;
+    opacity: 1;
+    border-radius: 6px;
+    color: var(--color-white);
+    width: 112px;
+    height: 46px;
+    border-color: var(--color-header-nav);
+    background-color: transparent;
+    outline: none;
+}
+    /* Focus state for keyboard accessibility */
+    .btn-outline-secondary:focus-visible {
+        outline: 2px solid var(--color-header-nav);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(0, 85, 150, 0.25);
+    }
+    /* Disabled state */
+    .btn-outline-secondary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    /* Hover state */
+    .btn-outline-secondary:hover:not(:disabled) {
+        background-color: var(--color-header-nav);
+        color: var(--color-white);
+        cursor: pointer;
+    }
+        /* Change icon color on hover for Back button */
+        .btn-outline-secondary:hover:not(:disabled) .btn-secondary-label {
+            color: var(--color-white);
+        }
+/* Secondary button label text (Back) */
+.btn-secondary-label {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    height: 26px;
+    width: 48px;
+    color: var(--color-header-nav);
+}
+/* ----------------------
+  Cancel button (text-only secondary action)
+  - No background or border (text link style)
+  - Appears next to Back on the left side
+  ---------------------- */
+.btn-cancel {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-relaxed);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    height: 46px;
+    padding: 10px 8px;
+    gap: 8px;
+    /* Text-only style: no background or border */
+    background-color: transparent;
+    border: none;
+    color: var(--color-header-nav);
+    cursor: pointer;
+    text-transform: uppercase;
+    outline: none;
+}
+    /* Focus state for keyboard accessibility */
+    .btn-cancel:focus-visible {
+        outline: 2px solid var(--color-header-nav);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(0, 85, 150, 0.25);
+    }
+    /* Disabled state */
+    .btn-cancel:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    /* Hover state - subtle underline for text-style button */
+    .btn-cancel:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+/* Cancel button label text */
+.btn-cancel-label {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: 16px;
+    line-height: 160%;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    vertical-align: middle;
+    color: var(--color-header-nav);
+}
+/* ----------------------
+  Save & Quit button (tertiary action)
+  - Text-only style, similar to Cancel
+  - Appears to the left of Continue on the right side
+  ---------------------- */
+.btn-save-quit {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-relaxed);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    height: 46px;
+    padding: 10px 8px;
+    gap: 8px;
+    /* Text-only style: no background or border */
+    background-color: transparent;
+    border: none;
+    color: var(--color-header-nav);
+    cursor: pointer;
+    text-transform: uppercase;
+    outline: none;
+}
+    /* Focus state for keyboard accessibility */
+    .btn-save-quit:focus-visible {
+        outline: 2px solid var(--color-header-nav);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(0, 85, 150, 0.25);
+    }
+    /* Disabled state */
+    .btn-save-quit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    /* Hover state - subtle underline for text-style button */
+    .btn-save-quit:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+/* Save & Quit button label text */
+.btn-save-quit-label {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: 16px;
+    line-height: 160%;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    vertical-align: middle;
+    color: var(--color-header-nav);
+}
+/* ----------------------
+  Left and right button groups
+  - Maintain consistent gap between grouped buttons
+  ---------------------- */
+.button-bar-left {
+    gap: 0.75rem;
+}
+
+.button-bar-right {
+    gap: 0.75rem;
+}
+/*
+   Mobile behavior
+   ------------------
+   On small screens:
+   - Stack buttons vertically
+   - Show primary action first (Continue at top)
+   - Full-width buttons for accessibility and touch targets
+   - Reverse column order so Continue appears at the top
+*/
+@media (max-width: 575px) {
+    .button-bar {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+    /* Stack left/right groups vertically too */
+    .button-bar-left,
+    .button-bar-right {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.5rem;
+    }
+    /* Reverse right group so Continue appears first on mobile */
+    .button-bar-right {
+        flex-direction: column-reverse;
+    }
+    /* Full-width buttons on mobile for better touch targets */
+    .button-bar .btn-outline-primary,
+    .button-bar .btn-outline-secondary,
+    .button-bar .btn-cancel,
+    .button-bar .btn-save-quit {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/*
+   High contrast / forced-colors mode
+   ------------------------------------
+   Ensures buttons remain visible when OS-level
+   high contrast mode is enabled (accessibility).
+*/
+@media (forced-colors: active) {
+    .btn-outline-primary,
+    .btn-outline-secondary,
+    .btn-cancel,
+    .btn-save-quit {
+        border: 1px solid ButtonText;
+    }
+
+        .btn-outline-primary:focus-visible,
+        .btn-outline-secondary:focus-visible,
+        .btn-cancel:focus-visible,
+        .btn-save-quit:focus-visible {
+            outline: 2px solid Highlight;
+        }
+}

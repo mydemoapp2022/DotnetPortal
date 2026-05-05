@@ -1,110 +1,163 @@
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
+@inject NavigationManager Nav;
+
 <div class="billing-main">
 
     <!-- Make a Payment Section -->
-    <div class="billing-section">
-        <h2 class="billing-section-title fw-bold">Make a Payment</h2>
-        <hr class="section-divider" />
-        <p class="section-description">Select the payment options you wish to use.</p>
+    <section class="billing-section" aria-labelledby="make-payment-heading">
+        <h2 id="make-payment-heading" class="billing-section-title fw-bold">Make a Payment</h2>
+        <hr class="section-divider" aria-hidden="true"/>
+        <p id="payment-options-description" class="section-description">Select the payment options you wish to use.</p>
 
-        <!-- Bank Account Payments (ACH) -->
-        <div class="payment-option-card @(_selectedOption == "ach" ? "selected" : "")"
-             @onclick="SelectAch" role="button" tabindex="0">
-            <div class="payment-option-header">
-                <span class="payment-option-icon">
-                    <img src="images/billing/bank.svg" alt="Bank" width="20" height="20" />
-                </span>
-                <h3 class="payment-option-title fw-bold">Bank Account Payments(ACH)</h3>
-            </div>
-            <p class="payment-option-description">
-                Pay your UI taxes electronically online by instructing DWD-UI to deduct payment from your financial
-                institution for a specific payment amount on a day of your choosing.
-            </p>
-        </div>
+        <div role="radiogroup"
+             aria-labelledby="make-payment-heading"
+             aria-describedby="payment-options-description"
+             aria-required="true">
 
-        <!-- Credit/Debit Card Payment -->
-        <div class="payment-option-card @(_selectedOption == "card" ? "selected" : "")"
-             @onclick="SelectCard" role="button" tabindex="0">
-            <div class="payment-option-header">
-                <span class="payment-option-icon">
-                    <img src="images/billing/credit-card.svg" alt="Credit Card" width="20" height="20" />
-                </span>
-                <h3 class="payment-option-title fw-bold">Credit/Debit Card Payment</h3>
+            <!-- Bank Account Payments (ACH) -->
+            <div class="payment-option-card @(_selectedOption == "ach" ? "selected" : "")"
+                 @onclick="SelectAch"
+                 @onkeydown="e => HandleCardKeyDown(e, SelectAch)"
+                 role="radio"
+                 aria-checked="@(_selectedOption == "ach" ? "true" : "false")"
+                 aria-label="Bank Account Payments(ACH). Pay your UI taxes electronically online by instructing DWD-UI to deduct payment from your financial institution."
+                 tabindex="@(_selectedOption == "ach" ? "0" : (_selectedOption == null ? "0" : "-1"))">
+                <div class="payment-option-header" aria-hidden="true">
+                    <span class="payment-option-icon">
+                        <img src="@Assets["images/billing/bank.svg"]" alt="Bank" width="20" height="20" />
+                    </span>
+                    <h3 class="payment-option-title fw-bold">Bank Account Payments(ACH)</h3>
+                </div>
+                <p class="payment-option-description" aria-hidden="true">
+                    Pay your UI taxes electronically online by instructing DWD-UI to deduct payment from your financial
+                    institution for a specific payment amount on a day of your choosing.
+                </p>
             </div>
-            <p class="payment-option-description">
-                Select this option to make a payment by credit or debit card.
-            </p>
+
+            <!-- Credit/Debit Card Payment -->
+            <div class="payment-option-card @(_selectedOption == "card" ? "selected" : "")"
+                 @onclick="SelectCard"
+                 @onkeydown="e => HandleCardKeyDown(e, SelectCard)"
+                 role="radio"
+                 aria-checked="@(_selectedOption == "card" ? "true" : "false")"
+                 aria-label="Credit/Debit Card Payment. Select this option to make a payment by credit or debit card."
+                 tabindex="@(_selectedOption == "card" ? "0" : (_selectedOption == null ? "0" : "-1"))">
+                <div class="payment-option-header" aria-hidden="true">
+                    <span class="payment-option-icon">
+                        <img src="@Assets["images/billing/credit-card.svg"]" alt="Credit Card" width="20" height="20" />
+                    </span>
+                    <h3 class="payment-option-title fw-bold">Credit/Debit Card Payment</h3>
+                </div>
+                <p class="payment-option-description" aria-hidden="true">
+                    Select this option to make a payment by credit or debit card.
+                </p>
+            </div>
+
         </div>
-    </div>
+        <div aria-live="assertive" aria-atomic="true" class="sr-only" role="status">
+            @_selectionAnnouncement
+        </div>
+    </section>
 
     <!-- Other Options Section -->
-    <div class="billing-section">
-        <h3 class="other-options-title fw-bold">Other Options</h3>
-        <hr class="section-divider" />
+    <section class="billing-section" aria-labelledby="other-options-heading">
+        <h3 id="other-options-heading" class="other-options-title fw-bold">Other Options</h3>
+        <hr class="section-divider" aria-hidden="true"/>
 
         <div class="other-option-item">
-            <a href="/voluntary-contribution" class="other-option-link fw-bold">Voluntary Contribution Payment</a>
-            <p class="other-option-description">Takes you to the Voluntary Contribution calculator.</p>
+            <a href="/voluntary-contribution" class="other-option-link fw-bold" aria-describedby="desc-voluntary">Voluntary Contribution Payment</a>
+            <p id="desc-voluntary" class="other-option-description">Takes you to the Voluntary Contribution calculator.</p>
         </div>
 
         <div class="other-option-item">
-            <a href="/pay-by-check" class="other-option-link fw-bold">Pay by Check</a>
-            <p class="other-option-description">Print out a payment coupon you can send in to us with your payment.</p>
+            <a href="/pay-by-check" class="other-option-link fw-bold" aria-describedby="desc-check">Pay by Check</a>
+            <p id="desc-check" class="other-option-description">Print out a payment coupon you can send in to us with your payment.</p>
         </div>
 
         <div class="other-option-item">
-            <a href="#" target="_blank" class="other-option-link fw-bold">
+            <a href="#" target="_blank"
+                class="other-option-link fw-bold"
+                aria-describedby="desc-ach-credit"
+                aria-label="ACH Credit Payment"
+                rel="noreferrer">
                 ACH Credit Payment
-                <span class="external-link-icon">&#x29C9;</span>
+                <span class="external-link-icon" aria-hidden="true">&#x29C9;</span>
             </a>
-            <p class="other-option-description">
+            <p id="desc-ach-credit" class="other-option-description">
                 Information you need if you are going to have your financial institution send a payment electronically to the
                 states financial institution.
             </p>
         </div>
 
         <div class="other-option-item">
-            <a href="#" target="_blank" class="other-option-link fw-bold">
+            <a href="#" target="_blank"
+                        rel="noreferrer"
+                        aria-describedby="desc-block-ach"
+                        aria-label="Blocking ACH Payments From Being Deducted"
+                        class="other-option-link fw-bold">
                 Blocking ACH Payments From Being Deducted
-                <span class="external-link-icon">&#x29C9;</span>
+                <span class="external-link-icon" aria-hidden="true">&#x29C9;</span>
             </a>
-            <p class="other-option-description">
+            <p id="desc-block-ach" class="other-option-description">
                 Information you need if you have a debit block on your bank account and want to authorize DWD-UI to be able
                 to deduct payments from your bank account.
             </p>
         </div>
 
-        <div class="other-option-item">
-            <span class="other-option-link fw-bold">Payment Plan for Delinquent UI Tax</span>
+        <div class="other-option-item">            
             <p class="other-option-description">
+                <strong class="other-option-link">Payment Plan for Delinquent UI Tax</strong>
                 If you are interested in setting up a payment plan for the delinquent tax on your UI account,
-                <a href="/contact-us" class="inline-link">Contact Us</a> for instructions.
+                <a href="/contact-us" class="inline-link" aria-label="Contact Us about a payment plan for delinquent tax on your UI account">Contact Us</a> for instructions.
             </p>
         </div>
-    </div>
+    </section>
 
     <!-- Footer Actions -->
-    <div class="billing-footer">
-        <div class="footer-left">
-            <a href="/employer-dashboard" class="btn btn-outline-secondary">&#8249; BACK</a>
-            <a href="/employer-dashboard" class="btn btn-link text-secondary fw-bold">CANCEL</a>
+    <nav class="billing-footer" aria-label="Page actions">
+        @* <div class="footer-left">
+            <a href="/employer-dashboard" class="btn btn-lg btn-outline-secondary no-flex-grow" aria-label="Go back to Employee Dashboard">&#8249; BACK</a>
         </div>
-        <button class="btn btn-primary fw-bold" @onclick="MakePayment" disabled="@(_selectedOption is null)">
+        <button class="btn btn-lg btn-outline-primary no-flex-grow"
+                @onclick="MakePayment"
+                aria-disabled="@(_selectedOption is null ? "true" : "false")"
+                aria-describedby="make-payment-heading"
+                disabled="@(_selectedOption is null)">
             MAKE A PAYMENT &#8250;
-        </button>
-    </div>
+        </button> *@
+        <BillingButtonBar ShowBack="true"
+                   ShowContinue="true"
+                   ShowCancel="false"
+                   OnBack="GoBack"
+                   OnContinue="HandleContinue"
+                   ContinueText="MAKE A PAYMENT"
+                   ButtonWidth="200">
+        </BillingButtonBar>
+    </nav>
 </div>
 
 @code {
-    [Parameter] public decimal BalanceDue { get; set; }
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    [Parameter] public EmployerAccount? EmployerAccount { get; set; }
 
     private string? _selectedOption;
+    private string _selectionAnnouncement = string.Empty;
 
-    private void SelectAch() => SelectPaymentOption("ach");
-    private void SelectCard() => SelectPaymentOption("card");
+    private void SelectAch() => SelectPaymentOption("ach", "Bank Account Payments (ACH) selected");
+    private void SelectCard() => SelectPaymentOption("card", "Credit/Debit card payment selected");
 
-    private void SelectPaymentOption(string option)
+    private void SelectPaymentOption(string option, string announcement)
     {
         _selectedOption = option;
+        _selectionAnnouncement = announcement;
+    }
+
+    private void HandleCardKeyDown(KeyboardEventArgs eventArgs, Action selectAction)
+    {
+        if(eventArgs.Key is "Enter" or " ")
+        {
+            selectAction();
+        }
     }
 
     private void MakePayment()
@@ -112,4 +165,30 @@
         if (_selectedOption is null) return;
         // Navigate based on selected option
     }
+
+    private async Task NavigateHere(string linkClicked)
+    {
+        NavigationManager.NavigateTo(linkClicked, true);
+    }
+
+    private void GoBack()
+    {
+        var baseUri = new Uri(Nav.BaseUri);
+        var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/billing");
+        Nav.NavigateTo(pathBase);
+    }
+
+    private void HandleContinue()
+    {
+        ValidatePayment();        
+        StateHasChanged();
+        var baseUri = new Uri(Nav.BaseUri);
+        var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/payment-history");
+        Nav.NavigateTo(pathBase);
+    }
+
+    private void ValidatePayment()
+    {
+        StateHasChanged();
+    } 
 }

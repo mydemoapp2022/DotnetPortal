@@ -9,21 +9,37 @@ namespace UI.EmployerPortal.Web.Features.Shared.Layout;
 public partial class SideMenu : IDisposable
 {
     private bool _isMinimized = false;
+    private bool _isGuest = false;
     private readonly HashSet<string> _expandedMenus = [];
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
+    [Inject]
+    private ILayoutOrchestator LayoutOrchestator { get; set; } = default!;
 
     /// <summary>
     /// OnInitialized
     /// </summary>
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
+    /// <inheritdoc/>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isGuest = await LayoutOrchestator.IsGuestAccountAsync();
+            _menuItems = _isGuest ? GuestMenuItems : MenuItems;
+            ExpandActiveMenus();
+            StateHasChanged();
+        }
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        ExpandActiveMenus();
         InvokeAsync(StateHasChanged);
     }
 
@@ -37,58 +53,167 @@ public partial class SideMenu : IDisposable
 
     private static readonly List<MenuItem> MenuItems =
     [
-        new MenuItem { Id = "dashboard", Title = "Dashboard", Icon = "images/dashboard/home.svg", Url = "/employer-dashboard", HasSubmenu = false },
-        //new MenuItem { Id = "employer-registration", Title = "Employer Registration", Icon = "images/dashboard/manage-account.svg", Url = "/employer-registration-ownership", HasSubmenu = false },
-        new MenuItem { Id = "eforms", Title = "eForms", Icon = "images/dashboard/eforms.svg", Url = "/eforms", HasSubmenu = false },
-        new MenuItem { Id = "secure-messages", Title = "Secure Messages", Icon = "images/dashboard/secure-messages.svg", Url = "/secure-messages", HasSubmenu = false },
-        new MenuItem { Id = "quarterly-tax", Title = "Quarterly Tax & Wage Reporting", Icon = "images/dashboard/quarterly-tax.svg", Url = "/quarterly-tax", HasSubmenu = true, Submenus = new List<SubMenuItem>
+        new MenuItem
         {
-            new() { Title = "Missing Reports", Url = "/quarterly-tax/missing-reports" },
-            new() { Title = "Quarterly Tax & Wage Reports", Url = "/quarterly-tax/reports" },
-            new() { Title = "Wage Report File Upload", Url = "/quarterly-tax/file-upload" },
-            new() { Title = "Tax & Wage Report Adjustments", Url = "/quarterly-tax/adjustments" },
-            new() { Title = "Previously Filed Reports", Url = "/quarterly-tax/previously-filed" },
-            new() { Title = "First Quarter Deferral", Url = "/quarterly-tax/first-quarter-deferral" },
-            new() { Title = "Validation Test Environment", Url = "/quarterly-tax/validation-test" },
-            new() { Title = "View File Upload Summary", Url = "/quarterly-tax/upload-summary" },
-            new() { Title = "View Rate Summary", Url = "/quarterly-tax/rate-summary" }
-        }},
-        new MenuItem { Id = "billing-payments", Title = "Billing & Payments", Icon = "images/dashboard/billing-payments.svg", Url = "/billing-payments", HasSubmenu = true, Submenus = new List<SubMenuItem>
+            Id = "quarterly-tax",
+            Title = "Quarterly Tax & Wage Reporting",
+            Icon = "images/dashboard/quarterly-tax.svg",
+            Url = "quarterly-tax",
+            MinimizedUrl = "quarterly-tax/missing-reports",
+            LandingUrl = "quarterly-tax/missing-reports",
+            HasSubmenu = true,
+            IsVisible = true,
+            Submenus =
+            [
+                new() { Title = "Missing Reports", Url = "quarterly-tax/missing-reports", AdditionalUrls = [
+                    "quarterly-tax/select-report",
+                    "quarterly-tax/tax-and-wage-entry-report",
+                    "quarterly-tax/wage-entry-report",
+                    "quarterly-tax/zero-payroll-report",
+                    "quarterly-tax/tax-report-only",
+                    ] },
+                new() { Title = "Wage Report File Upload", Url = "quarterly-tax/file-upload" },
+                new() { Title = "Tax & Wage Report Adjustments", Url = "quarterly-tax/adjustments" },
+                new() { Title = "Previously Filed Reports", Url = "quarterly-tax/previously-filed" },
+                new() { Title = "First Quarter Deferral", Url = "quarterly-tax/first-quarter-deferral" },
+                new() { Title = "Validation Test Environment", Url = "quarterly-tax/validation-test" },
+                new() { Title = "View File Upload Summary", Url = "quarterly-tax/upload-summary" },
+                new() { Title = "View Rate Summary", Url = "quarterly-tax/rate-summary" },
+                new() { Title = "Wage Upload Error Messages", Url = "quarterly-tax/wage-report-file-upload-error-list" }
+            ]
+        },
+        new MenuItem
         {
-            new() { Title = "View Account Balance", Url = "/billing-payments/balance" },
-            new() { Title = "Make a Payment", Url = "/billing-payments/make-payment" },
-            new() { Title = "Payment History", Url = "/billing-payments/history" }
-        }},
-        new MenuItem { Id = "ui-documents", Title = "UI Documents", Icon = "images/dashboard/ui-documents.svg", Url = "/ui-documents", HasSubmenu = false },
-        new MenuItem { Id = "levies", Title = "Levies", Icon = "images/dashboard/levies.svg", Url = "/levies", HasSubmenu = true, Submenus = new List<SubMenuItem>
+            Id = "billing-payments",
+            Title = "Billing & Payments",
+            Icon = "images/dashboard/billing-payments.svg",
+            Url = "billing-payments",
+            MinimizedUrl = "billing-payments/billing",
+            LandingUrl = "billing-payments/billing",
+            HasSubmenu = true,
+            IsVisible = true,
+            Submenus =
+            [
+                new() { Title = "Billing", Url = "billing-payments/billing" },
+                new() { Title = "Payment Options", Url = "billing-payments/payment-options" },
+                new() { Title = "Payment History", Url = "billing-payments/payment-history" },
+                new() { Title = "Manage Contact", Url = "billing-payments/manage-contact" },
+                new() { Title = "Manage Bank Accounts", Url = "billing-payments/manage-bank-accounts" },
+            ]
+        },
+        new MenuItem
         {
-            new() { Title = "Active Levies", Url = "/levies/active" },
-            new() { Title = "Levy Payments", Url = "/levies/payments" }
-        }},
-        new MenuItem { Id = "appeals", Title = "Appeals", Icon = "images/dashboard/appeals.svg", Url = "/appeals", HasSubmenu = true, Submenus = new List<SubMenuItem>
+            Id = "ui-documents",
+            Title = "UI Documents",
+            Icon = "images/dashboard/ui-documents.svg",
+            Url = "ui-documents",
+            HasSubmenu = false,
+            IsVisible = true
+        },
+        new MenuItem
         {
-            new() { Title = "File an Appeal", Url = "/appeals/file" },
-            new() { Title = "Upload Hearing Documentation", Url = "/appeals/upload-docs" },
-            new() { Title = "Update Hearing Contact Info", Url = "/appeals/contact-info" }
-        }},
-        new MenuItem { Id = "manage-account", Title = "View & Manage Account", Icon = "images/dashboard/manage-account.svg", Url = "/manage-account", HasSubmenu = true, Submenus = new List<SubMenuItem>
+            Id = "manage-account",
+            Title = "View & Manage Account",
+            Icon = "images/dashboard/manage-account.svg",
+            Url = "manage-account/account-users",
+            LandingUrl = "manage-account/account-users",
+            HasSubmenu = true,
+            IsVisible = true,
+            Submenus =
+            [
+                new() { Title = "UI Account Details", Url = "manage-account/account-details" },
+                new() { Title = "UI Account Users", Url = "manage-account/account-users" },
+                new() { Title = "Associated ESP Accounts", Url = "manage-account/esp-accounts" },
+                new() { Title = "My UI Account Details", Url = "manage-account/ui-account" }
+            ]
+        },
+        new MenuItem
         {
-            new() { Title = "View Account Information", Url = "/manage-account/view" },
-            new() { Title = "Request Account Access", Url = "/manage-account/request-access" },
-            new() { Title = "Manage Worker Access", Url = "/manage-account/worker-access" },
-            new() { Title = "Employer Registration", Url = "/manage-account/registration" },
-            new() { Title = "Manage Service Providers", Url = "/manage-account/service-providers" }
-        }},
-        new MenuItem { Id = "other-functions", Title = "Other Functions", Icon = "images/dashboard/other-functions.svg", Url = "/other-functions", HasSubmenu = true, Submenus = new List<SubMenuItem>
-        {
-            new() { Title = "Download Benefit Charges", Url = "/other-functions/benefit-charges" },
-            new() { Title = "Request 940C Recertification", Url = "/other-functions/940c" },
-            new() { Title = "Manage Email Subscriptions", Url = "/other-functions/email-subscriptions" },
-            new() { Title = "Upload Audit Files", Url = "/other-functions/upload-audit" }
-        }}
+            Id = "other-functions",
+            Title = "Other Functions",
+            Icon = "images/dashboard/other-functions.svg",
+            Url = "other-functions",
+            MinimizedUrl = "other-functions",
+            LandingUrl = "other-functions/benefit-charges",
+            HasSubmenu = true,
+            IsVisible = true,
+            Submenus =
+            [
+                new() { Title = "Download Benefit Charges", Url = "other-functions/benefit-charges" },
+                new() { Title = "Request 940C Recertification", Url = "other-functions/940c" },
+                new() { Title = "Manage Email Subscriptions", Url = "other-functions/email-subscriptions" },
+                new() { Title = "Upload Audit Files", Url = "other-functions/upload-audit" }
+            ]
+        }
     ];
 
-    private readonly List<MenuItem> _menuItems = MenuItems;
+    //new MenuItem { Id = "eforms", Title = "eForms", Icon = "images/dashboard/eforms.svg", Url = "eforms", HasSubmenu = false, IsVisible = false },
+    //new MenuItem { Id = "secure-messages", Title = "Secure Messages", Icon = "images/dashboard/secure-messages.svg", Url = "secure-messages", HasSubmenu = false, IsVisible = false },
+
+    //new MenuItem { Id = "levies", Title = "Levies", Icon = "images/dashboard/levies.svg", Url = "levies", HasSubmenu = true, IsVisible = false, Submenus = new List<SubMenuItem>
+    //{
+    //    new() { Title = "Active Levies", Url = "levies/active" },
+    //    new() { Title = "Levy Payments", Url = "levies/payments" }
+    //}},
+    //new MenuItem { Id = "appeals", Title = "Appeals", Icon = "images/dashboard/appeals.svg", Url = "appeals", HasSubmenu = true, IsVisible = false, Submenus = new List<SubMenuItem>
+    //{
+    //    new() { Title = "File an Appeal", Url = "appeals/file" },
+    //    new() { Title = "Upload Hearing Documentation", Url = "appeals/upload-docs" },
+    //    new() { Title = "Update Hearing Contact Info", Url = "appeals/contact-info" }
+    //}},
+
+    private static readonly List<MenuItem> GuestMenuItems =
+    [
+        new MenuItem
+        {
+            Id = "quarterly-tax",
+            Title = "Quarterly Tax & Wage Reporting",
+            Icon = "images/dashboard/quarterly-tax.svg",
+            Url = "quarterly-tax",
+            MinimizedUrl = "quarterly-tax/missing-reports",
+            LandingUrl = "quarterly-tax/missing-reports",
+            HasSubmenu = true,
+            IsVisible = true,
+            Submenus =
+            [
+                new() { Title = "Missing Reports", Url = "quarterly-tax/missing-reports" },
+                new() { Title = "Wage Report File Upload", Url = "quarterly-tax/file-upload" },
+                new() { Title = "Validation Test Environment", Url = "quarterly-tax/validation-test" },
+                new() { Title = "Wage Upload Error Messages", Url = "quarterly-tax/wage-report-file-upload-error-list" }
+            ]
+        },
+        new MenuItem
+        {
+            Id = "other-functions",
+            Title = "Other Functions",
+            Icon = "images/dashboard/other-functions.svg",
+            Url = "other-functions",
+            MinimizedUrl = "other-functions",
+            LandingUrl = "other-functions/benefit-charges",
+            HasSubmenu = true,
+            IsVisible = true,
+            Submenus =
+            [
+                new() { Title = "Download Benefit Charges", Url = "other-functions/benefit-charges" },
+                new() { Title = "Request 940C Recertification", Url = "other-functions/940c" },
+                new() { Title = "Manage Email Subscriptions", Url = "other-functions/email-subscriptions" },
+                new() { Title = "Upload Audit Files", Url = "other-functions/upload-audit" }
+            ]
+        }
+    ];
+
+    private List<MenuItem> _menuItems = MenuItems;
+
+    private void ExpandActiveMenus()
+    {
+        foreach (var item in _menuItems)
+        {
+            if (item.HasSubmenu && IsMenuActive(item))
+            {
+                _expandedMenus.Add(item.Id);
+            }
+        }
+    }
 
     private void ToggleMenu()
     {
@@ -101,6 +226,12 @@ public partial class SideMenu : IDisposable
 
     private void OnMenuClick(MenuItem item)
     {
+        if (_isMinimized)
+        {
+            NavigationManager.NavigateTo(item.MinimizedUrl ?? item.Url, true);
+            return;
+        }
+
         if (item.HasSubmenu)
         {
             if (_expandedMenus.Contains(item.Id))
@@ -111,10 +242,14 @@ public partial class SideMenu : IDisposable
             {
                 _expandedMenus.Add(item.Id);
             }
+            if (!string.IsNullOrEmpty(item.LandingUrl))
+            {
+                NavigationManager.NavigateTo(item.LandingUrl, true);
+            }
         }
         else
         {
-            NavigationManager.NavigateTo(item.Url);
+            NavigationManager.NavigateTo(item.Url, true);
         }
     }
 
@@ -127,10 +262,7 @@ public partial class SideMenu : IDisposable
         if (item.HasSubmenu)
         {
             // Only highlight if one of the submenus matches the current URL
-            return item.Submenus.Any(s =>
-            {
-                return relativePath.StartsWith(s.Url.TrimStart('/').ToLower(), StringComparison.OrdinalIgnoreCase);
-            });
+            return item.Submenus.Any(IsSubmenuActive);
         }
 
         // For items without submenus, highlight if URL matches or starts with the item URL
@@ -140,8 +272,23 @@ public partial class SideMenu : IDisposable
     private bool IsSubmenuActive(SubMenuItem submenu)
     {
         var currentUri = NavigationManager.Uri;
-        var relativePath = NavigationManager.ToBaseRelativePath(currentUri);
-        return relativePath.Equals(submenu.Url.TrimStart('/'), StringComparison.OrdinalIgnoreCase);
+        var relativePath = GetUrlPath();
+        return relativePath.Equals(submenu.Url.TrimStart('/').ToLower(), StringComparison.OrdinalIgnoreCase) || submenu.AdditionalUrls.Any(url =>
+        {
+            return relativePath.StartsWith(url.TrimStart('/').ToLower(), StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    private string GetUrlPath()
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLower();
+
+        if (relativePath.Contains("#"))
+        {
+            relativePath = relativePath.Split('#')[0];
+        }
+
+        return relativePath.Split('?')[0].TrimEnd('/');
     }
 
     private class MenuItem
@@ -150,13 +297,17 @@ public partial class SideMenu : IDisposable
         public string Title { get; set; } = "";
         public string Icon { get; set; } = "";
         public string Url { get; set; } = "";
+        public string? MinimizedUrl { get; set; }
+        public string? LandingUrl { get; set; }
         public bool HasSubmenu { get; set; }
         public List<SubMenuItem> Submenus { get; set; } = new List<SubMenuItem>();
+        public bool IsVisible { get; set; }
     }
 
     private class SubMenuItem
     {
         public string Title { get; set; } = "";
         public string Url { get; set; } = "";
+        public List<string> AdditionalUrls { get; set; } = [];
     }
 }

@@ -1,0 +1,49 @@
+@page "/billing-payments/billing"
+@using UI.EmployerPortal.Web.Features.Dashboard
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
+@inject IDashboardOrchestrator DashboardOrchestrator
+@inject NavigationManager Nav;
+
+<PageTitle>Billing</PageTitle>
+<div class="section-page">
+    <h1 class="section-header fw-bold">Billing</h1>
+    <p class="section-description">You are in the Billing section.</p>
+
+    <nav class="billing-footer" aria-label="Page actions">
+        @* <div class="footer-left">
+                <a href="/employer-dashboard" class="btn btn-lg btn-outline-secondary no-flex-grow" aria-label="Go back to Employee Dashboard">&#8249; BACK</a>
+            </div>
+            <button class="btn btn-lg btn-outline-primary no-flex-grow"
+                    @onclick="MakePayment"
+                    aria-disabled="@(_selectedOption is null ? "true" : "false")"
+                    aria-describedby="make-payment-heading"
+                    disabled="@(_selectedOption is null)">
+                MAKE A PAYMENT &#8250;
+            </button> *@
+        <BillingButtonBar ShowBack="false"
+                   ShowContinue="true"
+                   ShowCancel="false"              
+                   ContinueText="Next"
+                   OnContinue="HandleContinue">
+        </BillingButtonBar>
+    </nav>
+</div>
+@code {
+    private EmployerAccount? _employerAccount;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _employerAccount = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void HandleContinue()
+    {
+        var baseUri = new Uri(Nav.BaseUri);
+        var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/payment-options");
+        Nav.NavigateTo(pathBase);
+    }    
+}

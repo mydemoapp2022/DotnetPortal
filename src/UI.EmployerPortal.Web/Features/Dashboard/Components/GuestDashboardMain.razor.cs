@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Components;
-using UI.EmployerPortal.Web.Features.Shared.Accounts.Models;
+
 namespace UI.EmployerPortal.Web.Features.Dashboard.Components;
 
+
 /// <summary>
-/// EmployerDashboardMain
+/// 
 /// </summary>
-public partial class EmployerDashboardMain
+public partial class GuestDashboardMain
 {
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
@@ -15,14 +16,9 @@ public partial class EmployerDashboardMain
     {
         _isListView = isListView;
     }
-    /// <summary>
-    /// Gets or sets the title displayed in the filter bar.
-    /// </summary>
-    [Parameter]
-    public EmployerAccount? EmployerAccount { get; set; }
 
     private async Task NavigateHere(string linkClicked)
     {
-        NavigationManager.NavigateTo(linkClicked);
+        NavigationManager.NavigateTo(linkClicked, true);
     }
 }

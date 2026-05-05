@@ -1,7 +1,6 @@
 .billing-header {
     width: 100%;
-    max-width: 1440px;
-    margin: 0 auto;
+    max-width: 920px;
     padding: var(--spacing-lg);
     background-color: var(--color-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 10px rgba(0, 0, 0, 0.12);
@@ -19,7 +18,8 @@
 }
 
 .detail-label {
-    color: var(--color-text);
+    color: #003663;
+    font-size: 24px;
 }
 
 .billing-header-right {
@@ -30,19 +30,28 @@
 }
 
 .balance-amount {
-    font-size: var(--font-size-lg);
-    color: var(--color-text);
+    font-size: 24px;
+    color: #000000;
 }
 
 .amount-due-link {
-    color: var(--color-header-nav);
-    font-size: var(--font-size-sm);
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+    text-align: right;
+    vertical-align: middle;
+    color: #0D6EFD;
+    font-size: 16px;
     text-decoration: none;
 }
 
-.amount-due-link:hover {
-    text-decoration: underline;
-}
+    .amount-due-link:hover {
+        text-decoration: underline;
+    }
 
 @media (max-width: 1023px) {
     .billing-header {

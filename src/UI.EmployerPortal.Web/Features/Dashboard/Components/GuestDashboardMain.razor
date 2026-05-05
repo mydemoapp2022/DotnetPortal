@@ -1,4 +1,4 @@
-<div class="dashboard-main">
+<div class="guest-dashboard-main">
     <div class="view-toggle" role="group" aria-label="View options">
         <button class="toggle-btn fw-bold fs-md @(_isListView ? "active" : "")"
                 @onclick="() => SetView(true)"
@@ -14,7 +14,7 @@
 
     <div class="@(_isListView ? "list-view" : "grid-view")">
         <!-- eForms -->
-        <a class="dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("eforms"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("eforms"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/eforms.svg"]" alt="eForms" width="24" height="24" />
@@ -25,7 +25,7 @@
         </a>
 
         <!-- Secure Messages -->
-        <a class="dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("secure-messages"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("secure-messages"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/secure-messages.svg"]" alt="Secure Messages" width="24" height="24" />
@@ -36,14 +36,14 @@
         </a>
 
         <!-- Quarterly Tax & Wage Reporting -->
-        <a class="dashboard-card" href="" @onclick="@(() => NavigateHere("quarterly-tax/missing-reports"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card" href="" @onclick="@(() => NavigateHere("quarterly-tax/missing-reports"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/quarterly-tax.svg"]" alt="Quarterly Tax" width="24" height="24" />
                 </span>
                 <h3 class="card-title fw-bold fs-title">Quarterly Tax & Wage Reporting</h3>
             </div>
-            <p class="card-description">File and view quarterly tax and wage reports.</p>
+            <p class="guest-card-description">File and view quarterly tax and wage reports.</p>
             <ul class="card-list">
                 <li>File quarterly tax and wage reports</li>
                 <li>View and print previously filed reports</li>
@@ -53,7 +53,7 @@
         </a>
 
         <!-- Billing & Payments -->
-        <a class="dashboard-card" href="" @onclick="@(() => NavigateHere("billing-payments/billing"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("quarterly-tax/billing-payments"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/billing-payments.svg"]" alt="Billing & Payments" width="24" height="24" />
@@ -64,13 +64,13 @@
                 <p class="card-description">View and manage billing and payment details.</p>
                 <div class="card-info">
                     <span class="info-label fw-bold">Balance Due:</span>
-                    <span class="info-value">@(EmployerAccount?.BalanceDue.ToString("C") ?? "-")</span>
+                    <span class="info-value">$0.00</span>
                 </div>
             </div>
         </a>
 
         <!-- UI Documents -->
-        <a class="dashboard-card" href="" @onclick="@(() => NavigateHere("ui-documents"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("ui-documents"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/ui-documents.svg"]" alt="UI Documents" width="24" height="24" />
@@ -80,25 +80,8 @@
             <p class="card-description">View documents and notices sent by the WI Unemployment Insurance Division.</p>
         </a>
 
-        <!-- Levies -->
-        <a class="dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("levies"))" @onclick:preventDefault="true">
-            <div class="card-header">
-                <span class="card-icon">
-                    <img src="@Assets["images/dashboard/levies.svg"]" alt="Levies" width="24" height="24" />
-                </span>
-                <h3 class="card-title fw-bold fs-title">Levies</h3>
-            </div>
-            <div class="card-body">
-                <p class="card-description">Respond to and make payments on active levies.</p>
-                <div class="card-info">
-                    <span class="info-label fw-bold">Active Levies:</span>
-                    <span class="info-value">0</span>
-                </div>
-            </div>
-        </a>
-
         <!-- Appeals -->
-        <a class="dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("appeals"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("appeals"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/appeals.svg"]" alt="Appeals" width="24" height="24" />
@@ -128,7 +111,7 @@
         </a>
 
         <!-- View & Manage Account -->
-        <a class="dashboard-card" href="" @onclick="@(() => NavigateHere("manage-account/account-users"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card hide-card" href="" @onclick="@(() => NavigateHere("manage-account"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/manage-account.svg"]" alt="View & Manage Account" width="24" height="24" />
@@ -146,7 +129,7 @@
         </a>
 
         <!-- Other Functions -->
-        <a class="dashboard-card" href="" @onclick="@(() => NavigateHere("other-functions"))" @onclick:preventDefault="true">
+        <a class="guest-dashboard-card" href="" @onclick="@(() => NavigateHere("other-functions"))" @onclick:preventDefault="true">
             <div class="card-header">
                 <span class="card-icon">
                     <img src="@Assets["images/dashboard/other-functions.svg"]" alt="Other Functions" width="24" height="24" />

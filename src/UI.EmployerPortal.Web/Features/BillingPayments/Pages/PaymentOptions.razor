@@ -1,0 +1,26 @@
+@page "/billing-payments/payment-options"
+@using UI.EmployerPortal.Web.Features.BillingPayments.Components
+@using UI.EmployerPortal.Web.Features.Dashboard
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
+@inject IDashboardOrchestrator DashboardOrchestrator
+
+<PageTitle>Payment Options</PageTitle>
+<main id="main-content" aria-label="Billing and Payments">
+    <div class="billing-payments-container">
+        <BillingPaymentsHeader EmployerAccount="@_employerAccount" />
+        <BillingPaymentsMain EmployerAccount="@_employerAccount" />
+    </div>
+</main>
+@code {
+    private EmployerAccount? _employerAccount;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _employerAccount = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
+            StateHasChanged();
+        }
+    }
+    
+}

@@ -8,18 +8,15 @@ namespace UI.EmployerPortal.Web.Features.Dashboard.Components;
 /// </summary>
 public partial class EmployerDashboardAccountHeader
 {
-    [Inject]
-    private IDashboardOrchestrator DashboardOrchestrator { get; set; } = default!;
+    /// <summary>
+    /// Gets or sets the EmployerAccount displayed in the filter bar.
+    /// </summary>
+    [Parameter]
+    public EmployerAccount? EmployerAccount { get; set; }
 
-    private Account? _account;
-
-    /// <inheritdoc/>
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private static string FormatUIAccountNo(string accountNo)
     {
-        if (firstRender)
-        {
-            _account = await DashboardOrchestrator.GetSelectedAccountAsync();
-            StateHasChanged();
-        }
+        var digits = accountNo.Replace("-", "");
+        return digits.Length == 10 ? $"{digits[..6]}-{digits[6..9]}-{digits[9..]}" : accountNo;
     }
 }
