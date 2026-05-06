@@ -100,7 +100,7 @@
 }
 
 .other-option-link {
-    color: var(--color-header-nav);
+    color: #0D6EFD;
     text-decoration: none;
     display: inline-block;
     margin-bottom: var(--spacing-xs);
@@ -115,6 +115,8 @@
     color: var(--color-text);
 }
 
+
+
 .inline-link {
     color: var(--color-header-nav);
     text-decoration: none;
@@ -122,6 +124,14 @@
 
     .inline-link:hover {
         text-decoration: underline;
+    }
+
+.other-option-description strong.inline-link {
+    text-decoration: none;
+}
+
+    .other-option-description strong.inline-link:hover {
+        text-decoration: none;
     }
 
 .external-link-icon {

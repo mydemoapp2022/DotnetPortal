@@ -15,10 +15,6 @@
 </main>
 
 @code {
-    /// <summary>
-    /// Populated from ?source=flow when entering from the payment workflow (e.g. Billing page Next button).
-    /// Defaults to null (treated as Menu entry — Back/Cancel hidden).
-    /// </summary>
     [SupplyParameterFromQuery(Name = "source")]
     public string? Source { get; set; }
 

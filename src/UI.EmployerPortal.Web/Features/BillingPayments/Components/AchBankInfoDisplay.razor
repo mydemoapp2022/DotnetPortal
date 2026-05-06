@@ -1,0 +1,61 @@
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models
+
+<div class="ach-info-card">
+    <div class="ach-info-card-header">
+        <h2 class="fw-bold">Bank Information</h2>
+        @if (BankAccount is not null)
+        {
+            <a href="/billing-payments/ach/bank-information/edit"
+               class="ach-edit-link"
+               aria-label="Edit Bank Information">
+                ✏ Edit
+            </a>
+        }
+    </div>
+    <hr class="section-divider" aria-hidden="true" />
+
+    @if (BankAccount is not null)
+    {
+        <div class="ach-bank-account-select">
+            <label class="ach-info-label" for="bankAccountSelect">Bank Account</label>
+            <select id="bankAccountSelect" class="ach-select" aria-label="Select Bank Account" disabled>
+                <option>@BankAccount.AccountNickname</option>
+            </select>
+        </div>
+
+        <div class="ach-info-grid">
+            <div class="ach-info-field">
+                <span class="ach-info-label">Bank Account Nickname</span>
+                <strong class="ach-info-value">@BankAccount.AccountHolderName</strong>
+            </div>
+            <div class="ach-info-field">
+                <span class="ach-info-label">Bank Name</span>
+                <strong class="ach-info-value">@BankAccount.BankName</strong>
+            </div>
+            <div class="ach-info-field">
+                <span class="ach-info-label">Bank Routing Number</span>
+                <strong class="ach-info-value">@BankAccount.RoutingNumber</strong>
+            </div>
+            <div class="ach-info-field">
+                <span class="ach-info-label">Bank Account Number</span>
+                <strong class="ach-info-value">@BankAccount.MaskedAccountNumber</strong>
+            </div>
+            <div class="ach-info-field">
+                <span class="ach-info-label">Type</span>
+                <strong class="ach-info-value">@BankAccount.AccountType</strong>
+            </div>
+        </div>
+    }
+    else
+    {
+        <a href="/billing-payments/ach/bank-information/add"
+           class="ach-add-link"
+           aria-label="Add Bank Account">
+            + Add Account
+        </a>
+    }
+</div>
+
+@code {
+    [Parameter] public AchBankAccount? BankAccount { get; set; }
+}

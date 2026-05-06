@@ -1,0 +1,248 @@
+@page "/billing-payments/bank-account-payment-ach"
+@using UI.EmployerPortal.Razor.SharedComponents
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
+@using UI.EmployerPortal.Web.Features.BillingPayments.Components
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
+@inject NavigationManager Nav
+
+<PageTitle>Bank Account Payment (ACH)</PageTitle>
+
+<main id="main-content" aria-label="Bank Account Payment (ACH)">
+    <div class="billing-payments-container">
+
+        <!-- Validation Error Banner -->
+        @if (_showValidationSummary && _validationErrors.Any())
+        {
+            <NotificationBanner NotificationType="NotificationType.Alert"
+                                MessageStyle="MessageStyle.MultiLine"
+                                Messages="_validationErrors"
+                                DismissButton="false" />
+            <br />
+        }
+
+        <!-- ── STEP: Entry ──────────────────────────────────────────── -->
+        @if (_step == AchStep.Entry)
+        {
+            <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+            <p class="section-description">
+                Make sure that you have provided contact and bank information below and verify that it is correct.
+            </p>
+            <p class="section-description"><em>All fields are required unless noted</em></p>
+
+            <section class="billing-section" aria-labelledby="contact-info-heading">
+                <h2 id="contact-info-heading" class="sr-only">Contact Information</h2>
+                <AchContactInfoDisplay ContactInfo="_contactInfo" />
+            </section>
+
+            <section class="billing-section" aria-labelledby="bank-info-heading">
+                <h2 id="bank-info-heading" class="sr-only">Bank Information</h2>
+                <AchBankInfoDisplay BankAccount="_bankAccount" />
+            </section>
+
+            <section class="billing-section" aria-labelledby="payment-info-heading">
+                <h2 id="payment-info-heading" class="sr-only">Payment Information</h2>
+                <AchPaymentInformation @ref="_paymentInfoRef"
+                                       InitialAmount="_initialAmount"
+                                       AmountChanged="OnAmountChanged"
+                                       SettlementDateChanged="OnSettlementDateChanged" />
+            </section>
+        }
+
+        <!-- ── STEP: Verify & Authorize ────────────────────────────── -->
+        else if (_step == AchStep.VerifyAuthorize)
+        {
+        <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+        <p class="section-description">
+            Make sure that you have provided contact and bank information below and verify that it is correct.
+        </p>
+        <p class="section-description"><em>All fields are required unless noted</em></p>
+
+        <section class="billing-section" aria-labelledby="verify-contact-heading">
+            <h2 id="verify-contact-heading" class="sr-only">Contact Information</h2>
+            <AchContactInfoDisplay ContactInfo="_contactInfo" />
+        </section>
+
+        <section class="billing-section" aria-labelledby="verify-bank-heading">
+            <h2 id="verify-bank-heading" class="sr-only">Bank Information</h2>
+            <AchBankInfoDisplay BankAccount="_bankAccount" />
+        </section>
+
+        <section class="billing-section ach-verify-summary" aria-label="Payment Summary">
+            <h2 class="fw-bold">Payment Information</h2>
+            <hr class="section-divider" aria-hidden="true" />
+            <div class="ach-info-grid">
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Payment Amount</span>
+                    <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                </div>
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Settlement Date</span>
+                    <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                </div>
+            </div>
+        </section>
+        }
+
+        <!-- ── STEP: Confirmation ───────────────────────────────────── -->
+        else
+        {
+        <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+        <NotificationBanner NotificationType="NotificationType.Confirmation"
+                            Message="Your ACH payment has been submitted successfully."
+                            DismissButton="false" />
+
+        <section class="billing-section ach-verify-summary" aria-label="Confirmed Payment Details">
+            <h2 class="fw-bold">Payment Confirmation</h2>
+            <hr class="section-divider" aria-hidden="true" />
+            <div class="ach-info-grid">
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Payment Amount</span>
+                    <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                </div>
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Settlement Date</span>
+                    <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                </div>
+            </div>
+        </section>
+        }
+
+        <!-- Footer Navigation -->
+        <nav class="billing-footer" aria-label="Page actions">
+            <BillingButtonBar ShowBack="true"
+                              ShowCancel="true"
+                              ShowContinue="@(_step != AchStep.Confirmation)"
+                              OnBack="HandleBack"
+                              OnCancel="HandleCancel"
+                              OnContinue="HandleContinue"
+                              ContinueText="@(_step == AchStep.VerifyAuthorize ? "AUTHORIZE PAYMENT" : "CONTINUE")"
+                              ButtonWidth="200" />
+        </nav>
+
+    </div>
+</main>
+
+@code {
+    /// <summary>Optional pre-populated amount passed via query string (e.g. from balance due).</summary>
+    [SupplyParameterFromQuery(Name = "amount")]
+    public string? AmountParam { get; set; }
+
+    [SupplyParameterFromQuery(Name = "source")]
+    public string? Source { get; set; }
+
+    // ── State ──────────────────────────────────────────────────────────
+    private AchStep _step = AchStep.Entry;
+
+    private AchContactInfo? _contactInfo;
+    private AchBankAccount? _bankAccount;
+
+    private decimal? _initialAmount;
+    private decimal _confirmedAmount;
+    private DateOnly _confirmedSettlementDate;
+
+    private AchPaymentInformation? _paymentInfoRef;
+
+    private bool _showValidationSummary;
+    private List<string> _validationErrors = new();
+
+    // ── Lifecycle ──────────────────────────────────────────────────────
+    protected override void OnInitialized()
+    {
+        // Pre-populate amount from query param if provided
+        if (decimal.TryParse(AmountParam, out var qsAmount) && qsAmount > 0)
+            _initialAmount = qsAmount;
+
+        // TODO: Replace stub data with actual service calls from related stories.
+        _contactInfo = new AchContactInfo
+        {
+            ContactName = "Janice Smith",
+            PhoneNumber = "(302) 789-6894",
+            EmailAddress = "jsmith@email.com"
+        };
+
+        _bankAccount = new AchBankAccount
+        {
+            AccountNickname = "Janice's Checking Account",
+            AccountHolderName = "Janice Smith",
+            BankName = "Hometown Bank",
+            RoutingNumber = "015708055",
+            MaskedAccountNumber = "********9177",
+            AccountType = "Checking"
+        };
+
+        // If no contact/bank info, leave as null — components will show "+ Add" links.
+    }
+
+    // ── Event Callbacks ────────────────────────────────────────────────
+    private void OnAmountChanged(decimal amount) => _confirmedAmount = amount;
+    private void OnSettlementDateChanged(DateOnly date) => _confirmedSettlementDate = date;
+
+    // ── Navigation Handlers ────────────────────────────────────────────
+    private void HandleBack()
+    {
+        _showValidationSummary = false;
+        _validationErrors.Clear();
+
+        if (_step == AchStep.Entry)
+        {
+            Nav.NavigateTo("/billing-payments/payment-options?source=flow");
+            return;
+        }
+
+        _step--;
+    }
+
+    private void HandleCancel() => Nav.NavigateTo("/employer-dashboard");
+
+    private void HandleContinue()
+    {
+        _showValidationSummary = false;
+        _validationErrors.Clear();
+
+        if (_step == AchStep.Entry)
+        {
+            if (!ValidateEntry())
+            {
+                StateHasChanged();
+                return;
+            }
+
+            // Capture validated values before moving to verify screen
+            _confirmedAmount = _paymentInfoRef!.GetAmount();
+            _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
+        }
+
+        if (_step == AchStep.Confirmation)
+        {
+            Nav.NavigateTo("/billing-payments/payment-history");
+            return;
+        }
+
+        _step++;
+    }
+
+    private bool ValidateEntry()
+    {
+        _validationErrors.Clear();
+
+        if (_contactInfo is null)
+            _validationErrors.Add("Contact Information is required. Please add your contact details.");
+
+        if (_bankAccount is null)
+            _validationErrors.Add("Bank Information is required. Please add a bank account.");
+
+        // Delegate payment field validation to the child component
+        if (_paymentInfoRef is not null && !_paymentInfoRef.Validate())
+        {
+            if (_paymentInfoRef.AmountError is not null)
+                _validationErrors.Add(_paymentInfoRef.AmountError);
+
+            if (_paymentInfoRef.DateError is not null)
+                _validationErrors.Add(_paymentInfoRef.DateError);
+        }
+
+        _showValidationSummary = _validationErrors.Count > 0;
+        return !_showValidationSummary;
+    }
+}

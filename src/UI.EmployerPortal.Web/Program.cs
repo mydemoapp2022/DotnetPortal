@@ -1,4 +1,5 @@
 using UI.EmployerPortal.Web.Features;
+using UI.EmployerPortal.Web.Features.BillingPayments.Services;
 using UI.EmployerPortal.Web.Features.Dashboard;
 using UI.EmployerPortal.Web.Features.Landing;
 using UI.EmployerPortal.Web.Features.Shared.Accounts.Services;
@@ -33,6 +34,7 @@ if (sessionStorageType == SessionStorageType.Distributed)
 }
 
 builder.Services.AddSessionManagement(sessionStorageType);
+builder.Services.AddSingleton<IFederalReserveHolidayService, FederalReserveHolidayService>();
 
 //temporary service for demo purpose
 services.AddSingleton<IAccountService, AccountService>();
@@ -42,6 +44,8 @@ services.AddScoped<IDashboardOrchestrator, DashboardOrchestrator>();
 // Add mock UserAccountService for development
 services.AddScoped<IUserAccountService, MockUserAccountService>();
 //builder.AddOpenTelemetryInDevelopment();
+// Add with other service registrations:
+
 
 var app = builder.Build();
 

@@ -1,0 +1,228 @@
+@using UI.EmployerPortal.Web.Features.BillingPayments.Services
+@inject IFederalReserveHolidayService HolidayService
+
+<div class="ach-info-card">
+    <h2 class="ach-payment-info-title fw-bold">
+        <span aria-hidden="true">Payment Information</span>Payment Information
+    </h2>
+    <hr class="section-divider" aria-hidden="true" />
+
+    <!-- Payment Amount -->
+    <div class="ach-field-group">
+        <label for="paymentAmount" class="ach-field-label">Payment Amount</label>
+        <div class="ach-payment-amount-row">
+            <div class="ach-input-wrapper @(AmountError is not null ? "ach-input-error" : "")">
+                <input id="paymentAmount"
+                       type="text"
+                       inputmode="decimal"
+                       class="ach-input"
+                       value="@_displayAmount"
+                       @onchange="OnAmountChanged"
+                       @onfocus="OnAmountFocus"
+                       @onblur="OnAmountBlur"
+                       aria-describedby="@(AmountError is not null ? "amountError" : null)"
+                       aria-invalid="@(AmountError is not null ? "true" : "false")"
+                       aria-required="true"
+                       placeholder="$ 0.00" />
+            </div>
+            <a href="#amount-due-details"
+               class="ach-amount-due-link"
+               aria-label="View Amount Due Details">
+                Amount Due Details
+            </a>
+        </div>
+        @if (AmountError is not null)
+        {
+            <span id="amountError" class="ach-field-error" role="alert">@AmountError</span>
+        }
+    </div>
+
+    <!-- Settlement Date -->
+    <div class="ach-field-group">
+        <label for="settlementDate" class="ach-field-label">Settlement Date</label>
+        <div class="ach-input-wrapper @(DateError is not null ? "ach-input-error" : "")">
+            <input id="settlementDate"
+                   type="date"
+                   class="ach-input"
+                   value="@_settlementDate.ToString("yyyy-MM-dd")"
+                   min="@_minDate.ToString("yyyy-MM-dd")"
+                   max="@_maxDate.ToString("yyyy-MM-dd")"
+                   @onchange="OnDateChanged"
+                   aria-describedby="settlementDateHint @(DateError is not null ? "dateError" : "")"
+                   aria-invalid="@(DateError is not null ? "true" : "false")"
+                   aria-required="true" />
+        </div>
+        @if (DateError is not null)
+        {
+            <span id="dateError" class="ach-field-error" role="alert">@DateError</span>
+        }
+    </div>
+
+    <p id="settlementDateHint" class="ach-settlement-hint">
+        The settlement date is the date the funds are withdrawn from your bank account.
+        The next possible settlement date is the next business day and is updated each business day at 07:00 PM.
+        You may select a settlement date up to 365 calendar days in the future. Weekends and Federal Reserve Holidays
+        are not valid settlement days. Days disabled on the calendar are not valid settlement days. The settlement
+        date selected does not change your UI tax due date.
+    </p>
+</div>
+
+@code {
+    /// <summary>Pre-populated amount (e.g. from balance due or prior entry).</summary>
+    [Parameter] public decimal? InitialAmount { get; set; }
+
+    [Parameter] public EventCallback<decimal> AmountChanged { get; set; }
+    [Parameter] public EventCallback<DateOnly> SettlementDateChanged { get; set; }
+
+    /// <summary>Exposed for the parent page to trigger validation on Continue.</summary>
+    public string? AmountError { get; private set; }
+    public string? DateError { get; private set; }
+
+    private const decimal MinAmount = 0.01m;
+    private const decimal MaxAmount = 999_999_999.99m;
+
+    private decimal _amount;
+    private string _displayAmount = string.Empty;
+    private DateOnly _settlementDate;
+    private DateOnly _minDate;
+    private DateOnly _maxDate;
+
+    protected override void OnInitialized()
+    {
+        _minDate = NextValidSettlementDate(DateOnly.FromDateTime(DateTime.Today));
+        _maxDate = DateOnly.FromDateTime(DateTime.Today).AddDays(365);
+        _settlementDate = _minDate;
+
+        if (InitialAmount is > 0)
+        {
+            _amount = InitialAmount.Value;
+            _displayAmount = FormatAmount(_amount);
+        }
+    }
+
+    /// <summary>Called by the parent page to validate before proceeding.</summary>
+    public bool Validate()
+    {
+        ValidateAmount(_displayAmount);
+        ValidateDate(_settlementDate);
+        return AmountError is null && DateError is null;
+    }
+
+    public decimal GetAmount() => _amount;
+    public DateOnly GetSettlementDate() => _settlementDate;
+
+    private void OnAmountFocus()
+    {
+        // Show raw number on focus for easy editing
+        _displayAmount = _amount > 0 ? _amount.ToString("0.00") : string.Empty;
+    }
+
+    private void OnAmountBlur()
+    {
+        if (decimal.TryParse(_displayAmount.Replace("$", "").Replace(",", "").Trim(), out var parsed))
+        {
+            _amount = parsed;
+            _displayAmount = FormatAmount(_amount);
+        }
+    }
+
+    private void OnAmountChanged(ChangeEventArgs e)
+    {
+        _displayAmount = e.Value?.ToString() ?? string.Empty;
+        ValidateAmount(_displayAmount);
+        if (AmountError is null)
+            AmountChanged.InvokeAsync(_amount);
+    }
+
+    private void OnDateChanged(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var parsed))
+        {
+            _settlementDate = parsed;
+            ValidateDate(_settlementDate);
+            if (DateError is null)
+                SettlementDateChanged.InvokeAsync(_settlementDate);
+        }
+        else
+        {
+            DateError = "Please enter a valid settlement date.";
+        }
+    }
+
+    private void ValidateAmount(string raw)
+    {
+        var cleaned = raw.Replace("$", "").Replace(",", "").Trim();
+
+        if (string.IsNullOrWhiteSpace(cleaned))
+        {
+            AmountError = "Payment Amount is required.";
+            return;
+        }
+
+        if (!decimal.TryParse(cleaned, out var value))
+        {
+            AmountError = "Payment Amount must be a valid dollar amount.";
+            return;
+        }
+
+        if (value < MinAmount)
+        {
+            AmountError = "Payment Amount must be greater than $0.00.";
+            return;
+        }
+
+        if (value > MaxAmount)
+        {
+            AmountError = $"Payment Amount cannot exceed {FormatAmount(MaxAmount)}.";
+            return;
+        }
+
+        _amount = value;
+        _displayAmount = FormatAmount(_amount);
+        AmountError = null;
+    }
+
+    private void ValidateDate(DateOnly date)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        if (date <= today)
+        {
+            DateError = "Settlement Date must be a future date.";
+            return;
+        }
+
+        if (date > _maxDate)
+        {
+            DateError = "Settlement Date cannot be more than 365 days in the future.";
+            return;
+        }
+
+        if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        {
+            DateError = "Settlement Date cannot fall on a weekend.";
+            return;
+        }
+
+        if (HolidayService.IsFederalReserveHoliday(date))
+        {
+            DateError = "Settlement Date cannot fall on a Federal Reserve Holiday.";
+            return;
+        }
+
+        DateError = null;
+    }
+
+    private DateOnly NextValidSettlementDate(DateOnly from)
+    {
+        var candidate = from.AddDays(1);
+        while (candidate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+               || HolidayService.IsFederalReserveHoliday(candidate))
+        {
+            candidate = candidate.AddDays(1);
+        }
+        return candidate;
+    }
+
+    private static string FormatAmount(decimal value) => value.ToString("C2");
+}

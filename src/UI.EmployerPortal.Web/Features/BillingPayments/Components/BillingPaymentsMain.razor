@@ -79,23 +79,25 @@
         <hr class="section-divider" aria-hidden="true" />
 
         <div class="other-option-item">
-            <a href="/voluntary-contribution" class="other-option-link fw-bold" aria-describedby="desc-voluntary">Voluntary Contribution Payment</a>
+            <a href="/billing-payments/voluntary-contribution" class="other-option-link fw-bold" aria-describedby="desc-voluntary">Voluntary Contribution Payment</a>
             <p id="desc-voluntary" class="other-option-description">Takes you to the Voluntary Contribution calculator.</p>
         </div>
 
         <div class="other-option-item">
-            <a href="/pay-by-check" class="other-option-link fw-bold" aria-describedby="desc-check">Pay by Check</a>
+            <a href="/billing-payments/pay-by-cheque" class="other-option-link fw-bold" aria-describedby="desc-check">Pay by Check</a>
             <p id="desc-check" class="other-option-description">Print out a payment coupon you can send in to us with your payment.</p>
         </div>
 
         <div class="other-option-item">
-            <a href="#" target="_blank"
+            <a href="https://dwd.wisconsin.gov/uitax/payments/eft/credit.htm" target="_blank"
                    class="other-option-link fw-bold"
                    aria-describedby="desc-ach-credit"
                    aria-label="ACH Credit Payment"
                    rel="noreferrer">
                 ACH Credit Payment
-                <span class="external-link-icon" aria-hidden="true">&#x29C9;</span>
+                <span class="external-link-icon" aria-hidden="true">
+                    <img src="@Assets["images/billing/link.svg"]" alt="External link" width="24" height="24" />
+                </span>
             </a>
             <p id="desc-ach-credit" class="other-option-description">
                 Information you need if you are going to have your financial institution send a payment electronically to the
@@ -104,13 +106,15 @@
         </div>
 
         <div class="other-option-item">
-            <a href="#" target="_blank"
+            <a href="https://dwd.wisconsin.gov/uitax/payments/eft/debit.htm#blocking" target="_blank"
                    rel="noreferrer"
                    aria-describedby="desc-block-ach"
                    aria-label="Blocking ACH Payments From Being Deducted"
                    class="other-option-link fw-bold">
                 Blocking ACH Payments From Being Deducted
-                <span class="external-link-icon" aria-hidden="true">&#x29C9;</span>
+                <span class="external-link-icon" aria-hidden="true">
+                    <img src="@Assets["images/billing/link.svg"]" alt="External link" width="24" height="24" />
+                </span>
             </a>
             <p id="desc-block-ach" class="other-option-description">
                 Information you need if you have a debit block on your bank account and want to authorize DWD-UI to be able
@@ -120,7 +124,7 @@
 
         <div class="other-option-item">
             <p class="other-option-description">
-                <strong class="other-option-link">Payment Plan for Delinquent UI Tax</strong>
+                <strong class="inline-link">Payment Plan for Delinquent UI Tax</strong>
                 If you are interested in setting up a payment plan for the delinquent tax on your UI account,
                 <a href="/contact-us" class="inline-link" aria-label="Contact Us about a payment plan for delinquent tax on your UI account">Contact Us</a> for instructions.
             </p>
@@ -144,11 +148,6 @@
 @code {
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Parameter] public EmployerAccount? EmployerAccount { get; set; }
-
-    /// <summary>
-    /// Indicates how the user arrived at this page.
-    /// Menu = hide Back/Cancel; Flow = show Back/Cancel.
-    /// </summary>
     [Parameter] public NavigationSource Source { get; set; } = NavigationSource.Menu;
 
     private bool IsFlowEntry => Source == NavigationSource.Flow;
@@ -194,7 +193,6 @@
     {
         try
         {
-            // Exit the payment flow back to the employer dashboard
             Nav.NavigateTo("/employer-dashboard");
         }
         catch (Exception)
@@ -213,8 +211,14 @@
 
         try
         {
-            var pathBase = BuildPath("/billing-payments/payment-history");
-            Nav.NavigateTo(pathBase);
+            var nextPath = _selectedOption switch
+            {
+                "ach" => "/billing-payments/bank-account-payment-ach?source=flow",
+                "card" => "/billing-payments/payment-history",
+                _ => "/billing-payments/payment-options"
+            };
+
+            Nav.NavigateTo(BuildPath(nextPath));
         }
         catch (Exception)
         {
@@ -237,9 +241,6 @@
         return true;
     }
 
-    /// <summary>
-    /// Builds an absolute path relative to the app's base URI.
-    /// </summary>
     private string BuildPath(string relativePath)
     {
         var baseUri = new Uri(Nav.BaseUri);
