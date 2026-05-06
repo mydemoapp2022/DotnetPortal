@@ -21,9 +21,9 @@
             <br />
         }
 
-        <!-- ── STEP: Entry ──────────────────────────────────────────── -->
         @if (_step == AchStep.Entry)
         {
+            @* ── STEP: Entry ──────────────────────────────────────────── *@
             <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
             <p class="section-description">
                 Make sure that you have provided contact and bank information below and verify that it is correct.
@@ -48,64 +48,62 @@
                                        SettlementDateChanged="OnSettlementDateChanged" />
             </section>
         }
-
-        <!-- ── STEP: Verify & Authorize ────────────────────────────── -->
         else if (_step == AchStep.VerifyAuthorize)
         {
-        <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
-        <p class="section-description">
-            Make sure that you have provided contact and bank information below and verify that it is correct.
-        </p>
-        <p class="section-description"><em>All fields are required unless noted</em></p>
+            @* ── STEP: Verify & Authorize ────────────────────────────── *@
+            <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+            <p class="section-description">
+                Make sure that you have provided contact and bank information below and verify that it is correct.
+            </p>
+            <p class="section-description"><em>All fields are required unless noted</em></p>
 
-        <section class="billing-section" aria-labelledby="verify-contact-heading">
-            <h2 id="verify-contact-heading" class="sr-only">Contact Information</h2>
-            <AchContactInfoDisplay ContactInfo="_contactInfo" />
-        </section>
+            <section class="billing-section" aria-labelledby="verify-contact-heading">
+                <h2 id="verify-contact-heading" class="sr-only">Contact Information</h2>
+                <AchContactInfoDisplay ContactInfo="_contactInfo" />
+            </section>
 
-        <section class="billing-section" aria-labelledby="verify-bank-heading">
-            <h2 id="verify-bank-heading" class="sr-only">Bank Information</h2>
-            <AchBankInfoDisplay BankAccount="_bankAccount" />
-        </section>
+            <section class="billing-section" aria-labelledby="verify-bank-heading">
+                <h2 id="verify-bank-heading" class="sr-only">Bank Information</h2>
+                <AchBankInfoDisplay BankAccount="_bankAccount" />
+            </section>
 
-        <section class="billing-section ach-verify-summary" aria-label="Payment Summary">
-            <h2 class="fw-bold">Payment Information</h2>
-            <hr class="section-divider" aria-hidden="true" />
-            <div class="ach-info-grid">
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Payment Amount</span>
-                    <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+            <section class="billing-section ach-verify-summary" aria-label="Payment Summary">
+                <h2 class="fw-bold">Payment Information</h2>
+                <hr class="section-divider" aria-hidden="true" />
+                <div class="ach-info-grid">
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Payment Amount</span>
+                        <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Settlement Date</span>
+                        <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                    </div>
                 </div>
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Settlement Date</span>
-                    <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
-                </div>
-            </div>
-        </section>
+            </section>
         }
-
-        <!-- ── STEP: Confirmation ───────────────────────────────────── -->
         else
         {
-        <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
-        <NotificationBanner NotificationType="NotificationType.Confirmation"
-                            Message="Your ACH payment has been submitted successfully."
-                            DismissButton="false" />
+            @* ── STEP: Confirmation ───────────────────────────────────── *@
+            <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+            <NotificationBanner NotificationType="NotificationType.Confirmation"
+                                Message="Your ACH payment has been submitted successfully."
+                                DismissButton="false" />
 
-        <section class="billing-section ach-verify-summary" aria-label="Confirmed Payment Details">
-            <h2 class="fw-bold">Payment Confirmation</h2>
-            <hr class="section-divider" aria-hidden="true" />
-            <div class="ach-info-grid">
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Payment Amount</span>
-                    <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+            <section class="billing-section ach-verify-summary" aria-label="Confirmed Payment Details">
+                <h2 class="fw-bold">Payment Confirmation</h2>
+                <hr class="section-divider" aria-hidden="true" />
+                <div class="ach-info-grid">
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Payment Amount</span>
+                        <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Settlement Date</span>
+                        <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                    </div>
                 </div>
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Settlement Date</span>
-                    <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
-                </div>
-            </div>
-        </section>
+            </section>
         }
 
         <!-- Footer Navigation -->
@@ -124,14 +122,12 @@
 </main>
 
 @code {
-    /// <summary>Optional pre-populated amount passed via query string (e.g. from balance due).</summary>
     [SupplyParameterFromQuery(Name = "amount")]
     public string? AmountParam { get; set; }
 
     [SupplyParameterFromQuery(Name = "source")]
     public string? Source { get; set; }
 
-    // ── State ──────────────────────────────────────────────────────────
     private AchStep _step = AchStep.Entry;
 
     private AchContactInfo? _contactInfo;
@@ -146,10 +142,8 @@
     private bool _showValidationSummary;
     private List<string> _validationErrors = new();
 
-    // ── Lifecycle ──────────────────────────────────────────────────────
     protected override void OnInitialized()
     {
-        // Pre-populate amount from query param if provided
         if (decimal.TryParse(AmountParam, out var qsAmount) && qsAmount > 0)
             _initialAmount = qsAmount;
 
@@ -170,15 +164,11 @@
             MaskedAccountNumber = "********9177",
             AccountType = "Checking"
         };
-
-        // If no contact/bank info, leave as null — components will show "+ Add" links.
     }
 
-    // ── Event Callbacks ────────────────────────────────────────────────
     private void OnAmountChanged(decimal amount) => _confirmedAmount = amount;
     private void OnSettlementDateChanged(DateOnly date) => _confirmedSettlementDate = date;
 
-    // ── Navigation Handlers ────────────────────────────────────────────
     private void HandleBack()
     {
         _showValidationSummary = false;
@@ -208,7 +198,6 @@
                 return;
             }
 
-            // Capture validated values before moving to verify screen
             _confirmedAmount = _paymentInfoRef!.GetAmount();
             _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
         }
@@ -232,7 +221,6 @@
         if (_bankAccount is null)
             _validationErrors.Add("Bank Information is required. Please add a bank account.");
 
-        // Delegate payment field validation to the child component
         if (_paymentInfoRef is not null && !_paymentInfoRef.Validate())
         {
             if (_paymentInfoRef.AmountError is not null)
