@@ -1,80 +1,74 @@
 @using UI.EmployerPortal.Web.Features.BillingPayments.Services
 @inject IFederalReserveHolidayService HolidayService
 
-<div class="ach-info-card">
-    <h2 class="ach-payment-info-title fw-bold">
-        <span aria-hidden="true">Payment Information</span>Payment Information
-    </h2>
-    <hr class="section-divider" aria-hidden="true" />
+<div class="ach-payment-info-section">
+    <h2 class="ach-payment-info-title fw-bold">Payment Information</h2>
+    <hr class="ach-section-divider" aria-hidden="true" />
 
-    <!-- Payment Amount -->
-    <div class="ach-field-group">
-        <label for="paymentAmount" class="ach-field-label">Payment Amount</label>
-        <div class="ach-payment-amount-row">
-            <div class="ach-input-wrapper @(AmountError is not null ? "ach-input-error" : "")">
-                <input id="paymentAmount"
-                       type="text"
-                       inputmode="decimal"
-                       class="ach-input"
-                       value="@_displayAmount"
-                       @onchange="OnAmountChanged"
-                       @onfocus="OnAmountFocus"
-                       @onblur="OnAmountBlur"
-                       aria-describedby="@(AmountError is not null ? "amountError" : null)"
-                       aria-invalid="@(AmountError is not null ? "true" : "false")"
-                       aria-required="true"
-                       placeholder="$ 0.00" />
-            </div>
-            <a href="#amount-due-details"
-               class="ach-amount-due-link"
-               aria-label="View Amount Due Details">
-                Amount Due Details
-            </a>
+    <!-- Payment Amount + Amount Due Details side by side -->
+    <div class="ach-payment-amount-row">
+        <div class="ach-floating-field @(AmountError is not null ? "ach-field--error" : "")">
+            <input id="paymentAmount"
+                   type="text"
+                   inputmode="decimal"
+                   class="ach-floating-input"
+                   value="@_displayAmount"
+                   placeholder=" "
+                   @onchange="OnAmountChanged"
+                   @onfocus="OnAmountFocus"
+                   @onblur="OnAmountBlur"
+                   aria-describedby="@(AmountError is not null ? "amountError" : "settlementDateHint")"
+                   aria-invalid="@(AmountError is not null ? "true" : "false")"
+                   aria-required="true" />
+            <label for="paymentAmount" class="ach-floating-label">Payment Amount</label>
         </div>
-        @if (AmountError is not null)
-        {
-            <span id="amountError" class="ach-field-error" role="alert">@AmountError</span>
-        }
+        <a href="#amount-due-details"
+           class="ach-amount-due-link"
+           aria-label="View Amount Due Details">
+            Amount Due Details
+        </a>
     </div>
+    @if (AmountError is not null)
+    {
+        <span id="amountError" class="ach-field-error" role="alert">@AmountError</span>
+    }
 
     <!-- Settlement Date -->
-    <div class="ach-field-group">
-        <label for="settlementDate" class="ach-field-label">Settlement Date</label>
-        <div class="ach-input-wrapper @(DateError is not null ? "ach-input-error" : "")">
-            <input id="settlementDate"
-                   type="date"
-                   class="ach-input"
-                   value="@_settlementDate.ToString("yyyy-MM-dd")"
-                   min="@_minDate.ToString("yyyy-MM-dd")"
-                   max="@_maxDate.ToString("yyyy-MM-dd")"
-                   @onchange="OnDateChanged"
-                   aria-describedby="settlementDateHint @(DateError is not null ? "dateError" : "")"
-                   aria-invalid="@(DateError is not null ? "true" : "false")"
-                   aria-required="true" />
-        </div>
-        @if (DateError is not null)
-        {
-            <span id="dateError" class="ach-field-error" role="alert">@DateError</span>
-        }
+    <div class="ach-floating-field @(DateError is not null ? "ach-field--error" : "")">
+        <input id="settlementDate"
+               type="date"
+               class="ach-floating-input ach-floating-input--date"
+               value="@_settlementDate.ToString("yyyy-MM-dd")"
+               min="@_minDate.ToString("yyyy-MM-dd")"
+               max="@_maxDate.ToString("yyyy-MM-dd")"
+               placeholder=" "
+               @onchange="OnDateChanged"
+               aria-describedby="settlementDateHint @(DateError is not null ? "dateError" : "")"
+               aria-invalid="@(DateError is not null ? "true" : "false")"
+               aria-required="true" />
+        <label for="settlementDate" class="ach-floating-label">Settlement Date</label>
     </div>
+    @if (DateError is not null)
+    {
+        <span id="dateError" class="ach-field-error" role="alert">@DateError</span>
+    }
 
+    <!-- Hint text -->
     <p id="settlementDateHint" class="ach-settlement-hint">
         The settlement date is the date the funds are withdrawn from your bank account.
-        The next possible settlement date is the next business day and is updated each business day at 07:00 PM.
-        You may select a settlement date up to 365 calendar days in the future. Weekends and Federal Reserve Holidays
-        are not valid settlement days. Days disabled on the calendar are not valid settlement days. The settlement
+        The next possible settlement date is the next business day and is updated each
+        business day at 07:00 PM. You may select a settlement date up to 365 calendar
+        days in the future. Weekends and Federal Reserve Holidays are not valid settlement
+        days. Days disabled on the calendar are not valid settlement days. The settlement
         date selected does not change your UI tax due date.
     </p>
 </div>
 
 @code {
-    /// <summary>Pre-populated amount (e.g. from balance due or prior entry).</summary>
     [Parameter] public decimal? InitialAmount { get; set; }
-
     [Parameter] public EventCallback<decimal> AmountChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> SettlementDateChanged { get; set; }
 
-    /// <summary>Exposed for the parent page to trigger validation on Continue.</summary>
     public string? AmountError { get; private set; }
     public string? DateError { get; private set; }
 
@@ -100,7 +94,6 @@
         }
     }
 
-    /// <summary>Called by the parent page to validate before proceeding.</summary>
     public bool Validate()
     {
         ValidateAmount(_displayAmount);
@@ -113,7 +106,6 @@
 
     private void OnAmountFocus()
     {
-        // Show raw number on focus for easy editing
         _displayAmount = _amount > 0 ? _amount.ToString("0.00") : string.Empty;
     }
 
@@ -224,5 +216,5 @@
         return candidate;
     }
 
-    private static string FormatAmount(decimal value) => value.ToString("C2");
+    private static string FormatAmount(decimal value) => $"$ {value:N2}";
 }

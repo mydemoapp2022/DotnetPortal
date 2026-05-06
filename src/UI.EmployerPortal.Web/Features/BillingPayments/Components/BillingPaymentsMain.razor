@@ -241,10 +241,22 @@
         return true;
     }
 
-    private string BuildPath(string relativePath)
+    private string BuildPath(string relativePathAndQuery)
     {
         var baseUri = new Uri(Nav.BaseUri);
-        return new PathString(baseUri.AbsolutePath.TrimEnd('/') + relativePath);
+        var basePath = baseUri.AbsolutePath.TrimEnd('/');
+
+        // Split on the first '?' to keep the query string intact
+        var queryIndex = relativePathAndQuery.IndexOf('?');
+
+        if (queryIndex >= 0)
+        {
+            var path = relativePathAndQuery[..queryIndex];
+            var query = relativePathAndQuery[queryIndex..]; // includes the leading '?'
+            return new PathString(basePath + path) + query;
+        }
+
+        return new PathString(basePath + relativePathAndQuery);
     }
 
     private void ShowNavigationError()

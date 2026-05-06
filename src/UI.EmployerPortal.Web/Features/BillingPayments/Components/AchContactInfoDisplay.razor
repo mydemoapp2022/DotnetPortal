@@ -2,21 +2,24 @@
 
 <div class="ach-info-card">
     <div class="ach-info-card-header">
-        <h2 class="fw-bold">Contact Information</h2>
-        @if (ContactInfo is not null)
-        {
-            <a href="/billing-payments/ach/contact-information/edit"
-               class="ach-edit-link"
-               aria-label="Edit Contact Information">
-                ✏ Edit
-            </a>
-        }
+        <h2 class="ach-info-card-title fw-bold">Contact Information</h2>
+        <div class="ach-info-card-header-actions">
+            @if (ContactInfo is not null)
+            {
+                <a href="/billing-payments/ach/contact-information/edit"
+                       class="ach-edit-link"
+                       aria-label="Edit Contact Information">
+                    &#9998; Edit
+                </a>
+            }
+            <span class="ach-collapse-icon" aria-hidden="true">&#8963;</span>
+        </div>
     </div>
-    <hr class="section-divider" aria-hidden="true" />
+    <hr class="ach-section-divider" aria-hidden="true" />
 
     @if (ContactInfo is not null)
     {
-        <div class="ach-info-grid">
+        <div class="ach-contact-grid">
             <div class="ach-info-field">
                 <span class="ach-info-label">Contact Name</span>
                 <strong class="ach-info-value">@ContactInfo.ContactName</strong>
@@ -25,17 +28,17 @@
                 <span class="ach-info-label">Phone Number</span>
                 <strong class="ach-info-value">@ContactInfo.PhoneNumber</strong>
             </div>
-            <div class="ach-info-field">
-                <span class="ach-info-label">Email Address</span>
-                <strong class="ach-info-value">@ContactInfo.EmailAddress</strong>
-            </div>
+        </div>
+        <div class="ach-info-field ach-info-field--full">
+            <span class="ach-info-label">Email Address</span>
+            <strong class="ach-info-value">@ContactInfo.EmailAddress</strong>
         </div>
     }
     else
     {
         <a href="/billing-payments/ach/contact-information/add"
-           class="ach-add-link"
-           aria-label="Add Contact Information">
+               class="ach-add-link"
+               aria-label="Add Contact Information">
             + Add Contact
         </a>
     }

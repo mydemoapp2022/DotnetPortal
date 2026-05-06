@@ -1,0 +1,81 @@
+/* ── Card shell ─────────────────────────────────────────────────── */
+.ach-info-card {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    background: #fff;
+}
+
+.ach-info-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ach-info-card-title {
+    font-size: 1rem;
+    margin: 0;
+    color: #003663;
+}
+
+.ach-info-card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ach-collapse-icon {
+    font-size: 1rem;
+    color: #555;
+}
+
+.ach-section-divider {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 10px 0 14px;
+}
+
+/* ── Edit / Add links ───────────────────────────────────────────── */
+.ach-edit-link {
+    font-size: 0.875rem;
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+.ach-add-link {
+    font-size: 0.9rem;
+    color: #1a73e8;
+    text-decoration: none;
+    display: inline-block;
+    padding: 4px 0;
+}
+
+/* ── Contact 2-col grid ─────────────────────────────────────────── */
+.ach-contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+    margin-bottom: 12px;
+}
+
+.ach-info-field--full {
+    margin-bottom: 4px;
+}
+
+.ach-info-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #555;
+    margin-bottom: 2px;
+}
+
+.ach-info-value {
+    font-size: 0.95rem;
+}
+
+@media (max-width: 575px) {
+    .ach-contact-grid {
+        grid-template-columns: 1fr;
+    }
+}

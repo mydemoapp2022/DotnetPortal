@@ -1,0 +1,115 @@
+/* ── Section wrapper ────────────────────────────────────────────── */
+.ach-payment-info-section {
+    margin-bottom: 20px;
+}
+
+.ach-payment-info-title {
+    font-size: 1rem;
+    color: #003663;
+    margin-bottom: 4px;
+}
+
+.ach-section-divider {
+    border: none;
+    border-top: 1px solid #003663;
+    margin: 4px 0 16px;
+}
+
+/* ── Amount row: input left, link right ─────────────────────────── */
+.ach-payment-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
+.ach-amount-due-link {
+    font-size: 0.875rem;
+    color: #1a73e8;
+    white-space: nowrap;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+    .ach-amount-due-link:hover {
+        text-decoration: underline;
+    }
+
+/* ── Floating Label Fields ──────────────────────────────────────── */
+.ach-floating-field {
+    position: relative;
+    width: 240px;
+    margin-bottom: 16px;
+}
+
+.ach-floating-input {
+    width: 100%;
+    padding: 20px 10px 6px;
+    border: 1px solid #888;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    outline: none;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+    .ach-floating-input:focus {
+        border-color: #003663;
+        box-shadow: 0 0 0 2px rgba(0, 54, 99, 0.2);
+    }
+
+.ach-floating-input--date {
+    cursor: pointer;
+}
+
+.ach-floating-label {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    font-size: 0.875rem;
+    color: #666;
+    pointer-events: none;
+    transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+/* Float label up when input has a value or is focused */
+.ach-floating-input:focus ~ .ach-floating-label,
+.ach-floating-input:not(:placeholder-shown) ~ .ach-floating-label {
+    top: 6px;
+    font-size: 0.7rem;
+    color: #003663;
+    transform: none;
+}
+
+/* ── Error state ────────────────────────────────────────────────── */
+.ach-field--error .ach-floating-input {
+    border-color: #c0392b;
+}
+
+.ach-field-error {
+    display: block;
+    color: #c0392b;
+    font-size: 0.8rem;
+    margin-top: -8px;
+    margin-bottom: 12px;
+}
+
+/* ── Settlement hint text ───────────────────────────────────────── */
+.ach-settlement-hint {
+    font-size: 0.82rem;
+    color: #444;
+    line-height: 1.5;
+    margin-top: 8px;
+    max-width: 640px;
+}
+
+@media (max-width: 575px) {
+    .ach-floating-field {
+        width: 100%;
+    }
+
+    .ach-payment-amount-row {
+        flex-wrap: wrap;
+    }
+}

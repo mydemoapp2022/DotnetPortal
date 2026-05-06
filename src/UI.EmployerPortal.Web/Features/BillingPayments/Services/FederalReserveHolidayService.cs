@@ -8,11 +8,22 @@ namespace UI.EmployerPortal.Web.Features.BillingPayments.Services;
 /// </summary>
 public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
 {
+    /// <summary>
+    /// IsFederalReserveHoliday
+    /// </summary>
+    /// <param name="date"></param>
+    /// <returns></returns>
     public bool IsFederalReserveHoliday(DateOnly date)
     {
         return GetHolidaysForYear(date.Year).Contains(date);
     }
 
+    /// <summary>
+    /// GetInvalidDatesInRange
+    /// </summary>
+    /// <param name="start"></param>
+    /// <param name="end"></param>
+    /// <returns></returns>
     public IReadOnlyList<DateOnly> GetInvalidDatesInRange(DateOnly start, DateOnly end)
     {
         var result = new List<DateOnly>();
@@ -61,9 +72,12 @@ public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
 
     private static DateOnly NthWeekdayOfMonth(int year, int month, DayOfWeek weekday, int nth)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(nth, 1);
+
         var first = new DateOnly(year, month, 1);
-        var offset = ((int) weekday - (int) first.DayOfWeek + 7) % 7;
-        return first.AddDays(offset + (nth - 1) * 7);
+        var daysUntilWeekday = ((int) weekday - (int) first.DayOfWeek + 7) % 7;
+        var daysToAdd = daysUntilWeekday + ((nth - 1) * 7);
+        return first.AddDays(daysToAdd);
     }
 
     private static DateOnly LastWeekdayOfMonth(int year, int month, DayOfWeek weekday)
