@@ -31,17 +31,14 @@
             <p class="section-description"><em>All fields are required unless noted</em></p>
 
             <section class="billing-section" aria-labelledby="contact-info-heading">
-                <h2 id="contact-info-heading" class="sr-only">Contact Information</h2>
                 <AchContactInfoDisplay ContactInfo="_contactInfo" />
             </section>
 
             <section class="billing-section" aria-labelledby="bank-info-heading">
-                <h2 id="bank-info-heading" class="sr-only">Bank Information</h2>
                 <AchBankInfoDisplay BankAccount="_bankAccount" />
             </section>
 
             <section class="billing-section" aria-labelledby="payment-info-heading">
-                <h2 id="payment-info-heading" class="sr-only">Payment Information</h2>
                 <AchPaymentInformation @ref="_paymentInfoRef"
                                        InitialAmount="_initialAmount"
                                        AmountChanged="OnAmountChanged"
@@ -58,17 +55,14 @@
             <p class="section-description"><em>All fields are required unless noted</em></p>
 
             <section class="billing-section" aria-labelledby="verify-contact-heading">
-                <h2 id="verify-contact-heading" class="sr-only">Contact Information</h2>
                 <AchContactInfoDisplay ContactInfo="_contactInfo" />
             </section>
 
             <section class="billing-section" aria-labelledby="verify-bank-heading">
-                <h2 id="verify-bank-heading" class="sr-only">Bank Information</h2>
                 <AchBankInfoDisplay BankAccount="_bankAccount" />
             </section>
 
             <section class="billing-section ach-verify-summary" aria-label="Payment Summary">
-                <h2 class="fw-bold">Payment Information</h2>
                 <hr class="section-divider" aria-hidden="true" />
                 <div class="ach-info-grid">
                     <div class="ach-info-field">

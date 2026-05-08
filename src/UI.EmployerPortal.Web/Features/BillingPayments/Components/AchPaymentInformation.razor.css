@@ -18,9 +18,9 @@
 /* ── Amount row: input left, link right ─────────────────────────── */
 .ach-payment-amount-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 20px;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
 }
 
 .ach-amount-due-link {
@@ -29,6 +29,7 @@
     white-space: nowrap;
     text-decoration: none;
     flex-shrink: 0;
+    padding-top: 40px;
 }
 
     .ach-amount-due-link:hover {
@@ -105,11 +106,11 @@
 }
 
 @media (max-width: 575px) {
-    .ach-floating-field {
-        width: 100%;
-    }
-
     .ach-payment-amount-row {
         flex-wrap: wrap;
+    }
+
+    .ach-amount-due-link {
+        padding-top: 0;
     }
 }
