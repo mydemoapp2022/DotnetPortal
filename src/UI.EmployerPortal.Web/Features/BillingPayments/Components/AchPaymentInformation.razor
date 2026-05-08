@@ -6,21 +6,24 @@
     <h2 class="ach-payment-info-title fw-bold">Payment Information</h2>
     <hr class="ach-section-divider" aria-hidden="true" />
 
-    @* ── Payment Amount + Amount Due Details side by side ── *@
+    @* ── Payment Amount + Amount Due Details ── *@
     <div class="ach-payment-amount-row">
-        <ValidatedInput 
-            Id="paymentAmount"
-            Label="Payment Amount"
-            InputType="text"
-            Value="@_displayAmount"
-            ValueChanged="OnAmountChanged"
-            HasError="@(AmountError is not null)"
-            ErrorMessage="@AmountError"
-            IsRequired="true"
-            HintId="settlementDateHint"
-            OnBlur="OnAmountBlur"
-            Step="0.01"
-            Width="240" />
+        <div class="ach-payment-amount-field">
+            <OutlinedTextField 
+                Label="Payment Amount"
+                Type="text"
+                InputMode="decimal"
+                Value="@_displayAmount"
+                ValueChanged="OnAmountChanged"
+                OnBlur="OnAmountBlur"
+                FormatText="Enter amount between $0.01 and $999,999,999.99"
+                Required="true"
+                Placeholder="$ 0.00" />
+            @if (AmountError is not null)
+            {
+                <div class="ach-field-error" role="alert">@AmountError</div>
+            }
+        </div>
         <a href="#amount-due-details"
            class="ach-amount-due-link"
            aria-label="View Amount Due Details">
@@ -29,18 +32,19 @@
     </div>
 
     @* ── Settlement Date ── *@
-    <ValidatedDateInput 
-        Id="settlementDate"
-        Label="Settlement Date"
-        Value="@_settlementDateAsDateTime"
-        ValueChanged="OnDateChanged"
-        HasError="@(DateError is not null)"
-        ErrorMessage="@DateError"
-        IsRequired="true"
-        HintId="settlementDateHint"
-        Min="@_minDateAsDateTime"
-        Max="@_maxDateAsDateTime"
-        Width="240" />
+    <div class="ach-settlement-date-field">
+        <OutlinedTextField 
+            Label="Settlement Date"
+            Type="date"
+            Value="@_settlementDate.ToString("yyyy-MM-dd")"
+            ValueChanged="OnDateChanged"
+            FormatText="Select a valid business day (no weekends or Federal holidays)"
+            Required="true" />
+        @if (DateError is not null)
+        {
+            <div class="ach-field-error" role="alert">@DateError</div>
+        }
+    </div>
 
     @* ── Hint text ── *@
     <p id="settlementDateHint" class="ach-settlement-hint">
@@ -48,8 +52,7 @@
         The next possible settlement date is the next business day and is updated each
         business day at 07:00 PM. You may select a settlement date up to 365 calendar
         days in the future. Weekends and Federal Reserve Holidays are not valid settlement
-        days. Days disabled on the calendar are not valid settlement days. The settlement
-        date selected does not change your UI tax due date.
+        days. The settlement date selected does not change your UI tax due date.
     </p>
 </div>
 
@@ -69,16 +72,6 @@
     private DateOnly _settlementDate;
     private DateOnly _minDate;
     private DateOnly _maxDate;
-
-    // ── DateTime conversions for ValidatedDateInput ── 
-    private DateTime? _settlementDateAsDateTime
-    {
-        get => _settlementDate == default ? null : _settlementDate.ToDateTime(TimeOnly.MinValue);
-        set { if (value.HasValue) _settlementDate = DateOnly.FromDateTime(value.Value); }
-    }
-
-    private DateTime? _minDateAsDateTime => _minDate == default ? null : _minDate.ToDateTime(TimeOnly.MinValue);
-    private DateTime? _maxDateAsDateTime => _maxDate == default ? null : _maxDate.ToDateTime(TimeOnly.MinValue);
 
     protected override void OnInitialized()
     {
@@ -104,17 +97,18 @@
     public decimal GetAmount() => _amount;
     public DateOnly GetSettlementDate() => _settlementDate;
 
-    /// <summary>Callback from ValidatedInput @onblur — reformat amount on blur.</summary>
+    /// <summary>Callback from OutlinedTextField @onblur — reformat amount on blur.</summary>
     private async Task OnAmountBlur()
     {
         if (decimal.TryParse(_displayAmount.Replace("$", "").Replace(",", "").Trim(), out var parsed))
         {
             _amount = parsed;
             _displayAmount = FormatAmount(_amount);
+            StateHasChanged();
         }
     }
 
-    /// <summary>Callback from ValidatedInput ValueChanged — validate on input.</summary>
+    /// <summary>Callback from OutlinedTextField ValueChanged — validate on input.</summary>
     private async Task OnAmountChanged(string raw)
     {
         _displayAmount = raw;
@@ -123,15 +117,19 @@
             await AmountChanged.InvokeAsync(_amount);
     }
 
-    /// <summary>Callback from ValidatedDateInput ValueChanged — validate on date change.</summary>
-    private async Task OnDateChanged(DateTime? newDate)
+    /// <summary>Callback from OutlinedTextField ValueChanged — validate on date change.</summary>
+    private async Task OnDateChanged(string dateStr)
     {
-        if (newDate.HasValue)
+        if (DateOnly.TryParse(dateStr, out var parsed))
         {
-            _settlementDate = DateOnly.FromDateTime(newDate.Value);
+            _settlementDate = parsed;
             ValidateDate(_settlementDate);
             if (DateError is null)
                 await SettlementDateChanged.InvokeAsync(_settlementDate);
+        }
+        else
+        {
+            DateError = "Please enter a valid settlement date.";
         }
     }
 
