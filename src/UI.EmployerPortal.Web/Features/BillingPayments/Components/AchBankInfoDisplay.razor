@@ -5,11 +5,11 @@
     <div class="ach-info-card-header">
         <h2 class="ach-info-card-title fw-bold">Bank Information</h2>
         <div class="ach-info-card-header-actions">
-            @if (_selectedAccount is not null)
+            @if (!ReadOnly && _selectedAccount is not null)
             {
                 <a href="/billing-payments/ach/bank-information/edit"
-                       class="ach-edit-link"
-                       aria-label="Edit Bank Information">
+                   class="ach-edit-link"
+                   aria-label="Edit Bank Information">
                     &#9998; Edit
                 </a>
             }
@@ -20,20 +20,21 @@
 
     @if (BankAccounts is not null && BankAccounts.Count > 0)
     {
-        <!-- Bank Account Dropdown -->       
-        <div class="ach-bank-account-select-group">
-            <OutlinedSelectField Label="Bank Account"
-                                 Id="bankAccountSelect"
-                                 Value="@_selectedAccountNickname"
-                                 ValueChanged="OnAccountChanged"
-                                 Options="@BankAccountOptions"
-                                 DisableEmptyOption="true"
-                                 Placeholder="Select bank account" />
-        </div>
+        @if (!ReadOnly)
+        {
+            <div class="ach-bank-account-select-group">
+                <OutlinedSelectField Label="Bank Account"
+                                     Id="bankAccountSelect"
+                                     Value="@_selectedAccountNickname"
+                                     ValueChanged="OnAccountChanged"
+                                     Options="@BankAccountOptions"
+                                     DisableEmptyOption="true"
+                                     Placeholder="Select bank account" />
+            </div>
+        }
 
         @if (_selectedAccount is not null)
         {
-            <!-- 2-column detail grid -->
             <div class="ach-bank-grid">
                 <div class="ach-info-field">
                     <span class="ach-info-label">Bank Account Nickname</span>
@@ -58,11 +59,11 @@
             </div>
         }
     }
-    else
+    else if (!ReadOnly)
     {
         <a href="/billing-payments/ach/bank-information/add"
-               class="ach-add-link"
-               aria-label="Add Bank Account">
+           class="ach-add-link"
+           aria-label="Add Bank Account">
             + Add Account
         </a>
     }
@@ -72,6 +73,7 @@
     [Parameter] public List<AchBankAccount>? BankAccounts { get; set; }
     [Parameter] public AchBankAccount? BankAccount { get; set; }
     [Parameter] public EventCallback<AchBankAccount> SelectedAccountChanged { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
 
     private AchBankAccount? _selectedAccount;
     private string? _selectedAccountNickname;

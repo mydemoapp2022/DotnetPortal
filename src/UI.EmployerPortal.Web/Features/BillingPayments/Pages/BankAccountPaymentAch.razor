@@ -140,67 +140,16 @@
             </section>
 
             @* ── Bank Information collapsible ── *@
-            <section class="billing-section ach-collapsible-section" aria-label="Bank Information">
-                <div class="ach-collapsible-header" @onclick="() => _bankInfoExpanded = !_bankInfoExpanded"
-                     role="button" aria-expanded="@_bankInfoExpanded" tabindex="0"
-                     @onkeydown="e => { if (e.Key is \"Enter\" or \" \") _bankInfoExpanded = !_bankInfoExpanded; }">
-                    <h2 class="fw-bold">Bank Information</h2>
-                    <span class="ach-collapsible-icon" aria-hidden="true">@(_bankInfoExpanded ? "∧" : "∨")</span>
-                </div>
-                @if (_bankInfoExpanded)
-                {
-                    <hr class="section-divider" aria-hidden="true" />
-                    <div class="ach-info-grid">
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Bank Account Nickname</span>
-                            <strong class="ach-info-value">@_bankAccount?.AccountNickname</strong>
-                        </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Bank Name</span>
-                            <strong class="ach-info-value">@_bankAccount?.BankName</strong>
-                        </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Bank Routing Number</span>
-                            <strong class="ach-info-value">@_bankAccount?.RoutingNumber</strong>
-                        </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Bank Account Number</span>
-                            <strong class="ach-info-value">@_bankAccount?.MaskedAccountNumber</strong>
-                        </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Account Type</span>
-                            <strong class="ach-info-value">@_bankAccount?.AccountType</strong>
-                        </div>
-                    </div>
-                }
+            <section class="billing-section" aria-label="Bank Information">
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    ReadOnly="true" />
             </section>
 
             @* ── Contact Information collapsible ── *@
-            <section class="billing-section ach-collapsible-section" aria-label="Contact Information">
-                <div class="ach-collapsible-header" @onclick="() => _contactInfoExpanded = !_contactInfoExpanded"
-                     role="button" aria-expanded="@_contactInfoExpanded" tabindex="0"
-                     @onkeydown="e => { if (e.Key is \"Enter\" or \" \") _contactInfoExpanded = !_contactInfoExpanded; }">
-                    <h2 class="fw-bold">Contact Information</h2>
-                    <span class="ach-collapsible-icon" aria-hidden="true">@(_contactInfoExpanded ? "∧" : "∨")</span>
-                </div>
-                @if (_contactInfoExpanded)
-                {
-                    <hr class="section-divider" aria-hidden="true" />
-                    <div class="ach-info-grid">
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Contact Name</span>
-                            <strong class="ach-info-value">@_contactInfo?.ContactName</strong>
-                        </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Phone Number</span>
-                            <strong class="ach-info-value">@_contactInfo?.PhoneNumber</strong>
-                        </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Email Address</span>
-                            <strong class="ach-info-value">@_contactInfo?.EmailAddress</strong>
-                        </div>
-                    </div>
-                }
+            <section class="billing-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo"
+                                       ReadOnly="true" />
             </section>
         }
 

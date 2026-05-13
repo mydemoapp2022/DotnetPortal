@@ -4,11 +4,11 @@
     <div class="ach-info-card-header">
         <h2 class="ach-info-card-title fw-bold">Contact Information</h2>
         <div class="ach-info-card-header-actions">
-            @if (ContactInfo is not null)
+            @if (!ReadOnly && ContactInfo is not null)
             {
                 <a href="/billing-payments/ach/contact-information/edit"
-                       class="ach-edit-link"
-                       aria-label="Edit Contact Information">
+                   class="ach-edit-link"
+                   aria-label="Edit Contact Information">
                     &#9998; Edit
                 </a>
             }
@@ -34,11 +34,11 @@
             <strong class="ach-info-value">@ContactInfo.EmailAddress</strong>
         </div>
     }
-    else
+    else if (!ReadOnly)
     {
         <a href="/billing-payments/ach/contact-information/add"
-               class="ach-add-link"
-               aria-label="Add Contact Information">
+           class="ach-add-link"
+           aria-label="Add Contact Information">
             + Add Contact
         </a>
     }
@@ -46,4 +46,5 @@
 
 @code {
     [Parameter] public AchContactInfo? ContactInfo { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
 }
