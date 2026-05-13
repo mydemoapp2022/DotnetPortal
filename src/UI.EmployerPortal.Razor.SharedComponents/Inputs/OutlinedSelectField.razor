@@ -1,5 +1,257 @@
-﻿<h3>OutlinedSelectField</h3>
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Linq.Expressions
+
+<!-- Select field container with error state class -->
+<div class="master-select-field @(HasError ? "master-select-field--error" : "")"
+     aria-label="@Label">
+
+    <!-- Label with error color -->
+    <label for="@Id"
+           class="@(HasError ? "master-label--error" : "")">
+        @Label
+    </label>
+
+    <!-- Select dropdown with error styling -->
+    <select id="@Id"
+            class="master-select @(HasError ? "master-select--error" : "")"
+            value="@(Value ?? "")"
+            @onchange="OnChange"
+            @onblur="HandleBlur"
+            disabled="@Disabled"
+            aria-label="@Label"
+            aria-invalid="@HasError"
+            aria-required="@IsRequired"
+            aria-describedby="@AriaDescribedBy">
+
+        @if (!string.IsNullOrEmpty(Placeholder))
+        {
+            <option value=""
+                    disabled="@DisableEmptyOption"
+                    selected="@(string.IsNullOrEmpty(Value))">
+                @Placeholder
+            </option>
+        }
+
+        @foreach (var option in Options)
+        {
+            <option value="@option.Value"
+                    selected="@(Value == option.Value)">
+                @option.Text
+            </option>
+        }
+    </select>
+
+    <!-- Dropdown arrow -->
+    <div class="master-select-arrow">
+        <svg width="12"
+             height="8"
+             viewBox="0 0 12 8"
+             fill="none">
+            <path d="M1 1L6 7L11 1"
+                  stroke="#003663"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round" />
+        </svg>
+    </div>
+
+    @if (HasError)
+    {
+        <div id="@ErrorId"
+             class="master-error"
+             aria-live="polite">
+
+            <svg width="12"
+                 height="16"
+                 viewBox="0 0 12 16"
+                 fill="none"
+                 xmlns="http://www.w3.org/2000/svg"
+                 aria-hidden="true">
+
+                <mask id="mask0_5694_133_sel"
+                      maskUnits="userSpaceOnUse"
+                      x="0"
+                      y="2"
+                      width="12"
+                      height="12">
+
+                    <rect y="2"
+                          width="12"
+                          height="12"
+                          fill="#D9D9D9" />
+                </mask>
+
+                <g mask="url(#mask0_5694_133_sel)">
+                    <path d="M6 10.5C6.14167 10.5 6.26042 10.4521 6.35625 10.3563C6.45208 10.2604 6.5 10.1417 6.5 10C6.5 9.85833 6.45208 9.73958 6.35625 9.64375C6.26042 9.54792 6.14167 9.5 6 9.5C5.85833 9.5 5.73958 9.54792 5.64375 9.64375C5.54792 9.73958 5.5 9.85833 5.5 10C5.5 10.1417 5.54792 10.2604 5.64375 10.3563C5.73958 10.4521 5.85833 10.5 6 10.5ZM5.5 8H6.5V4H5.5V8ZM6 14C5.16667 14 4.38542 13.8417 3.65625 13.525C2.92708 13.2083 2.29167 12.7792 1.75 12.2375C1.20833 11.6958 0.779167 11.0604 0.4625 10.3313C0.145833 9.60208 -0.0125 8.82083 -0.0125 7.9875C-0.0125 7.15417 0.145833 6.37292 0.4625 5.64375C0.779167 4.91458 1.20833 4.27917 1.75 3.7375C2.29167 3.19583 2.92708 2.76667 3.65625 2.45C4.38542 2.13333 5.16667 1.975 6 1.975C6.83333 1.975 7.61458 2.13333 8.34375 2.45C9.07292 2.76667 9.70833 3.19583 10.25 3.7375C10.7917 4.27917 11.2208 4.91458 11.5375 5.64375C11.8542 6.37292 12.0125 7.15417 12.0125 7.9875C12.0125 8.82083 11.8542 9.60208 11.5375 10.3313C11.2208 11.0604 10.7917 11.6958 10.25 12.2375C9.70833 12.7792 9.07292 13.2083 8.34375 13.525C7.61458 13.8417 6.83333 14 6 14Z"
+                          fill="#C82838" />
+                </g>
+            </svg>
+
+            @foreach (var msg in ErrorMessages)
+            {
+                <span>@msg</span>
+            }
+        </div>
+    }
+</div>
 
 @code {
 
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public List<SelectOption> Options { get; set; } = new();
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool DisableEmptyOption { get; set; } = true;
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>
+    /// Expression to identify the bound field for validation. Primary parameter.
+    /// </summary>
+    [Parameter]
+    public Expression<Func<string>>? For { get; set; }
+
+    /// <summary>
+    /// Automatically provided by @bind-value. Falls back to this when For is not set.
+    /// </summary>
+    [Parameter]
+    public Expression<Func<string>>? ValueExpression { get; set; }
+
+    /// <summary>
+    /// Callback invoked when the select loses focus.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnBlur { get; set; }
+
+    /// <summary>
+    /// Cascaded EditContext from parent EditForm
+    /// </summary>
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
+    private Expression<Func<string>>? ResolvedExpression => For ?? ValueExpression;
+
+    private string ErrorId => $"{Id}-error";
+
+    private string? AriaDescribedBy => HasError ? ErrorId : null;
+
+    private IEnumerable<string> ErrorMessages =>
+        EditContext is not null && ResolvedExpression is not null
+            ? EditContext.GetValidationMessages(FieldIdentifier.Create(ResolvedExpression))
+            : Enumerable.Empty<string>();
+
+    private bool _touched;
+
+    private EditContext? _previousEditContext;
+
+    private bool IsRequired
+    {
+        get
+        {
+            if (Required)
+                return true;
+
+            if (ResolvedExpression is null)
+                return false;
+
+            var fi = FieldIdentifier.Create(ResolvedExpression);
+
+            var prop = fi.Model.GetType().GetProperty(fi.FieldName);
+
+            return prop is not null &&
+                   Attribute.IsDefined(
+                       prop,
+                       typeof(System.ComponentModel.DataAnnotations.RequiredAttribute));
+        }
+    }
+
+    private bool HasError =>
+        (_touched || Visible) &&
+        EditContext is not null &&
+        ResolvedExpression is not null &&
+        EditContext.GetValidationMessages(
+            FieldIdentifier.Create(ResolvedExpression)).Any();
+
+    protected override void OnParametersSet()
+    {
+        if (EditContext != _previousEditContext)
+        {
+            if (_previousEditContext is not null)
+            {
+                _previousEditContext.OnValidationRequested -= OnValidationRequested;
+            }
+
+            if (EditContext is not null)
+            {
+                EditContext.OnValidationRequested += OnValidationRequested;
+            }
+
+            _previousEditContext = EditContext;
+            _touched = false;
+        }
+    }
+
+    /// <summary>
+    /// Called when the form is submitted - auto-touches this field so errors show.
+    /// </summary>
+    private void OnValidationRequested(
+        object? sender,
+        ValidationRequestedEventArgs e)
+    {
+        _touched = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleBlur()
+    {
+        if (!_touched)
+        {
+            _touched = true;
+
+            if (EditContext is not null &&
+                ResolvedExpression is not null)
+            {
+                EditContext.NotifyFieldChanged(
+                    FieldIdentifier.Create(ResolvedExpression));
+            }
+        }
+
+        await OnBlur.InvokeAsync();
+    }
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString();
+
+        await ValueChanged.InvokeAsync(Value);
+
+        if (EditContext is not null &&
+            ResolvedExpression is not null)
+        {
+            EditContext.NotifyFieldChanged(
+                FieldIdentifier.Create(ResolvedExpression));
+        }
+    }
 }

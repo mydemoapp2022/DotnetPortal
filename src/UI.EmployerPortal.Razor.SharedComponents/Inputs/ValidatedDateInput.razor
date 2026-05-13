@@ -1,25 +1,27 @@
+@using Microsoft.JSInterop
 @using UI.EmployerPortal.Razor.SharedComponents.Validation
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
 <div class="form-group master-text-field @(showError ? "master-text-field--error" : "") @CSS">
     <label for="@Id"
            class="form-label @(showError ? "master-label--error" : "")">
         @Label
     </label>
 
-    <input type="date"
+    <input type="text"
            id="@Id"
            class="form-input master-input @(showError ? "master-input--error" : "")"
            style="@(Width > 0 ? $"width:{Width}px;" : "")"
            value="@FormattedValue"
-           min="@FormattedMin"
-           max="@FormattedMax"
            disabled="@Disabled"
            required="@IsRequired"
            aria-required="@IsRequired"
            aria-invalid="@showError"
            aria-describedby="@AriaDescribedBy"
-           @onchange="HandleChange"
-           @oninput="HandleInput"
-           @onblur="HandleBlur" />
+           placeholder="@Placeholder"
+           @onblur="HandleBlur"
+           readonly />
 
     @if (showError && !string.IsNullOrWhiteSpace(ErrorMessage))
     {
@@ -45,6 +47,13 @@
 
     /// <summary>Maximum allowed date.</summary>
     [Parameter] public DateTime? Max { get; set; }
+
+    /// <summary>
+    /// Specific dates to disable in Flatpickr (e.g. Federal Reserve holidays).
+    /// Pass as ISO strings: "yyyy-MM-dd".
+    /// When null or empty, only weekends + min/max range are enforced.
+    /// </summary>
+    [Parameter] public IReadOnlyList<string>? DisabledDates { get; set; }
 
     /// <summary>Input width in pixels. Set 0 to omit.</summary>
     [Parameter] public int Width { get; set; }
@@ -75,10 +84,13 @@
     /// </summary>
     [Parameter] public string? HintId { get; set; }
 
+    /// <summary>Optional placeholder shown inside the input.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
     private bool touched;
     private bool showError => (touched || Visible) && HasError;
-
     private string ErrorId => $"{Id}-error";
+    private DotNetObjectReference<ValidatedDateInput>? _dotNetRef;
 
     private string? AriaDescribedBy
     {
@@ -95,28 +107,45 @@
     private string? FormattedMin => Min?.ToString("yyyy-MM-dd");
     private string? FormattedMax => Max?.ToString("yyyy-MM-dd");
 
-    private async Task HandleChange(ChangeEventArgs e)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        touched = true;
-        var str = e.Value?.ToString();
-        DateTime? newValue = DateTime.TryParse(str, out var date) ? date : null;
-        await ValueChanged.InvokeAsync(newValue);
-        await OnBlur.InvokeAsync();
+        if (firstRender && DisabledDates is not null)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync(
+                "initAchDatePicker",
+                Id,
+                FormattedMin,
+                FormattedMax,
+                DisabledDates,
+                _dotNetRef);
+        }
     }
 
-    private async Task HandleInput(ChangeEventArgs e)
+    /// <summary>
+    /// Called by Flatpickr via JS interop when the user selects a date.
+    /// </summary>
+    [JSInvokable]
+    public async Task OnFlatpickrDateSelected(string dateStr)
     {
-        var str = e.Value?.ToString();
-        if (!string.IsNullOrWhiteSpace(str) && DateTime.TryParse(str, out var date))
-        {
-            touched = true;
-            await ValueChanged.InvokeAsync(date);
-        }
+        touched = true;
+        DateTime? newValue = DateTime.TryParse(dateStr, out var date) ? date : null;
+        await ValueChanged.InvokeAsync(newValue);
+        await OnBlur.InvokeAsync();
+        StateHasChanged();
     }
 
     private async Task HandleBlur()
     {
         touched = true;
         await OnBlur.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Id))
+            await JS.InvokeVoidAsync("destroyAchDatePicker", Id);
+
+        _dotNetRef?.Dispose();
     }
 }

@@ -35,7 +35,9 @@
             </section>
 
             <section class="billing-section" aria-labelledby="bank-info-heading">
-                <AchBankInfoDisplay BankAccount="_bankAccount" />
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    SelectedAccountChanged="account => _bankAccount = account" />
             </section>
 
             <section class="billing-section" aria-labelledby="payment-info-heading">
@@ -59,7 +61,9 @@
             </section>
 
             <section class="billing-section" aria-labelledby="verify-bank-heading">
-                <AchBankInfoDisplay BankAccount="_bankAccount" />
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    SelectedAccountChanged="account => _bankAccount = account" />
             </section>
 
             <section class="billing-section ach-verify-summary" aria-label="Payment Summary">
@@ -125,6 +129,7 @@
     private AchStep _step = AchStep.Entry;
 
     private AchContactInfo? _contactInfo;
+    private List<AchBankAccount> _bankAccounts = new();
     private AchBankAccount? _bankAccount;
 
     private decimal? _initialAmount;
@@ -149,15 +154,28 @@
             EmailAddress = "jsmith@email.com"
         };
 
-        _bankAccount = new AchBankAccount
+        _bankAccounts = new List<AchBankAccount>
         {
-            AccountNickname = "Janice's Checking Account",
-            AccountHolderName = "Janice Smith",
-            BankName = "Hometown Bank",
-            RoutingNumber = "015708055",
-            MaskedAccountNumber = "********9177",
-            AccountType = "Checking"
+            new AchBankAccount
+            {
+                AccountNickname = "Janice's Checking Account",
+                AccountHolderName = "Janice Smith",
+                BankName = "Hometown Bank",
+                RoutingNumber = "015708055",
+                MaskedAccountNumber = "********9177",
+                AccountType = "Checking"
+            },
+            new AchBankAccount
+            {
+                AccountNickname = "Janice's Savings Account",
+                AccountHolderName = "Janice Smith",
+                BankName = "Hometown Bank",
+                RoutingNumber = "015708055",
+                MaskedAccountNumber = "********4321",
+                AccountType = "Savings"
+            }
         };
+        _bankAccount = _bankAccounts.FirstOrDefault();
     }
 
     private void OnAmountChanged(decimal amount) => _confirmedAmount = amount;

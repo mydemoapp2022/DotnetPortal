@@ -1,10 +1,11 @@
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
 @using UI.EmployerPortal.Web.Features.BillingPayments.Models
 
 <div class="ach-info-card">
     <div class="ach-info-card-header">
         <h2 class="ach-info-card-title fw-bold">Bank Information</h2>
         <div class="ach-info-card-header-actions">
-            @if (BankAccount is not null)
+            @if (_selectedAccount is not null)
             {
                 <a href="/billing-payments/ach/bank-information/edit"
                        class="ach-edit-link"
@@ -17,44 +18,45 @@
     </div>
     <hr class="ach-section-divider" aria-hidden="true" />
 
-    @if (BankAccount is not null)
+    @if (BankAccounts is not null && BankAccounts.Count > 0)
     {
-        <!-- Bank Account Dropdown -->
+        <!-- Bank Account Dropdown -->       
         <div class="ach-bank-account-select-group">
-            <label class="ach-info-label" for="bankAccountSelect">Bank Account</label>
-            <div class="ach-select-wrapper">
-                <select id="bankAccountSelect"
-                        class="ach-select"
-                        aria-label="Select Bank Account"
-                        disabled>
-                    <option selected>@BankAccount.AccountNickname</option>
-                </select>
-            </div>
+            <OutlinedSelectField Label="Bank Account"
+                                 Id="bankAccountSelect"
+                                 Value="@_selectedAccountNickname"
+                                 ValueChanged="OnAccountChanged"
+                                 Options="@BankAccountOptions"
+                                 DisableEmptyOption="true"
+                                 Placeholder="Select bank account" />
         </div>
 
-        <!-- 2-column detail grid -->
-        <div class="ach-bank-grid">
-            <div class="ach-info-field">
-                <span class="ach-info-label">Bank Account Nickname</span>
-                <strong class="ach-info-value">@BankAccount.AccountHolderName</strong>
+        @if (_selectedAccount is not null)
+        {
+            <!-- 2-column detail grid -->
+            <div class="ach-bank-grid">
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Bank Account Nickname</span>
+                    <strong class="ach-info-value">@_selectedAccount.AccountHolderName</strong>
+                </div>
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Bank Name</span>
+                    <strong class="ach-info-value">@_selectedAccount.BankName</strong>
+                </div>
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Bank Routing Number</span>
+                    <strong class="ach-info-value">@_selectedAccount.RoutingNumber</strong>
+                </div>
+                <div class="ach-info-field">
+                    <span class="ach-info-label">Bank Account Number</span>
+                    <strong class="ach-info-value">@_selectedAccount.MaskedAccountNumber</strong>
+                </div>
             </div>
-            <div class="ach-info-field">
-                <span class="ach-info-label">Bank Name</span>
-                <strong class="ach-info-value">@BankAccount.BankName</strong>
+            <div class="ach-info-field ach-info-field--full">
+                <span class="ach-info-label">Type</span>
+                <strong class="ach-info-value">@_selectedAccount.AccountType</strong>
             </div>
-            <div class="ach-info-field">
-                <span class="ach-info-label">Bank Routing Number</span>
-                <strong class="ach-info-value">@BankAccount.RoutingNumber</strong>
-            </div>
-            <div class="ach-info-field">
-                <span class="ach-info-label">Bank Account Number</span>
-                <strong class="ach-info-value">@BankAccount.MaskedAccountNumber</strong>
-            </div>
-        </div>
-        <div class="ach-info-field ach-info-field--full">
-            <span class="ach-info-label">Type</span>
-            <strong class="ach-info-value">@BankAccount.AccountType</strong>
-        </div>
+        }
     }
     else
     {
@@ -67,5 +69,32 @@
 </div>
 
 @code {
+    [Parameter] public List<AchBankAccount>? BankAccounts { get; set; }
     [Parameter] public AchBankAccount? BankAccount { get; set; }
+    [Parameter] public EventCallback<AchBankAccount> SelectedAccountChanged { get; set; }
+
+    private AchBankAccount? _selectedAccount;
+    private string? _selectedAccountNickname;
+
+    private List<SelectOption> BankAccountOptions =>
+        BankAccounts?.Select(a => new SelectOption
+        {
+            Value = a.AccountNickname,
+            Text = a.AccountNickname
+        }).ToList() ?? new();
+
+    protected override void OnParametersSet()
+    {
+        _selectedAccount ??= BankAccount ?? BankAccounts?.FirstOrDefault();
+        _selectedAccountNickname = _selectedAccount?.AccountNickname;
+    }
+
+    private async Task OnAccountChanged(string? nickname)
+    {
+        _selectedAccountNickname = nickname;
+        _selectedAccount = BankAccounts?.FirstOrDefault(a => a.AccountNickname == nickname);
+
+        if (_selectedAccount is not null)
+            await SelectedAccountChanged.InvokeAsync(_selectedAccount);
+    }
 }

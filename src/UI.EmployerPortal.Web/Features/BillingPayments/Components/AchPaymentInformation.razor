@@ -1,6 +1,7 @@
 @using UI.EmployerPortal.Web.Features.BillingPayments.Services
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
 @inject IFederalReserveHolidayService HolidayService
+@implements IAsyncDisposable
 
 <div class="ach-payment-info-section">
     <h2 class="ach-payment-info-title fw-bold">Payment Information</h2>
@@ -9,7 +10,7 @@
     @* ── Payment Amount + Amount Due Details ── *@
     <div class="ach-payment-amount-row">
         <div class="ach-payment-amount-field">
-            <OutlinedTextField 
+            <OutlinedTextField
                 Label="Payment Amount"
                 Type="text"
                 InputMode="decimal"
@@ -31,19 +32,21 @@
         </a>
     </div>
 
-    @* ── Settlement Date ── *@
+    @* ── Settlement Date (Flatpickr via ValidatedDateInput) ── *@
     <div class="ach-settlement-date-field">
-        <OutlinedTextField 
+        <ValidatedDateInput
+            Id="@_dateInputId"
             Label="Settlement Date"
-            Type="date"
-            Value="@_settlementDate.ToString("yyyy-MM-dd")"
+            Value="@_settlementDate.ToDateTime(TimeOnly.MinValue)"
             ValueChanged="OnDateChanged"
-            FormatText="Select a valid business day (no weekends or Federal holidays)"
-            Required="true" />
-        @if (DateError is not null)
-        {
-            <div class="ach-field-error" role="alert">@DateError</div>
-        }
+            Min="@_minDate.ToDateTime(TimeOnly.MinValue)"
+            Max="@_maxDate.ToDateTime(TimeOnly.MinValue)"
+            DisabledDates="@_disabledDates"
+            HasError="@(DateError is not null)"
+            ErrorMessage="@DateError"
+            HintId="settlementDateHint"
+            IsRequired="true"
+            Placeholder="Select a settlement date" />
     </div>
 
     @* ── Hint text ── *@
@@ -73,11 +76,24 @@
     private DateOnly _minDate;
     private DateOnly _maxDate;
 
+    // Unique id for this instance so multiple pickers on the same page don't conflict
+    private readonly string _dateInputId = $"settlement-date-{Guid.NewGuid():N}";
+
+    // Fed-holiday ISO strings passed to Flatpickr; weekends handled inside JS
+    private IReadOnlyList<string> _disabledDates = [];
+
     protected override void OnInitialized()
     {
         _minDate = NextValidSettlementDate(DateOnly.FromDateTime(DateTime.Today));
         _maxDate = DateOnly.FromDateTime(DateTime.Today).AddDays(365);
         _settlementDate = _minDate;
+
+        // Build the list of Fed holiday ISO strings once — weekends are handled in JS
+        _disabledDates = HolidayService
+            .GetInvalidDatesInRange(_minDate, _maxDate)
+            .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
+            .Select(d => d.ToString("yyyy-MM-dd"))
+            .ToList();
 
         if (InitialAmount is > 0)
         {
@@ -97,40 +113,47 @@
     public decimal GetAmount() => _amount;
     public DateOnly GetSettlementDate() => _settlementDate;
 
-    /// <summary>Callback from OutlinedTextField @onblur — reformat amount on blur.</summary>
+    /// <summary>On blur: reformat the displayed amount if valid.</summary>
     private async Task OnAmountBlur()
     {
-        if (decimal.TryParse(_displayAmount.Replace("$", "").Replace(",", "").Trim(), out var parsed))
+        var cleaned = _displayAmount.Replace("$", "").Replace(",", "").Trim();
+        if (decimal.TryParse(cleaned, out var parsed) && parsed >= MinAmount && parsed <= MaxAmount)
         {
             _amount = parsed;
             _displayAmount = FormatAmount(_amount);
-            StateHasChanged();
-        }
-    }
-
-    /// <summary>Callback from OutlinedTextField ValueChanged — validate on input.</summary>
-    private async Task OnAmountChanged(string raw)
-    {
-        _displayAmount = raw;
-        ValidateAmount(_displayAmount);
-        if (AmountError is null)
+            AmountError = null;
             await AmountChanged.InvokeAsync(_amount);
-    }
-
-    /// <summary>Callback from OutlinedTextField ValueChanged — validate on date change.</summary>
-    private async Task OnDateChanged(string dateStr)
-    {
-        if (DateOnly.TryParse(dateStr, out var parsed))
-        {
-            _settlementDate = parsed;
-            ValidateDate(_settlementDate);
-            if (DateError is null)
-                await SettlementDateChanged.InvokeAsync(_settlementDate);
         }
         else
         {
-            DateError = "Please enter a valid settlement date.";
+            ValidateAmount(_displayAmount);
         }
+        StateHasChanged();
+    }
+
+    /// <summary>On input change: update raw display value and validate — do NOT reformat here.</summary>
+    private Task OnAmountChanged(string raw)
+    {
+        _displayAmount = raw;
+        ValidateAmount(_displayAmount);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Called by ValidatedDateInput when Flatpickr selects a date.</summary>
+    private async Task OnDateChanged(DateTime? dateTime)
+    {
+        if (dateTime is null)
+        {
+            DateError = "Please select a valid settlement date.";
+            return;
+        }
+
+        var picked = DateOnly.FromDateTime(dateTime.Value);
+        _settlementDate = picked;
+        ValidateDate(picked);
+
+        if (DateError is null)
+            await SettlementDateChanged.InvokeAsync(_settlementDate);
     }
 
     private void ValidateAmount(string raw)
@@ -151,7 +174,7 @@
 
         if (value < MinAmount)
         {
-            AmountError = "Payment Amount must be greater than $0.00.";
+            AmountError = "Payment Amount must be greater than $0.00 (minimum is $0.01).";
             return;
         }
 
@@ -162,7 +185,6 @@
         }
 
         _amount = value;
-        _displayAmount = FormatAmount(_amount);
         AmountError = null;
     }
 
@@ -170,9 +192,15 @@
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        if (date <= today)
+        if (date < today)
         {
-            DateError = "Settlement Date must be a future date.";
+            DateError = "Settlement Date must not be a past date.";
+            return;
+        }
+
+        if (date == today)
+        {
+            DateError = "Settlement Date must be a future business day.";
             return;
         }
 
@@ -209,4 +237,6 @@
     }
 
     private static string FormatAmount(decimal value) => $"$ {value:N2}";
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
