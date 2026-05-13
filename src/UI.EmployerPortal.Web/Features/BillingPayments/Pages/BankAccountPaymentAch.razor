@@ -84,36 +84,150 @@
         {
             @* ── STEP: Confirmation ───────────────────────────────────── *@
             <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+
             <NotificationBanner NotificationType="NotificationType.Confirmation"
-                                Message="Your ACH payment has been submitted successfully."
+                                Message="Payment Request Submitted"
                                 DismissButton="false" />
 
-            <section class="billing-section ach-verify-summary" aria-label="Confirmed Payment Details">
-                <h2 class="fw-bold">Payment Confirmation</h2>
-                <hr class="section-divider" aria-hidden="true" />
-                <div class="ach-info-grid">
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Payment Amount</span>
-                        <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Settlement Date</span>
-                        <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
-                    </div>
+            <p class="section-description">
+                Thank you for your Wisconsin Unemployment Insurance payment. The details of
+                your payment are shown below which includes a payment confirmation number.
+            </p>
+
+            <div class="ach-confirmation-actions">
+                <a href="#" class="ach-print-link" @onclick="HandlePrint" @onclick:preventDefault>
+                    🖨 Print page for your records
+                </a>
+                <button class="btn btn-danger ach-cancel-payment-btn" @onclick="HandleCancelPayment">
+                    CANCEL PAYMENT
+                </button>
+            </div>
+
+            @* ── Payment Information collapsible ── *@
+            <section class="billing-section ach-collapsible-section" aria-label="Payment Information">
+                <div class="ach-collapsible-header" @onclick="() => _paymentInfoExpanded = !_paymentInfoExpanded"
+                     role="button" aria-expanded="@_paymentInfoExpanded" tabindex="0"
+                     @onkeydown="e => { if (e.Key is \"Enter\" or \" \") _paymentInfoExpanded = !_paymentInfoExpanded; }">
+                    <h2 class="fw-bold">Payment Information</h2>
+                    <span class="ach-collapsible-icon" aria-hidden="true">@(_paymentInfoExpanded ? "∧" : "∨")</span>
                 </div>
+                @if (_paymentInfoExpanded)
+                {
+                    <hr class="section-divider" aria-hidden="true" />
+                    <div class="ach-info-grid">
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Confirmation Number</span>
+                            <strong class="ach-info-value">@_confirmationNumber</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Transaction Date/Time</span>
+                            <strong class="ach-info-value">@_transactionDateTime.ToString("MM/dd/yyyy hh:mm tt") CST</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Description</span>
+                            <strong class="ach-info-value">Payment</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Payment Amount</span>
+                            <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Settlement Date</span>
+                            <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            @* ── Bank Information collapsible ── *@
+            <section class="billing-section ach-collapsible-section" aria-label="Bank Information">
+                <div class="ach-collapsible-header" @onclick="() => _bankInfoExpanded = !_bankInfoExpanded"
+                     role="button" aria-expanded="@_bankInfoExpanded" tabindex="0"
+                     @onkeydown="e => { if (e.Key is \"Enter\" or \" \") _bankInfoExpanded = !_bankInfoExpanded; }">
+                    <h2 class="fw-bold">Bank Information</h2>
+                    <span class="ach-collapsible-icon" aria-hidden="true">@(_bankInfoExpanded ? "∧" : "∨")</span>
+                </div>
+                @if (_bankInfoExpanded)
+                {
+                    <hr class="section-divider" aria-hidden="true" />
+                    <div class="ach-info-grid">
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Bank Account Nickname</span>
+                            <strong class="ach-info-value">@_bankAccount?.AccountNickname</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Bank Name</span>
+                            <strong class="ach-info-value">@_bankAccount?.BankName</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Bank Routing Number</span>
+                            <strong class="ach-info-value">@_bankAccount?.RoutingNumber</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Bank Account Number</span>
+                            <strong class="ach-info-value">@_bankAccount?.MaskedAccountNumber</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Account Type</span>
+                            <strong class="ach-info-value">@_bankAccount?.AccountType</strong>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            @* ── Contact Information collapsible ── *@
+            <section class="billing-section ach-collapsible-section" aria-label="Contact Information">
+                <div class="ach-collapsible-header" @onclick="() => _contactInfoExpanded = !_contactInfoExpanded"
+                     role="button" aria-expanded="@_contactInfoExpanded" tabindex="0"
+                     @onkeydown="e => { if (e.Key is \"Enter\" or \" \") _contactInfoExpanded = !_contactInfoExpanded; }">
+                    <h2 class="fw-bold">Contact Information</h2>
+                    <span class="ach-collapsible-icon" aria-hidden="true">@(_contactInfoExpanded ? "∧" : "∨")</span>
+                </div>
+                @if (_contactInfoExpanded)
+                {
+                    <hr class="section-divider" aria-hidden="true" />
+                    <div class="ach-info-grid">
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Contact Name</span>
+                            <strong class="ach-info-value">@_contactInfo?.ContactName</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Phone Number</span>
+                            <strong class="ach-info-value">@_contactInfo?.PhoneNumber</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Email Address</span>
+                            <strong class="ach-info-value">@_contactInfo?.EmailAddress</strong>
+                        </div>
+                    </div>
+                }
             </section>
         }
 
         <!-- Footer Navigation -->
         <nav class="billing-footer" aria-label="Page actions">
-            <BillingButtonBar ShowBack="true"
-                              ShowCancel="true"
-                              ShowContinue="@(_step != AchStep.Confirmation)"
-                              OnBack="HandleBack"
-                              OnCancel="HandleCancel"
-                              OnContinue="HandleContinue"
-                              ContinueText="@(_step == AchStep.VerifyAuthorize ? "AUTHORIZE PAYMENT" : "CONTINUE")"
-                              ButtonWidth="200" />
+            @if (_step == AchStep.Confirmation)
+            {
+                <div class="ach-confirmation-footer">
+                    <button class="btn btn-outline-secondary ach-footer-btn" @onclick="() => Nav.NavigateTo("/billing-payments/payment-history")">
+                        PAYMENT HISTORY
+                    </button>
+                    <button class="btn btn-link ach-edit-payment-btn" @onclick="HandleEditPayment">
+                        EDIT PAYMENT
+                    </button>
+                </div>
+            }
+            else
+            {
+                <BillingButtonBar ShowBack="true"
+                                  ShowCancel="true"
+                                  ShowContinue="true"
+                                  OnBack="HandleBack"
+                                  OnCancel="HandleCancel"
+                                  OnContinue="HandleContinue"
+                                  ContinueText="@(_step == AchStep.VerifyAuthorize ? "AUTHORIZE PAYMENT" : "CONTINUE")"
+                                  ButtonWidth="200" />
+            }
         </nav>
 
     </div>
@@ -140,6 +254,13 @@
 
     private bool _showValidationSummary;
     private List<string> _validationErrors = new();
+
+    // Confirmation step state
+    private string _confirmationNumber = string.Empty;
+    private DateTime _transactionDateTime;
+    private bool _paymentInfoExpanded = true;
+    private bool _bankInfoExpanded = true;
+    private bool _contactInfoExpanded = true;
 
     protected override void OnInitialized()
     {
@@ -214,13 +335,29 @@
             _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
         }
 
-        if (_step == AchStep.Confirmation)
+        if (_step == AchStep.VerifyAuthorize)
         {
-            Nav.NavigateTo("/billing-payments/payment-history");
-            return;
+            // TODO: Replace with actual payment submission service call.
+            _confirmationNumber = GenerateConfirmationNumber();
+            _transactionDateTime = DateTime.Now;
         }
 
         _step++;
+    }
+
+    private void HandlePrint() { }  // TODO: wire up JS window.print()
+
+    private void HandleCancelPayment()
+    {
+        // TODO: call payment cancellation service, then navigate
+        Nav.NavigateTo("/billing-payments/payment-history");
+    }
+
+    private void HandleEditPayment()
+    {
+        _step = AchStep.Entry;
+        _showValidationSummary = false;
+        _validationErrors.Clear();
     }
 
     private bool ValidateEntry()
@@ -244,5 +381,12 @@
 
         _showValidationSummary = _validationErrors.Count > 0;
         return !_showValidationSummary;
+    }
+
+    private static string GenerateConfirmationNumber()
+    {
+        // TODO: Replace with server-generated confirmation number from payment service.
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return new string(Enumerable.Range(0, 12).Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());
     }
 }
