@@ -1,7 +1,7 @@
 @using UI.EmployerPortal.Web.Features.BillingPayments.Services
 @using UI.EmployerPortal.Razor.SharedComponents.Inputs
 @inject IFederalReserveHolidayService HolidayService
-@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <div class="ach-payment-info-section">
     <h2 class="ach-payment-info-title fw-bold">Payment Information</h2>
@@ -32,21 +32,24 @@
         </a>
     </div>
 
-    @* ── Settlement Date (Flatpickr via ValidatedDateInput) ── *@
+    @* ── Settlement Date ── *@
     <div class="ach-settlement-date-field">
-        <ValidatedDateInput
-            Id="@_dateInputId"
-            Label="Settlement Date"
-            Value="@_settlementDate.ToDateTime(TimeOnly.MinValue)"
-            ValueChanged="OnDateChanged"
-            Min="@_minDate.ToDateTime(TimeOnly.MinValue)"
-            Max="@_maxDate.ToDateTime(TimeOnly.MinValue)"
-            DisabledDates="@_disabledDates"
-            HasError="@(DateError is not null)"
-            ErrorMessage="@DateError"
-            HintId="settlementDateHint"
-            IsRequired="true"
-            Placeholder="Select a settlement date" />
+        <div class="master-text-field">
+            <label for="@_dateInputId">Settlement Date</label>
+            <input id="@_dateInputId"
+                   class="master-input"
+                   type="text"
+                   value="@_settlementDate.ToString("yyyy-MM-dd")"
+                   @onchange="OnDateChanged"
+                   aria-label="Settlement Date"
+                   aria-required="true"
+                   placeholder="Select a date" />
+            <div class="master-hint">Select a valid business day (no weekends or Federal holidays)</div>
+        </div>
+        @if (DateError is not null)
+        {
+            <div class="ach-field-error" role="alert">@DateError</div>
+        }
     </div>
 
     @* ── Hint text ── *@
@@ -75,12 +78,7 @@
     private DateOnly _settlementDate;
     private DateOnly _minDate;
     private DateOnly _maxDate;
-
-    // Unique id for this instance so multiple pickers on the same page don't conflict
     private readonly string _dateInputId = $"settlement-date-{Guid.NewGuid():N}";
-
-    // Fed-holiday ISO strings passed to Flatpickr; weekends handled inside JS
-    private IReadOnlyList<string> _disabledDates = [];
 
     protected override void OnInitialized()
     {
@@ -88,17 +86,28 @@
         _maxDate = DateOnly.FromDateTime(DateTime.Today).AddDays(365);
         _settlementDate = _minDate;
 
-        // Build the list of Fed holiday ISO strings once — weekends are handled in JS
-        _disabledDates = HolidayService
-            .GetInvalidDatesInRange(_minDate, _maxDate)
-            .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
-            .Select(d => d.ToString("yyyy-MM-dd"))
-            .ToList();
-
         if (InitialAmount is > 0)
         {
             _amount = InitialAmount.Value;
             _displayAmount = FormatAmount(_amount);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var disabledDates = HolidayService
+                .GetInvalidDatesInRange(_minDate, _maxDate)
+                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday) // holidays only; weekends handled by JS
+                .Select(d => d.ToString("yyyy-MM-dd"))
+                .ToArray();
+
+            await JS.InvokeVoidAsync("initAchDatePicker",
+                _dateInputId,
+                _minDate.ToString("yyyy-MM-dd"),
+                _maxDate.ToString("yyyy-MM-dd"),
+                disabledDates);
         }
     }
 
@@ -126,6 +135,7 @@
         }
         else
         {
+            // Trigger validation to surface/refresh the error message
             ValidateAmount(_displayAmount);
         }
         StateHasChanged();
@@ -139,21 +149,22 @@
         return Task.CompletedTask;
     }
 
-    /// <summary>Called by ValidatedDateInput when Flatpickr selects a date.</summary>
-    private async Task OnDateChanged(DateTime? dateTime)
+    /// <summary>On date change: validate and notify parent when valid.</summary>
+    private async Task OnDateChanged(ChangeEventArgs e)
     {
-        if (dateTime is null)
+        var dateStr = e.Value?.ToString() ?? string.Empty;
+        if (DateOnly.TryParse(dateStr, out var parsed))
         {
-            DateError = "Please select a valid settlement date.";
-            return;
+            _settlementDate = parsed;
+            ValidateDate(_settlementDate);
+            if (DateError is null)
+                await SettlementDateChanged.InvokeAsync(_settlementDate);
         }
-
-        var picked = DateOnly.FromDateTime(dateTime.Value);
-        _settlementDate = picked;
-        ValidateDate(picked);
-
-        if (DateError is null)
-            await SettlementDateChanged.InvokeAsync(_settlementDate);
+        else
+        {
+            DateError = "Please enter a valid settlement date.";
+        }
+        StateHasChanged();
     }
 
     private void ValidateAmount(string raw)
@@ -184,6 +195,7 @@
             return;
         }
 
+        // Only update internal state — do NOT reformat _displayAmount here (that happens on blur)
         _amount = value;
         AmountError = null;
     }
@@ -237,6 +249,4 @@
     }
 
     private static string FormatAmount(decimal value) => $"$ {value:N2}";
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
