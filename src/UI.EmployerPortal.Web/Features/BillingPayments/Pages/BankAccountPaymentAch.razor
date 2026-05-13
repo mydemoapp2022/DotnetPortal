@@ -5,6 +5,7 @@
 @using UI.EmployerPortal.Web.Features.BillingPayments.Models
 @using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>Bank Account Payment (ACH)</PageTitle>
 
@@ -30,17 +31,17 @@
             </p>
             <p class="section-description"><em>All fields are required unless noted</em></p>
 
-            <section class="billing-section" aria-labelledby="contact-info-heading">
+            <section class="billing-section" aria-label="Contact Information">
                 <AchContactInfoDisplay ContactInfo="_contactInfo" />
             </section>
 
-            <section class="billing-section" aria-labelledby="bank-info-heading">
+            <section class="billing-section" aria-label="Bank Information">
                 <AchBankInfoDisplay BankAccounts="_bankAccounts"
                                     BankAccount="_bankAccount"
                                     SelectedAccountChanged="account => _bankAccount = account" />
             </section>
 
-            <section class="billing-section" aria-labelledby="payment-info-heading">
+            <section class="billing-section" aria-label="Payment Information">
                 <AchPaymentInformation @ref="_paymentInfoRef"
                                        InitialAmount="_initialAmount"
                                        AmountChanged="OnAmountChanged"
@@ -50,37 +51,68 @@
         else if (_step == AchStep.VerifyAuthorize)
         {
             @* ── STEP: Verify & Authorize ────────────────────────────── *@
-            <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
+            <h1 class="billing-section-title fw-bold">Verify &amp; Authorize Bank Account Payment (ACH)</h1>
             <p class="section-description">
-                Make sure that you have provided contact and bank information below and verify that it is correct.
+                Please verify that the data below is correct and then select the check box that says you
+                authorize us to deduct this payment from your bank account. Then select Continue to complete
+                the payment process. A final payment confirmation page will follow.
             </p>
-            <p class="section-description"><em>All fields are required unless noted</em></p>
 
-            <section class="billing-section" aria-labelledby="verify-contact-heading">
-                <AchContactInfoDisplay ContactInfo="_contactInfo" />
+            <section class="billing-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo" ReadOnly="true" />
             </section>
 
-            <section class="billing-section" aria-labelledby="verify-bank-heading">
+            <section class="billing-section" aria-label="Bank Information">
                 <AchBankInfoDisplay BankAccounts="_bankAccounts"
                                     BankAccount="_bankAccount"
-                                    SelectedAccountChanged="account => _bankAccount = account" />
+                                    ReadOnly="true" />
             </section>
 
-            <section class="billing-section ach-verify-summary" aria-label="Payment Summary">
-                <hr class="section-divider" aria-hidden="true" />
-                <div class="ach-info-grid">
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Payment Amount</span>
-                        <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+            <section class="billing-section" aria-label="Payment Information">
+                <div class="ach-info-card">
+                    <div class="ach-info-card-header">
+                        <h2 class="ach-info-card-title fw-bold">Payment Information</h2>
+                        <span class="ach-collapse-icon" aria-hidden="true">&#8963;</span>
                     </div>
-                    <div class="ach-info-field">
+                    <hr class="ach-section-divider" aria-hidden="true" />
+                    <div class="ach-bank-grid">
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Description</span>
+                            <strong class="ach-info-value">Payment</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Payment Amount</span>
+                            <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                        </div>
+                    </div>
+                    <div class="ach-info-field ach-info-field--full">
                         <span class="ach-info-label">Settlement Date</span>
                         <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
                     </div>
                 </div>
             </section>
+
+            @* ── Authorization ── *@
+            <div class="ach-authorization-section">
+                <p class="ach-authorization-text">
+                    I hereby authorize the State of Wisconsin Department of Workforce Development
+                    Unemployment Insurance Division to initiate an ACH debit entry to the bank account
+                    shown above on this page for the payment amount on the settlement date shown on this page.
+                </p>
+                <div class="ach-authorization-checkbox">
+                    <input type="checkbox"
+                           id="achAuthorizeCheckbox"
+                           @bind="_authorized"
+                           aria-required="true" />
+                    <label for="achAuthorizeCheckbox">I Accept</label>
+                </div>
+                @if (_authorizationError is not null)
+                {
+                    <div class="ach-field-error" role="alert">@_authorizationError</div>
+                }
+            </div>
         }
-        else
+        else if (_step == AchStep.Confirmation)
         {
             @* ── STEP: Confirmation ───────────────────────────────────── *@
             <h1 class="billing-section-title fw-bold">Bank Account Payment (ACH)</h1>
@@ -96,25 +128,136 @@
 
             <div class="ach-confirmation-actions">
                 <a href="#" class="ach-print-link" @onclick="HandlePrint" @onclick:preventDefault>
-                    🖨 Print page for your records
+                    &#128438; Print page for your records
                 </a>
                 <button class="btn btn-danger ach-cancel-payment-btn" @onclick="HandleCancelPayment">
                     CANCEL PAYMENT
                 </button>
             </div>
 
-            @* ── Payment Information collapsible ── *@
-            <section class="billing-section ach-collapsible-section" aria-label="Payment Information">
-                <div class="ach-collapsible-header" @onclick="() => _paymentInfoExpanded = !_paymentInfoExpanded"
-                     role="button" aria-expanded="@_paymentInfoExpanded" tabindex="0"
-                     @onkeydown="e => { if (e.Key is \"Enter\" or \" \") _paymentInfoExpanded = !_paymentInfoExpanded; }">
-                    <h2 class="fw-bold">Payment Information</h2>
-                    <span class="ach-collapsible-icon" aria-hidden="true">@(_paymentInfoExpanded ? "∧" : "∨")</span>
+            <section class="billing-section" aria-label="Payment Information">
+                @RenderPaymentInfoCard(_paymentInfoExpanded, expanded => _paymentInfoExpanded = expanded, showConfirmationDetails: true)
+            </section>
+
+            <section class="billing-section" aria-label="Bank Information">
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    ReadOnly="true" />
+            </section>
+
+            <section class="billing-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo"
+                                       ReadOnly="true" />
+            </section>
+        }
+        else if (_step == AchStep.Edit)
+        {
+            @* ── STEP: Edit Payment ───────────────────────────────────── *@
+            <h1 class="billing-section-title fw-bold">Edit Bank Account Payment (ACH)</h1>
+            <p class="section-description">Please make the changes to your payment below.</p>
+
+            <div class="ach-edit-cancel-row">
+                <button class="btn btn-danger ach-cancel-payment-btn" @onclick="HandleCancelPayment">
+                    CANCEL PAYMENT
+                </button>
+            </div>
+
+            <section class="billing-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo"
+                                       ReadOnly="true"
+                                       ShowEditLink="true" />
+            </section>
+
+            <section class="billing-section" aria-label="Bank Information">
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    ReadOnly="true"
+                                    ShowEditLink="true" />
+            </section>
+
+            <section class="billing-section" aria-label="Payment Information">
+                <div class="ach-info-card">
+                    <div class="ach-info-card-header">
+                        <h2 class="ach-info-card-title fw-bold">Payment Information</h2>
+                    </div>
+                    <hr class="ach-section-divider" aria-hidden="true" />
+                    <div class="ach-info-field ach-confirmation-number-field">
+                        <span class="ach-info-label">Confirmation Number</span>
+                        <strong class="ach-info-value">@_confirmationNumber</strong>
+                    </div>
+                    <AchPaymentInformation @ref="_paymentInfoRef"
+                                           InitialAmount="_confirmedAmount"
+                                           InitialSettlementDate="_confirmedSettlementDate"
+                                           AmountChanged="OnAmountChanged"
+                                           SettlementDateChanged="OnSettlementDateChanged" />
                 </div>
-                @if (_paymentInfoExpanded)
-                {
-                    <hr class="section-divider" aria-hidden="true" />
-                    <div class="ach-info-grid">
+            </section>
+        }
+        else if (_step == AchStep.VerifyCancel)
+        {
+            @* ── STEP: Verify & Cancel ────────────────────────────────── *@
+            <h1 class="billing-section-title fw-bold">Verify &amp; Cancel EFT Payment</h1>
+            <p class="section-description">
+                You have selected to cancel the following payment. If you are sure you want to
+                cancel this payment select cancel payment, otherwise go back to previous page.
+            </p>
+
+            <section class="billing-section" aria-label="Payment Information">
+                @RenderPaymentInfoCard(_verifyCancelPaymentExpanded, expanded => _verifyCancelPaymentExpanded = expanded, showConfirmationDetails: true)
+            </section>
+
+            <section class="billing-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo" ReadOnly="true" />
+            </section>
+
+            <section class="billing-section" aria-label="Bank Information">
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    ReadOnly="true" />
+            </section>
+        }
+        else if (_step == AchStep.CancelConfirmation)
+        {
+            @* ── STEP: Cancel Confirmation ───────────────────────────── *@
+            <h1 class="billing-section-title fw-bold">Cancelled EFT Payment Confirmation</h1>
+            <p class="section-description">
+                Your Wisconsin Unemployment Insurance payment has been successfully cancelled.
+                Your cancelled payment details are shown below. The confirmation number you
+                were issued when you first made this payment still applies to the cancelled payment.
+            </p>
+
+            <section class="billing-section" aria-label="Payment Information">
+                @RenderPaymentInfoCard(_cancelConfPaymentExpanded, expanded => _cancelConfPaymentExpanded = expanded, showConfirmationDetails: true)
+            </section>
+
+            <section class="billing-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo" ReadOnly="true" />
+            </section>
+
+            <section class="billing-section" aria-label="Bank Information">
+                <AchBankInfoDisplay BankAccounts="_bankAccounts"
+                                    BankAccount="_bankAccount"
+                                    ReadOnly="true" />
+            </section>
+        }
+        else if (_step == AchStep.PrintPreview)
+        {
+            @* ── STEP: Print Preview ──────────────────────────────────── *@
+            <h1 class="billing-section-title fw-bold">EFT Payment Confirmation</h1>
+            <p class="section-description">print out payment confirmation.</p>
+
+            <div class="ach-print-actions">
+                <button class="btn btn-primary ach-print-btn" @onclick="ExecutePrint">
+                    &#128438; PRINT
+                </button>
+            </div>
+
+            @* ── Print layout: no collapsible, plain card borders ── *@
+            <section class="billing-section ach-print-section" aria-label="Payment Information">
+                <div class="ach-info-card ach-info-card--print">
+                    <h2 class="ach-info-card-title fw-bold">Payment Information</h2>
+                    <hr class="ach-section-divider" aria-hidden="true" />
+                    <div class="ach-bank-grid">
                         <div class="ach-info-field">
                             <span class="ach-info-label">Confirmation Number</span>
                             <strong class="ach-info-value">@_confirmationNumber</strong>
@@ -131,25 +274,22 @@
                             <span class="ach-info-label">Payment Amount</span>
                             <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
                         </div>
-                        <div class="ach-info-field">
-                            <span class="ach-info-label">Settlement Date</span>
-                            <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
-                        </div>
                     </div>
-                }
+                    <div class="ach-info-field ach-info-field--full">
+                        <span class="ach-info-label">Settlement Date</span>
+                        <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                    </div>
+                </div>
             </section>
 
-            @* ── Bank Information collapsible ── *@
-            <section class="billing-section" aria-label="Bank Information">
+            <section class="billing-section ach-print-section" aria-label="Bank Information">
                 <AchBankInfoDisplay BankAccounts="_bankAccounts"
                                     BankAccount="_bankAccount"
                                     ReadOnly="true" />
             </section>
 
-            @* ── Contact Information collapsible ── *@
-            <section class="billing-section" aria-label="Contact Information">
-                <AchContactInfoDisplay ContactInfo="_contactInfo"
-                                       ReadOnly="true" />
+            <section class="billing-section ach-print-section" aria-label="Contact Information">
+                <AchContactInfoDisplay ContactInfo="_contactInfo" ReadOnly="true" />
             </section>
         }
 
@@ -158,13 +298,41 @@
             @if (_step == AchStep.Confirmation)
             {
                 <div class="ach-confirmation-footer">
-                    <button class="btn btn-outline-secondary ach-footer-btn" @onclick="() => Nav.NavigateTo("/billing-payments/payment-history")">
+                    <button class="btn btn-outline-secondary ach-footer-btn"
+                            @onclick='() => Nav.NavigateTo("/billing-payments/payment-history")'>
                         PAYMENT HISTORY
                     </button>
                     <button class="btn btn-link ach-edit-payment-btn" @onclick="HandleEditPayment">
                         EDIT PAYMENT
                     </button>
                 </div>
+            }
+            else if (_step == AchStep.VerifyCancel)
+            {
+                <div class="ach-verify-cancel-footer">
+                    <BillingButtonBar ShowBack="true"
+                                      ShowCancel="false"
+                                      ShowContinue="true"
+                                      OnBack="HandleBack"
+                                      OnContinue="HandleConfirmCancel"
+                                      ContinueText="CANCEL PAYMENT"
+                                      ButtonWidth="200" />
+                </div>
+            }
+            else if (_step == AchStep.CancelConfirmation)
+            {
+                <div class="ach-cancel-confirmation-footer">
+                    <BillingButtonBar ShowBack="false"
+                                      ShowCancel="false"
+                                      ShowContinue="true"
+                                      OnContinue='() => Nav.NavigateTo("/billing-payments/payment-history")'
+                                      ContinueText="CONTINUE"
+                                      ButtonWidth="200" />
+                </div>
+            }
+            else if (_step == AchStep.PrintPreview)
+            {
+                @* No footer buttons on print preview — browser print dialog handles output *@
             }
             else
             {
@@ -174,7 +342,7 @@
                                   OnBack="HandleBack"
                                   OnCancel="HandleCancel"
                                   OnContinue="HandleContinue"
-                                  ContinueText="@(_step == AchStep.VerifyAuthorize ? "AUTHORIZE PAYMENT" : "CONTINUE")"
+                                  ContinueText="CONTINUE"
                                   ButtonWidth="200" />
             }
         </nav>
@@ -204,12 +372,23 @@
     private bool _showValidationSummary;
     private List<string> _validationErrors = new();
 
-    // Confirmation step state
+    // Verify & Authorize
+    private bool _authorized;
+    private string? _authorizationError;
+
+    // Confirmation
     private string _confirmationNumber = string.Empty;
     private DateTime _transactionDateTime;
     private bool _paymentInfoExpanded = true;
-    private bool _bankInfoExpanded = true;
-    private bool _contactInfoExpanded = true;
+
+    // Verify & Cancel collapsibles
+    private bool _verifyCancelPaymentExpanded = true;
+
+    // Cancel Confirmation collapsibles
+    private bool _cancelConfPaymentExpanded = true;
+
+    // Tracks whether VerifyAuthorize was reached from Edit (for Back navigation)
+    private bool _cameFromEdit;
 
     protected override void OnInitialized()
     {
@@ -224,8 +403,8 @@
             EmailAddress = "jsmith@email.com"
         };
 
-        _bankAccounts = new List<AchBankAccount>
-        {
+        _bankAccounts =
+        [
             new AchBankAccount
             {
                 AccountNickname = "Janice's Checking Account",
@@ -244,7 +423,7 @@
                 MaskedAccountNumber = "********4321",
                 AccountType = "Savings"
             }
-        };
+        ];
         _bankAccount = _bankAccounts.FirstOrDefault();
     }
 
@@ -255,14 +434,28 @@
     {
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _authorizationError = null;
 
-        if (_step == AchStep.Entry)
+        switch (_step)
         {
-            Nav.NavigateTo("/billing-payments/payment-options?source=flow");
-            return;
-        }
+            case AchStep.Entry:
+                Nav.NavigateTo("/billing-payments/payment-options?source=flow");
+                break;
 
-        _step--;
+            case AchStep.VerifyAuthorize:
+                _authorized = false;
+                _step = _cameFromEdit ? AchStep.Edit : AchStep.Entry;
+                _cameFromEdit = false;
+                break;
+
+            case AchStep.Edit:
+                _step = AchStep.Confirmation;
+                break;
+
+            case AchStep.VerifyCancel:
+                _step = AchStep.Confirmation;
+                break;
+        }
     }
 
     private void HandleCancel() => Nav.NavigateTo("/employer-dashboard");
@@ -271,42 +464,69 @@
     {
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _authorizationError = null;
 
-        if (_step == AchStep.Entry)
+        switch (_step)
         {
-            if (!ValidateEntry())
-            {
-                StateHasChanged();
-                return;
-            }
+            case AchStep.Entry:
+                if (!ValidateEntry())
+                    return;
 
-            _confirmedAmount = _paymentInfoRef!.GetAmount();
-            _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
+                _confirmedAmount = _paymentInfoRef!.GetAmount();
+                _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
+                _cameFromEdit = false;
+                _step = AchStep.VerifyAuthorize;
+                break;
+
+            case AchStep.VerifyAuthorize:
+                if (!ValidateAuthorization())
+                    return;
+
+                // TODO: Replace with actual payment submission service call.
+                _confirmationNumber = GenerateConfirmationNumber();
+                _transactionDateTime = DateTime.Now;
+                _authorized = false;
+                _step = AchStep.Confirmation;
+                break;
+
+            case AchStep.Edit:
+                if (!ValidateEntry())
+                    return;
+
+                _confirmedAmount = _paymentInfoRef!.GetAmount();
+                _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
+                _cameFromEdit = true;
+                _step = AchStep.VerifyAuthorize;
+                break;
         }
-
-        if (_step == AchStep.VerifyAuthorize)
-        {
-            // TODO: Replace with actual payment submission service call.
-            _confirmationNumber = GenerateConfirmationNumber();
-            _transactionDateTime = DateTime.Now;
-        }
-
-        _step++;
     }
 
-    private void HandlePrint() { }  // TODO: wire up JS window.print()
+    /// <summary>
+    /// Navigates to the Verify &amp; Cancel step from the Confirmation screen.
+    /// </summary>
+    private void HandleCancelPayment() => _step = AchStep.VerifyCancel;
 
-    private void HandleCancelPayment()
+    /// <summary>
+    /// Called when the user confirms cancellation on the Verify &amp; Cancel step.
+    /// </summary>
+    private void HandleConfirmCancel()
     {
-        // TODO: call payment cancellation service, then navigate
-        Nav.NavigateTo("/billing-payments/payment-history");
+        // TODO: call payment cancellation service (UIEP-730).
+        // On success, advance to CancelConfirmation; on failure, show error banner.
+        _step = AchStep.CancelConfirmation;
     }
+
+    /// <summary>Navigates to the print preview step.</summary>
+    private void HandlePrint() => _step = AchStep.PrintPreview;
+
+    /// <summary>Triggers the browser print dialog from the PrintPreview step.</summary>
+    private async Task ExecutePrint() => await JS.InvokeVoidAsync("window.print");
 
     private void HandleEditPayment()
     {
-        _step = AchStep.Entry;
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _step = AchStep.Edit;
     }
 
     private bool ValidateEntry()
@@ -331,6 +551,56 @@
         _showValidationSummary = _validationErrors.Count > 0;
         return !_showValidationSummary;
     }
+
+    private bool ValidateAuthorization()
+    {
+        if (_authorized)
+            return true;
+
+        _authorizationError = "You must accept the authorization to proceed.";
+        return false;
+    }
+
+    /// <summary>
+    /// Renders the shared collapsible Payment Information card used across
+    /// Confirmation, Verify &amp; Cancel, and Cancel Confirmation steps.
+    /// </summary>
+    private RenderFragment RenderPaymentInfoCard(bool expanded, Action<bool> setExpanded, bool showConfirmationDetails) =>
+        @<div class="ach-info-card">
+            <div class="ach-info-card-header"
+                 role="button" tabindex="0"
+                 aria-expanded="@expanded"
+                 @onclick="() => setExpanded(!expanded)">
+                <h2 class="ach-info-card-title fw-bold">Payment Information</h2>
+                <span class="ach-collapse-icon" aria-hidden="true">@(expanded ? "&#8963;" : "&#8964;")</span>
+            </div>
+            @if (expanded)
+            {
+                <hr class="ach-section-divider" aria-hidden="true" />
+                <div class="ach-bank-grid">
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Confirmation Number</span>
+                        <strong class="ach-info-value">@_confirmationNumber</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Transaction Date/Time</span>
+                        <strong class="ach-info-value">@_transactionDateTime.ToString("MM/dd/yyyy hh:mm tt") CST</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Description</span>
+                        <strong class="ach-info-value">Payment</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Payment Amount</span>
+                        <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                    </div>
+                </div>
+                <div class="ach-info-field ach-info-field--full">
+                    <span class="ach-info-label">Settlement Date</span>
+                    <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                </div>
+            }
+        </div>;
 
     private static string GenerateConfirmationNumber()
     {

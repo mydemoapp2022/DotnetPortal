@@ -4,7 +4,7 @@
     <div class="ach-info-card-header">
         <h2 class="ach-info-card-title fw-bold">Contact Information</h2>
         <div class="ach-info-card-header-actions">
-            @if (!ReadOnly && ContactInfo is not null)
+            @if (_showEditLink && ContactInfo is not null)
             {
                 <a href="/billing-payments/ach/contact-information/edit"
                    class="ach-edit-link"
@@ -46,5 +46,15 @@
 
 @code {
     [Parameter] public AchContactInfo? ContactInfo { get; set; }
+    /// <summary>Hides all interactive elements (edit link, add link).</summary>
     [Parameter] public bool ReadOnly { get; set; }
+    /// <summary>
+    /// Explicitly controls the Edit link visibility.
+    /// When not set, defaults to <c>!ReadOnly</c>.
+    /// Use <c>ShowEditLink="true"</c> with <c>ReadOnly="true"</c> to show the edit link
+    /// while still suppressing add/dropdown interactions (e.g. Edit Payment step).
+    /// </summary>
+    [Parameter] public bool? ShowEditLink { get; set; }
+
+    private bool _showEditLink => ShowEditLink ?? !ReadOnly;
 }

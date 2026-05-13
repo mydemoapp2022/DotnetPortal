@@ -64,6 +64,7 @@
 
 @code {
     [Parameter] public decimal? InitialAmount { get; set; }
+    [Parameter] public DateOnly? InitialSettlementDate { get; set; }
     [Parameter] public EventCallback<decimal> AmountChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> SettlementDateChanged { get; set; }
 
@@ -84,7 +85,11 @@
     {
         _minDate = NextValidSettlementDate(DateOnly.FromDateTime(DateTime.Today));
         _maxDate = DateOnly.FromDateTime(DateTime.Today).AddDays(365);
-        _settlementDate = _minDate;
+
+        // Use provided initial date if valid, otherwise default to next valid business day
+        _settlementDate = InitialSettlementDate.HasValue && InitialSettlementDate.Value >= _minDate
+            ? InitialSettlementDate.Value
+            : _minDate;
 
         if (InitialAmount is > 0)
         {
@@ -99,7 +104,7 @@
         {
             var disabledDates = HolidayService
                 .GetInvalidDatesInRange(_minDate, _maxDate)
-                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday) // holidays only; weekends handled by JS
+                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
                 .Select(d => d.ToString("yyyy-MM-dd"))
                 .ToArray();
 
@@ -122,7 +127,6 @@
     public decimal GetAmount() => _amount;
     public DateOnly GetSettlementDate() => _settlementDate;
 
-    /// <summary>On blur: reformat the displayed amount if valid.</summary>
     private async Task OnAmountBlur()
     {
         var cleaned = _displayAmount.Replace("$", "").Replace(",", "").Trim();
@@ -135,13 +139,11 @@
         }
         else
         {
-            // Trigger validation to surface/refresh the error message
             ValidateAmount(_displayAmount);
         }
         StateHasChanged();
     }
 
-    /// <summary>On input change: update raw display value and validate — do NOT reformat here.</summary>
     private Task OnAmountChanged(string raw)
     {
         _displayAmount = raw;
@@ -149,7 +151,6 @@
         return Task.CompletedTask;
     }
 
-    /// <summary>On date change: validate and notify parent when valid.</summary>
     private async Task OnDateChanged(ChangeEventArgs e)
     {
         var dateStr = e.Value?.ToString() ?? string.Empty;
@@ -195,7 +196,6 @@
             return;
         }
 
-        // Only update internal state — do NOT reformat _displayAmount here (that happens on blur)
         _amount = value;
         AmountError = null;
     }
