@@ -4,13 +4,14 @@
     border-radius: 4px;
     padding: 16px 20px;
     margin-bottom: 20px;
-    background: #fff;
+    background: #f5f5f5; /* ← was #fff; Figma shows gray background */
 }
 
 .ach-info-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    cursor: pointer;
 }
 
 .ach-info-card-title {
