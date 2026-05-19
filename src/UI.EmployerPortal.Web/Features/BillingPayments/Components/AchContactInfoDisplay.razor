@@ -2,7 +2,7 @@
 
 <div class="ach-info-card">
     <div class="ach-info-card-header">
-        <h2 class="ach-info-card-title fw-bold">Contact Information</h2>
+        <h2 class="ach-info-card-title fw-bold" id="contact-info-heading">Contact Information</h2>
         <div class="ach-info-card-header-actions">
             @if (_showEditLink && ContactInfo is not null)
             {
@@ -12,36 +12,65 @@
                     &#9998; Edit
                 </a>
             }
-            <span class="ach-collapse-icon" aria-hidden="true">&#8963;</span>
+            <button type="button"
+                    class="ach-collapse-btn"
+                    aria-expanded="@_expanded.ToString().ToLower()"
+                    aria-controls="contact-info-body"
+                    aria-label="@(_expanded ? "Collapse Contact Information" : "Expand Contact Information")"
+                    @onclick="() => _expanded = !_expanded">
+                <span aria-hidden="true">@((MarkupString)(_expanded ? "&#8963;" : "&#8964;"))</span>
+            </button>
         </div>
     </div>
-    <hr class="ach-section-divider" aria-hidden="true" />
 
-    @if (ContactInfo is not null)
-    {
-        <div class="ach-contact-grid">
-            <div class="ach-info-field">
-                <span class="ach-info-label">Contact Name</span>
-                <strong class="ach-info-value">@ContactInfo.ContactName</strong>
-            </div>
-            <div class="ach-info-field">
-                <span class="ach-info-label">Phone Number</span>
-                <strong class="ach-info-value">@ContactInfo.PhoneNumber</strong>
-            </div>
-        </div>
-        <div class="ach-info-field ach-info-field--full">
-            <span class="ach-info-label">Email Address</span>
-            <strong class="ach-info-value">@ContactInfo.EmailAddress</strong>
-        </div>
-    }
-    else if (!ReadOnly)
-    {
-        <a href="/billing-payments/ach/contact-information/add"
-           class="ach-add-link"
-           aria-label="Add Contact Information">
-            + Add Contact
-        </a>
-    }
+    <div id="contact-info-body"
+         role="region"
+         aria-labelledby="contact-info-heading"
+         hidden="@(!_expanded)">
+        <hr class="ach-section-divider" aria-hidden="true" />
+
+        @if (ContactInfo is not null)
+        {
+            <dl class="ach-contact-grid">
+                <div class="ach-info-field">
+                    <dt class="ach-info-label">Contact Name</dt>
+                    <dd class="ach-info-value"><strong>@ContactInfo.ContactName</strong></dd>
+                </div>
+                <div class="ach-info-field">
+                    <dt class="ach-info-label">Phone Number</dt>
+                    <dd class="ach-info-value">
+                        <strong>
+                            <a href="tel:@ContactInfo.PhoneNumber"
+                               aria-label="Phone number @ContactInfo.PhoneNumber">
+                                @ContactInfo.PhoneNumber
+                            </a>
+                        </strong>
+                    </dd>
+                </div>
+            </dl>
+            <dl class="ach-info-field ach-info-field--full">
+                <div class="ach-info-field">
+                    <dt class="ach-info-label">Email Address</dt>
+                    <dd class="ach-info-value">
+                        <strong>
+                            <a href="mailto:@ContactInfo.EmailAddress"
+                               aria-label="Email address @ContactInfo.EmailAddress">
+                                @ContactInfo.EmailAddress
+                            </a>
+                        </strong>
+                    </dd>
+                </div>
+            </dl>
+        }
+        else if (!ReadOnly)
+        {
+            <a href="/billing-payments/ach/contact-information/add"
+               class="ach-add-link"
+               aria-label="Add Contact Information">
+                + Add Contact
+            </a>
+        }
+    </div>
 </div>
 
 @code {
@@ -57,4 +86,5 @@
     [Parameter] public bool? ShowEditLink { get; set; }
 
     private bool _showEditLink => ShowEditLink ?? !ReadOnly;
+    private bool _expanded = true;
 }

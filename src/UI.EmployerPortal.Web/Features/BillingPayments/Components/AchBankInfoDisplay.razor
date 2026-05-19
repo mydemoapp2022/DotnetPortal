@@ -3,7 +3,7 @@
 
 <div class="ach-info-card">
     <div class="ach-info-card-header">
-        <h2 class="ach-info-card-title fw-bold">Bank Information</h2>
+        <h2 class="ach-info-card-title fw-bold" id="bank-info-heading">Bank Information</h2>
         <div class="ach-info-card-header-actions">
             @if (_showEditLink && _selectedAccount is not null)
             {
@@ -13,60 +13,79 @@
                     &#9998; Edit
                 </a>
             }
-            <span class="ach-collapse-icon" aria-hidden="true">&#8963;</span>
+            <button type="button"
+                    class="ach-collapse-btn"
+                    aria-expanded="@_expanded.ToString().ToLower()"
+                    aria-controls="bank-info-body"
+                    aria-label="@(_expanded ? "Collapse Bank Information" : "Expand Bank Information")"
+                    @onclick="ToggleExpanded">
+                <span aria-hidden="true">@((MarkupString)(_expanded ? "&#8963;" : "&#8964;"))</span>
+            </button>
         </div>
     </div>
-    <hr class="ach-section-divider" aria-hidden="true" />
 
-    @if (BankAccounts is not null && BankAccounts.Count > 0)
-    {
-        @if (!ReadOnly)
-        {
-            <div class="ach-bank-account-select-group">
-                <OutlinedSelectField Label="Bank Account"
-                                     Id="bankAccountSelect"
-                                     Value="@_selectedAccountNickname"
-                                     ValueChanged="OnAccountChanged"
-                                     Options="@BankAccountOptions"
-                                     DisableEmptyOption="true"
-                                     Placeholder="Select bank account" />
-            </div>
-        }
+    <div id="bank-info-body"
+         role="region"
+         aria-labelledby="bank-info-heading"
+         hidden="@(!_expanded)">
+        <hr class="ach-section-divider" aria-hidden="true" />
 
-        @if (_selectedAccount is not null)
+        @if (BankAccounts is not null && BankAccounts.Count > 0)
         {
-            <div class="ach-bank-grid">
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Bank Account Nickname</span>
-                    <strong class="ach-info-value">@_selectedAccount.AccountHolderName</strong>
+            @if (!ReadOnly)
+            {
+                <div class="ach-bank-account-select-group">
+                    <OutlinedSelectField Label="Bank Account"
+                                         Id="bankAccountSelect"
+                                         Value="@_selectedAccountNickname"
+                                         ValueChanged="OnAccountChanged"
+                                         Options="@BankAccountOptions"
+                                         DisableEmptyOption="true"
+                                         Placeholder="Select bank account" />
                 </div>
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Bank Name</span>
-                    <strong class="ach-info-value">@_selectedAccount.BankName</strong>
-                </div>
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Bank Routing Number</span>
-                    <strong class="ach-info-value">@_selectedAccount.RoutingNumber</strong>
-                </div>
-                <div class="ach-info-field">
-                    <span class="ach-info-label">Bank Account Number</span>
-                    <strong class="ach-info-value">@_selectedAccount.MaskedAccountNumber</strong>
-                </div>
-            </div>
-            <div class="ach-info-field ach-info-field--full">
-                <span class="ach-info-label">Type</span>
-                <strong class="ach-info-value">@_selectedAccount.AccountType</strong>
-            </div>
+            }
+
+            @if (_selectedAccount is not null)
+            {
+                <dl class="ach-bank-grid">
+                    <div class="ach-info-field">
+                        <dt class="ach-info-label">Bank Account Nickname</dt>
+                        <dd class="ach-info-value"><strong>@_selectedAccount.AccountHolderName</strong></dd>
+                    </div>
+                    <div class="ach-info-field">
+                        <dt class="ach-info-label">Bank Name</dt>
+                        <dd class="ach-info-value"><strong>@_selectedAccount.BankName</strong></dd>
+                    </div>
+                    <div class="ach-info-field">
+                        <dt class="ach-info-label">Bank Routing Number</dt>
+                        <dd class="ach-info-value"><strong>@_selectedAccount.RoutingNumber</strong></dd>
+                    </div>
+                    <div class="ach-info-field">
+                        <dt class="ach-info-label">Bank Account Number</dt>
+                        <dd class="ach-info-value">
+                            <strong>
+                                <span aria-label="Account number ending in @(_selectedAccount.MaskedAccountNumber[^4..])">
+                                    @_selectedAccount.MaskedAccountNumber
+                                </span>
+                            </strong>
+                        </dd>
+                    </div>
+                    <div class="ach-info-field ach-info-field--full">
+                        <dt class="ach-info-label">Type</dt>
+                        <dd class="ach-info-value"><strong>@_selectedAccount.AccountType</strong></dd>
+                    </div>
+                </dl>
+            }
         }
-    }
-    else if (!ReadOnly)
-    {
-        <a href="/billing-payments/ach/bank-information/add"
-           class="ach-add-link"
-           aria-label="Add Bank Account">
-            + Add Account
-        </a>
-    }
+        else if (!ReadOnly)
+        {
+            <a href="/billing-payments/ach/bank-information/add"
+               class="ach-add-link"
+               aria-label="Add Bank Account">
+                + Add Account
+            </a>
+        }
+    </div>
 </div>
 
 @code {
@@ -84,6 +103,7 @@
     [Parameter] public bool? ShowEditLink { get; set; }
 
     private bool _showEditLink => ShowEditLink ?? !ReadOnly;
+    private bool _expanded = true;
 
     private AchBankAccount? _selectedAccount;
     private string? _selectedAccountNickname;
@@ -100,6 +120,8 @@
         _selectedAccount ??= BankAccount ?? BankAccounts?.FirstOrDefault();
         _selectedAccountNickname = _selectedAccount?.AccountNickname;
     }
+
+    private void ToggleExpanded() => _expanded = !_expanded;
 
     private async Task OnAccountChanged(string? nickname)
     {
