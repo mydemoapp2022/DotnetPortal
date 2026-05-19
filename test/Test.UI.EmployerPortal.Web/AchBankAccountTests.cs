@@ -1,5 +1,6 @@
 using Bunit;
 using FakeItEasy;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using UI.EmployerPortal.Web.Features.BillingPayments.Components;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
@@ -13,29 +14,29 @@ namespace Test.UI.EmployerPortal.Web;
 /// Component tests for ACH bank account display and selection behaviour,
 /// covering both the <see cref="AchBankInfoDisplay"/> component and the
 /// <see cref="BankAccountPaymentAch"/> page entry-step validation.
-/// </summary>      
+/// </summary>
 public class AchBankAccountTests : BunitContext
 {
     // ── Shared stub data ────────────────────────────────────────────────
 
     private static readonly AchBankAccount CheckingAccount = new()
     {
-        AccountNickname    = "Janice's Checking Account",
-        AccountHolderName  = "Janice Smith",
-        BankName           = "Hometown Bank",
-        RoutingNumber      = "015708055",
+        AccountNickname     = "Janice's Checking Account",
+        AccountHolderName   = "Janice Smith",
+        BankName            = "Hometown Bank",
+        RoutingNumber       = "015708055",
         MaskedAccountNumber = "********9177",
-        AccountType        = "Checking"
+        AccountType         = "Checking"
     };
 
     private static readonly AchBankAccount SavingsAccount = new()
     {
-        AccountNickname    = "Janice's Savings Account",
-        AccountHolderName  = "Janice Smith",
-        BankName           = "Hometown Bank",
-        RoutingNumber      = "015708055",
+        AccountNickname     = "Janice's Savings Account",
+        AccountHolderName   = "Janice Smith",
+        BankName            = "Hometown Bank",
+        RoutingNumber       = "015708055",
         MaskedAccountNumber = "********4321",
-        AccountType        = "Savings"
+        AccountType         = "Savings"
     };
 
     private static readonly List<AchBankAccount> TwoAccounts = [CheckingAccount, SavingsAccount];
@@ -49,13 +50,16 @@ public class AchBankAccountTests : BunitContext
         var holidayService = A.Fake<IFederalReserveHolidayService>();
         A.CallTo(() => holidayService.IsFederalReserveHoliday(A<DateOnly>._)).Returns(false);
         A.CallTo(() => holidayService.GetInvalidDatesInRange(A<DateOnly>._, A<DateOnly>._))
-         .Returns(Array.Empty<DateOnly>());
+            .Returns(Array.Empty<DateOnly>());
 
         Services.AddSingleton(holidayService);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
+    // NOTE: p.Add property selectors MUST use expression-body lambdas (x => x.Prop).
+    // bUnit uses the expression tree for type inference; block-body form breaks overload
+    // resolution (CS1929 / CS0029 / CS1662).
     private IRenderedComponent<AchBankInfoDisplay> RenderDisplay(
         List<AchBankAccount>? accounts = null,
         AchBankAccount? selected = null,
@@ -65,8 +69,8 @@ public class AchBankAccountTests : BunitContext
         return Render<AchBankInfoDisplay>(p =>
         {
             p.Add(x => x.BankAccounts, accounts ?? TwoAccounts);
-            p.Add(x => x.BankAccount,  selected ?? accounts?.FirstOrDefault() ?? CheckingAccount);
-            p.Add(x => x.ReadOnly,     readOnly);
+            p.Add(x => x.BankAccount, selected ?? accounts?.FirstOrDefault() ?? CheckingAccount);
+            p.Add(x => x.ReadOnly, readOnly);
             if (showEditLink.HasValue)
                 p.Add(x => x.ShowEditLink, showEditLink.Value);
         });
@@ -80,8 +84,8 @@ public class AchBankAccountTests : BunitContext
     private static void ClickContinue(IRenderedComponent<BankAccountPaymentAch> cut)
     {
         cut.FindAll("button")
-           .Single(b => { return b.TextContent.Contains("CONTINUE", StringComparison.OrdinalIgnoreCase); })
-           .Click();
+            .Single(b => { return b.TextContent.Contains("CONTINUE", StringComparison.OrdinalIgnoreCase); })
+            .Click();
     }
 
     // ── AchBankInfoDisplay tests ─────────────────────────────────────────
@@ -96,9 +100,9 @@ public class AchBankAccountTests : BunitContext
         var cut = RenderDisplay();
 
         Assert.Contains(CheckingAccount.AccountHolderName, cut.Markup);
-        Assert.Contains(CheckingAccount.BankName,          cut.Markup);
+        Assert.Contains(CheckingAccount.BankName, cut.Markup);
         Assert.Contains(CheckingAccount.MaskedAccountNumber, cut.Markup);
-        Assert.Contains(CheckingAccount.AccountType,       cut.Markup);
+        Assert.Contains(CheckingAccount.AccountType, cut.Markup);
     }
 
     /// <summary>
@@ -146,11 +150,10 @@ public class AchBankAccountTests : BunitContext
     {
         var cut = RenderDisplay(readOnly: false);
 
-        var select = cut.Find("select");
-        select.Change(SavingsAccount.AccountNickname);
+        cut.Find("select").Change(SavingsAccount.AccountNickname);
 
         Assert.Contains(SavingsAccount.MaskedAccountNumber, cut.Markup);
-        Assert.Contains(SavingsAccount.AccountType,         cut.Markup);
+        Assert.Contains(SavingsAccount.AccountType, cut.Markup);
     }
 
     /// <summary>
@@ -162,12 +165,13 @@ public class AchBankAccountTests : BunitContext
     {
         AchBankAccount? received = null;
 
+        // p.Add selector must remain expression-body; only the callback body uses block form.
         var cut = Render<AchBankInfoDisplay>(p =>
         {
-            p.Add(x => x.BankAccounts,            TwoAccounts);
-            p.Add(x => x.BankAccount,             CheckingAccount);
-            p.Add(x => x.ReadOnly,                false);
-            p.Add(x => x.SelectedAccountChanged,  EventCallback.Factory.Create<AchBankAccount>(
+            p.Add(x => x.BankAccounts, TwoAccounts);
+            p.Add(x => x.BankAccount, CheckingAccount);
+            p.Add(x => x.ReadOnly, false);
+            p.Add(x => x.SelectedAccountChanged, EventCallback.Factory.Create<AchBankAccount>(
                 this, account => { received = account; }));
         });
 
@@ -232,7 +236,7 @@ public class AchBankAccountTests : BunitContext
         var cut = Render<AchBankInfoDisplay>(p =>
         {
             p.Add(x => x.BankAccounts, new List<AchBankAccount>());
-            p.Add(x => x.ReadOnly,     false);
+            p.Add(x => x.ReadOnly, false);
         });
 
         Assert.Contains("+ Add Account", cut.Markup);
@@ -248,7 +252,7 @@ public class AchBankAccountTests : BunitContext
         var cut = Render<AchBankInfoDisplay>(p =>
         {
             p.Add(x => x.BankAccounts, new List<AchBankAccount>());
-            p.Add(x => x.ReadOnly,     true);
+            p.Add(x => x.ReadOnly, true);
         });
 
         Assert.DoesNotContain("+ Add Account", cut.Markup);
@@ -268,7 +272,7 @@ public class AchBankAccountTests : BunitContext
 
         cut.Find("button.ach-collapse-btn").Click();
 
-        // Collapsed — the region's hidden attribute is set; details no longer visible
+        // Collapsed — the region's hidden attribute is set
         var body = cut.Find("#bank-info-body");
         Assert.True(body.HasAttribute("hidden"));
     }
@@ -276,9 +280,8 @@ public class AchBankAccountTests : BunitContext
     // ── BankAccountPaymentAch page entry-step validation tests ───────────
 
     /// <summary>
-    /// Verifies that clicking Continue on the Entry step without any bank account
-    /// (simulated by using the page defaults which always pre-populate stub data)
-    /// advances to the Verify &amp; Authorize step when the payment info is valid.
+    /// Verifies that clicking Continue on the Entry step with a valid payment amount
+    /// advances to the Verify &amp; Authorize step.
     /// This acts as a smoke test for the happy path with pre-populated stub accounts.
     /// </summary>
     [Fact]
@@ -286,10 +289,8 @@ public class AchBankAccountTests : BunitContext
     {
         var cut = RenderPage();
 
-        // Page pre-populates stub data; heading must reflect Entry step first
         Assert.Contains("Bank Account Payment (ACH)", cut.Markup);
 
-        // Fill a valid payment amount before continuing
         var amountInput = cut.Find("input[inputmode='decimal']");
         amountInput.Input("500.00");
         amountInput.Blur();
@@ -301,7 +302,7 @@ public class AchBankAccountTests : BunitContext
 
     /// <summary>
     /// Verifies that the Verify &amp; Authorize step displays the selected bank account's
-    /// masked account number in read-only mode.
+    /// masked account number in read-only mode without the account selector dropdown.
     /// </summary>
     [Fact]
     public void Page_VerifyAuthorize_Step_Displays_Bank_Account_In_ReadOnly()
@@ -314,9 +315,7 @@ public class AchBankAccountTests : BunitContext
 
         ClickContinue(cut);
 
-        // Masked number from stub data
         Assert.Contains("********9177", cut.Markup);
-        // Selector dropdown must not appear on the verify step
         Assert.Empty(cut.FindAll("select"));
     }
 
@@ -333,12 +332,11 @@ public class AchBankAccountTests : BunitContext
         amountInput.Blur();
 
         ClickContinue(cut);
-
         Assert.Contains("Verify &amp; Authorize", cut.Markup);
 
         cut.FindAll("button")
-           .Single(b => { return b.TextContent.Contains("BACK", StringComparison.OrdinalIgnoreCase); })
-           .Click();
+            .Single(b => { return b.TextContent.Contains("BACK", StringComparison.OrdinalIgnoreCase); })
+            .Click();
 
         Assert.Contains("Bank Account Payment (ACH)", cut.Markup);
         Assert.DoesNotContain("Verify &amp; Authorize", cut.Markup);
