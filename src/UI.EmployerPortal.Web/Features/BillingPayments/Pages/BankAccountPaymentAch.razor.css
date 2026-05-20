@@ -366,7 +366,7 @@
 }
 
 /* Print-only: hide browser chrome, show only the printable content */
-@media print {
+/*@media print {
     .ach-print-actions,
     .billing-footer {
         display: none !important;
@@ -376,6 +376,16 @@
         border: 1px solid #000;
         background: #fff !important;
         break-inside: avoid;
+    }
+}*/
+
+@media print {
+    body > *:not(#print-section) {
+        display: none !important;
+    }
+
+    #print-section {
+        display: block !important;
     }
 }
 

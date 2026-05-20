@@ -681,7 +681,7 @@
     private void HandlePrint() => NavigateToStep(AchStep.PrintPreview, "Opening print preview");
 
     /// <summary>Triggers the browser print dialog from the PrintPreview step.</summary>
-    private async Task ExecutePrint() => await JS.InvokeVoidAsync("window.print");
+    private async Task ExecutePrint() => await JS.InvokeVoidAsync("printSection", "print-section");
 
     private void HandleEditPayment()
     {
