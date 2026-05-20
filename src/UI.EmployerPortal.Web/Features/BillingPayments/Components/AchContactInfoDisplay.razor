@@ -6,9 +6,9 @@
         <div class="ach-info-card-header-actions">
             @if (_showEditLink && ContactInfo is not null)
             {
-                <a href="/billing-payments/ach/contact-information/edit"
-                   class="ach-edit-link"
-                   aria-label="Edit Contact Information">
+                <a href="/billing-payments/manage-contact"
+                       class="ach-edit-link"
+                       aria-label="Edit Contact Information">
                     &#9998; Edit
                 </a>
             }
@@ -16,57 +16,41 @@
                     class="ach-collapse-btn"
                     aria-expanded="@_expanded.ToString().ToLower()"
                     aria-controls="contact-info-body"
-                    aria-label="@(_expanded ? "Collapse Contact Information" : "Expand Contact Information")"
+                    aria-lebel="@(_expanded ? "Collapse Contact Information" : "Expand Contact Information")"
                     @onclick="() => _expanded = !_expanded">
                 <span aria-hidden="true">@((MarkupString)(_expanded ? "&#8963;" : "&#8964;"))</span>
             </button>
         </div>
     </div>
+    
 
     <div id="contact-info-body"
          role="region"
          aria-labelledby="contact-info-heading"
          hidden="@(!_expanded)">
         <hr class="ach-section-divider" aria-hidden="true" />
-
         @if (ContactInfo is not null)
         {
-            <dl class="ach-contact-grid">
+            <div class="ach-contact-grid">
                 <div class="ach-info-field">
-                    <dt class="ach-info-label">Contact Name</dt>
-                    <dd class="ach-info-value"><strong>@ContactInfo.ContactName</strong></dd>
+                    <span class="ach-info-label">Contact Name</span>
+                    <strong class="ach-info-value">@ContactInfo.ContactName</strong>
                 </div>
                 <div class="ach-info-field">
-                    <dt class="ach-info-label">Phone Number</dt>
-                    <dd class="ach-info-value">
-                        <strong>
-                            <a href="tel:@ContactInfo.PhoneNumber"
-                               aria-label="Phone number @ContactInfo.PhoneNumber">
-                                @ContactInfo.PhoneNumber
-                            </a>
-                        </strong>
-                    </dd>
+                    <span class="ach-info-label">Phone Number</span>
+                    <strong class="ach-info-value">@ContactInfo.PhoneNumber</strong>
                 </div>
-            </dl>
-            <dl class="ach-info-field ach-info-field--full">
-                <div class="ach-info-field">
-                    <dt class="ach-info-label">Email Address</dt>
-                    <dd class="ach-info-value">
-                        <strong>
-                            <a href="mailto:@ContactInfo.EmailAddress"
-                               aria-label="Email address @ContactInfo.EmailAddress">
-                                @ContactInfo.EmailAddress
-                            </a>
-                        </strong>
-                    </dd>
-                </div>
-            </dl>
+            </div>
+            <div class="ach-info-field ach-info-field--full">
+                <span class="ach-info-label">Email Address</span>
+                <strong class="ach-info-value">@ContactInfo.Email</strong>
+            </div>
         }
         else if (!ReadOnly)
         {
-            <a href="/billing-payments/ach/contact-information/add"
-               class="ach-add-link"
-               aria-label="Add Contact Information">
+            <a href="/billing-payments/manage-contact"
+                   class="ach-add-link"
+                   aria-label="Add Contact Information">
                 + Add Contact
             </a>
         }
@@ -74,15 +58,8 @@
 </div>
 
 @code {
-    [Parameter] public AchContactInfo? ContactInfo { get; set; }
-    /// <summary>Hides all interactive elements (edit link, add link).</summary>
+    [Parameter] public ACHContactModel? ContactInfo { get; set; }
     [Parameter] public bool ReadOnly { get; set; }
-    /// <summary>
-    /// Explicitly controls the Edit link visibility.
-    /// When not set, defaults to <c>!ReadOnly</c>.
-    /// Use <c>ShowEditLink="true"</c> with <c>ReadOnly="true"</c> to show the edit link
-    /// while still suppressing add/dropdown interactions (e.g. Edit Payment step).
-    /// </summary>
     [Parameter] public bool? ShowEditLink { get; set; }
 
     private bool _showEditLink => ShowEditLink ?? !ReadOnly;

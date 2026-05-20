@@ -1,6 +1,6 @@
 .billing-main {
     width: 100%;
-    max-width: var(--width-content);
+    max-width: 993px;
     padding: 0 var(--spacing-md);
     box-sizing: border-box;
 }
@@ -8,12 +8,20 @@
 /* Sections */
 .billing-section {
     margin-bottom: var(--spacing-xl, 2rem);
+    max-width: 684px;
 }
 
 .billing-section-title {
-    font-size: 1.5rem;
-    color: var(--color-text);
-    margin: 0 0 var(--spacing-xs) 0;
+    border-bottom-width: 1px;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 32px;
+    leading-trim: NONE;
+    line-height: 133%;
+    letter-spacing: 0%;
+    vertical-align: middle;
+    color: #003663;
 }
 
 .other-options-title {
@@ -115,8 +123,6 @@
     color: var(--color-text);
 }
 
-
-
 .inline-link {
     color: var(--color-header-nav);
     text-decoration: none;
@@ -142,6 +148,7 @@
 /* Footer — action bar */
 .billing-footer {
     /*display: flex;*/
+    max-width: 684px;
     justify-content: space-between;
     align-items: center;
     padding-top: var(--spacing-lg);

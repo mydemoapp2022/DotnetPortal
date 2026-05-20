@@ -16,16 +16,12 @@
                                Value="@_displayAmount"
                                ValueChanged="OnAmountChanged"
                                OnBlur="OnAmountBlur"
-                               FormatText="Enter amount between $0.01 and $999,999,999.99"
+                               FormatText=""
                                Required="true"
-                               AriaDescribedBy="@(AmountError is not null ? "amount-error" : null)"
-                               AriaInvalid="@(AmountError is not null)"
-                               Placeholder="$ 0.00" />
+                               Placeholder="0.00" />
             @if (AmountError is not null)
             {
-                <div id="amount-error" class="ach-field-error" role="alert" aria-live="assertive">
-                    @AmountError
-                </div>
+                <div id="amount-error" class="ach-field-error" role="alert" aria-live="assertive">@AmountError</div>
             }
         </div>
         <a href="#amount-due-details"
@@ -38,35 +34,26 @@
     @* ── Settlement Date ── *@
     <div class="ach-settlement-date-field">
         <div class="master-text-field">
-            <label for="@_dateInputId">
-                Settlement Date
-                <span class="visually-hidden">(required)</span>
-            </label>
+            <label for="@_dateInputId">Settlement Date</label>
             <input id="@_dateInputId"
                    class="master-input"
-                   type="date"
-                   value="@_settlementDate.ToString("yyyy-MM-dd")"
-                   min="@_minDate.ToString("yyyy-MM-dd")"
-                   max="@_maxDate.ToString("yyyy-MM-dd")"
+                   type="text"
+                   value="@_settlementDate.ToString("MM-dd-yyyy")"
                    @onchange="OnDateChanged"
+                   aria-label="Settlement Date"
                    aria-required="true"
                    aria-describedby="settlementDateHint @(DateError is not null ? "date-error" : "")"
                    aria-invalid="@(DateError is not null ? "true" : "false")"
                    placeholder="Select a date" />
-            <div id="settlementDateHint" class="master-hint">
-                Select a valid business day (no weekends or Federal holidays)
-            </div>
         </div>
         @if (DateError is not null)
         {
-            <div id="date-error" class="ach-field-error" role="alert" aria-live="assertive">
-                @DateError
-            </div>
+            <div id="date-error" class="ach-field-error" role="alert" aria-live="assertive">@DateError</div>
         }
     </div>
 
-    @* ── Extended hint text ── *@
-    <p id="settlementDateExtendedHint" class="ach-settlement-hint">
+    @* ── Hint text ── *@
+    <p id="settlementDateHint" class="ach-settlement-hint">
         The settlement date is the date the funds are withdrawn from your bank account.
         The next possible settlement date is the next business day and is updated each
         business day at 07:00 PM. You may select a settlement date up to 365 calendar
@@ -99,6 +86,7 @@
         _minDate = NextValidSettlementDate(DateOnly.FromDateTime(DateTime.Today));
         _maxDate = DateOnly.FromDateTime(DateTime.Today).AddDays(365);
 
+        // Use provided initial date if valid, otherwise default to next valid business day
         _settlementDate = InitialSettlementDate.HasValue && InitialSettlementDate.Value >= _minDate
             ? InitialSettlementDate.Value
             : _minDate;
@@ -116,14 +104,14 @@
         {
             var disabledDates = HolidayService
                 .GetInvalidDatesInRange(_minDate, _maxDate)
-                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
-                .Select(d => d.ToString("yyyy-MM-dd"))
+                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday) // holidays only; weekends handled by JS
+                .Select(d => d.ToString("MM-dd-yyyy"))
                 .ToArray();
 
             await JS.InvokeVoidAsync("initAchDatePicker",
                 _dateInputId,
-                _minDate.ToString("yyyy-MM-dd"),
-                _maxDate.ToString("yyyy-MM-dd"),
+                _minDate.ToString("MM-dd-yyyy"),
+                _maxDate.ToString("MM-dd-yyyy"),
                 disabledDates);
         }
     }
@@ -139,6 +127,7 @@
     public decimal GetAmount() => _amount;
     public DateOnly GetSettlementDate() => _settlementDate;
 
+    /// <summary>Callback from OutlinedTextField @onblur — reformat amount on blur.</summary>
     private async Task OnAmountBlur()
     {
         var cleaned = _displayAmount.Replace("$", "").Replace(",", "").Trim();
@@ -156,6 +145,7 @@
         StateHasChanged();
     }
 
+    /// <summary>Callback from OutlinedTextField ValueChanged — validate on input.</summary>
     private Task OnAmountChanged(string raw)
     {
         _displayAmount = raw;
@@ -163,6 +153,7 @@
         return Task.CompletedTask;
     }
 
+    /// <summary>Callback from OutlinedTextField ValueChanged — validate on date change.</summary>
     private async Task OnDateChanged(ChangeEventArgs e)
     {
         var dateStr = e.Value?.ToString() ?? string.Empty;
@@ -198,7 +189,7 @@
 
         if (value < MinAmount)
         {
-            AmountError = "Payment Amount must be greater than $0.00 (minimum is $0.01).";
+            AmountError = "Payment Amount must be greater than $0.00.";
             return;
         }
 

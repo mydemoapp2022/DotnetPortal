@@ -1,15 +1,68 @@
-/* ═══════════════════════════════════════════════════════════════════
-   BankAccountPaymentAch — page-scoped styles
-   Applies only to elements rendered directly on this page.
-   Child component styles live in their own .razor.css files.
-   ═══════════════════════════════════════════════════════════════════ */
+.section-page {
+    max-width: 993px;
+    padding: 24px;
+}
+
+.section-header {
+    color: #003663;
+    font-size: 28px;
+    margin: 0 0 16px 0;
+}
+
+.section-description {
+    color: #000000;
+    font-size: 16px;
+    margin: 0;
+    max-width: 684px;
+}
+
+.billing-section {
+    max-width: 684px;
+}
+
+.billing-payments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+.billing-footer {
+    width: 684px !important;
+}
+
+.billing-section-title {
+    max-width: 993px;
+    height: 43px;
+    font-family: 'Verdana';
+    font-style: normal;
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 133%;
+    display: flex;
+    align-items: center;
+    color: #003663;
+}
+
+.billing-section-title-black {
+    max-width: 993px;
+    height: 37px;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 32px;
+    leading-trim: NONE;
+    line-height: 116%;
+    letter-spacing: 0%;
+    vertical-align: middle;
+    color: #000000;
+}
 
 /* ── Page container ─────────────────────────────────────────────── */
-.billing-payments-container {
-    max-width: 720px;
-    margin: 0 auto;
+/*.billing-payments-container {
+    max-width: 684px;
     padding: 24px 16px 48px;
-}
+}*/
 
 /* ── Inline card (Payment Information sections rendered by the page) */
 .ach-info-card {
@@ -17,7 +70,7 @@
     border-radius: 4px;
     padding: 16px 20px;
     margin-bottom: 20px;
-    background: #f5f5f5;
+    background: #f3f3f3;
 }
 
 .ach-info-card-header {
@@ -35,9 +88,40 @@
     }
 
 .ach-info-card-title {
-    font-size: 1rem;
     margin: 0;
     color: #003663;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 25px;
+    leading-trim: NONE;
+    line-height: 116%;
+    letter-spacing: 0%;
+    vertical-align: middle;
+}
+
+.ach-card-card-title-payment {
+    border-bottom: 1px solid var(--color-stroke-button-secondary, #003663);
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 18px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+}
+
+.ach-info-card-title-display {
+    margin: 0;
+    color: #000;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 25px;
+    leading-trim: NONE;
+    line-height: 116%;
+    letter-spacing: 0%;
+    vertical-align: middle;
 }
 
 .ach-collapse-icon {
@@ -47,7 +131,6 @@
 
 .ach-section-divider {
     border: none;
-    border-top: 1px solid #ccc;
     margin: 10px 0 14px;
 }
 
@@ -63,15 +146,28 @@
     margin-bottom: 4px;
 }
 
-.ach-info-label {
+.ach-info-label, .section-description {
     display: block;
-    font-size: 0.8rem;
-    color: #555;
+    color: #000000;
     margin-bottom: 2px;
+    font-family: Verdana;
+    font-weight: 400;
+    font-style: Regular;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+    vertical-align: middle;
 }
 
 .ach-info-value {
-    font-size: 0.95rem;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
 }
 
 .ach-confirmation-number-field {
@@ -97,12 +193,19 @@
 }
 
 .ach-print-link {
-    font-size: 0.9rem;
-    color: #1a73e8;
+    color: #0D6EFD;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+    vertical-align: middle;
 }
 
     .ach-print-link:hover {
@@ -117,6 +220,8 @@
     padding: 8px 20px;
     border-radius: 4px;
     white-space: nowrap;
+    color: #fff;
+    background-color: #C80600;
 }
 
 /* ── Edit step: cancel button floated to the right ──────────────── */
@@ -127,19 +232,22 @@
 }
 
 /* ── Authorization section (Verify & Authorize step) ────────────── */
-.ach-authorization-section {
-    background: #f5f5f5;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
+.fix-section-width, .ach-authorization-section, .ach-edit-cancel-row, .ach-print-actions, .ach-confirmation-actions, .nb-confirmation {
+    max-width: 684px;
 }
 
 .ach-authorization-text {
-    font-size: 0.9rem;
-    color: #333;
+    color: #000;
     line-height: 1.6;
-    margin-bottom: 14px;
+    max-width: 640px;
+    font-family: Verdana;
+    font-weight: 400;
+    font-style: Regular;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+    vertical-align: middle;
 }
 
 .ach-authorization-checkbox {
@@ -157,9 +265,15 @@
     }
 
     .ach-authorization-checkbox label {
-        font-size: 0.9rem;
-        font-weight: 600;
         cursor: pointer;
+        font-family: Verdana;
+        font-weight: 700;
+        font-style: Bold;
+        font-size: 16px;
+        leading-trim: NONE;
+        line-height: 160%;
+        letter-spacing: 0%;
+        vertical-align: middle;
     }
 
 /* ── Confirmation footer: PAYMENT HISTORY | EDIT PAYMENT ────────── */
@@ -168,7 +282,6 @@
     align-items: center;
     justify-content: space-between;
     padding-top: 16px;
-    border-top: 1px solid #ddd;
     flex-wrap: wrap;
     gap: 12px;
 }
@@ -189,15 +302,21 @@
     }
 
 .ach-edit-payment-btn {
-    font-size: 0.875rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    color: #1a73e8;
     text-decoration: none;
     background: none;
     border: none;
     padding: 8px 0;
     cursor: pointer;
+    color: #003663;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+    vertical-align: middle;
+    text-transform: uppercase;
 }
 
     .ach-edit-payment-btn:hover {
@@ -242,6 +361,10 @@
         background: #00284d;
     }
 
+.ach-collapse-btn {
+    border: none;
+}
+
 /* Print-only: hide browser chrome, show only the printable content */
 @media print {
     .ach-print-actions,
@@ -272,4 +395,20 @@
         align-items: stretch;
         text-align: center;
     }
+}
+
+.print-section {
+    max-width: 684px;
+    gap: 24px;
+    opacity: 1;
+    border: 2px solid #000000
+}
+
+.ach-print-section .ach-info-card {
+    border: none !important;
+    background-color: #fff !important;
+}
+
+.ach-print-section .ach-info-card-header-actions {
+    display: none !important;
 }

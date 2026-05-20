@@ -1,0 +1,176 @@
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models
+@using UI.EmployerPortal.Web.Features.Shared.NotificationBanners
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
+
+<div class="page-wrapper">
+    <div class="form-content">
+
+        <h1 class="page-title">Bank Information</h1>
+        <p class="page-subtitle">All fields are required unless noted</p>
+
+        @if (!string.IsNullOrWhiteSpace(_saveError))
+        {
+            <MasterAlert State="error" Title="Error" Body="@_saveError" />
+        }
+
+        <EditForm Model="_model" OnValidSubmit="HandleValidSubmit" aria-label="Bank Information Form">
+            <DataAnnotationsValidator />
+
+            <OutlinedTextField Label="Bank Account Nickname"
+                               Id="bank-nickname"
+                               @bind-Value="_model.Nickname"
+                               For="@(() => _model.Nickname)"
+                               Visible="_showValidation"
+                               MaxLength="50" />
+
+            <OutlinedTextField Label="Bank Routing Number"
+                               Id="bank-routing"
+                               @bind-Value="_model.RoutingNumber"
+                               For="@(() => _model.RoutingNumber)"
+                               Visible="_showValidation"
+                               InputMode="numeric"
+                               MaxLength="9"
+                               OnBlur="HandleRoutingBlur" />
+
+            <OutlinedTextField Label="Bank Account Number"
+                               Id="bank-account-number"
+                               @bind-Value="_model.AccountNumber"
+                               For="@(() => _model.AccountNumber)"
+                               Visible="_showValidation"
+                               InputMode="numeric"
+                               MaxLength="17" />
+
+            <OutlinedTextField Label="Re-Enter Account Number"
+                               Id="bank-confirm-account"
+                               @bind-Value="_model.ConfirmAccountNumber"
+                               For="@(() => _model.ConfirmAccountNumber)"
+                               Visible="_showValidation"
+                               InputMode="numeric"
+                               MaxLength="17" />
+
+            <div class="bank-name-region" role="region" aria-label="Bank Name">
+                <p class="bank-name-label" id="bank-name-label">Bank Name</p>
+                <p class="bank-name-value"
+                       aria-labelledby="bank-name-label"
+                       aria-live="polite"
+                       aria-atomic="true">
+                    @(_model.BankName ?? "—")
+                </p>
+            </div>
+
+            <OutlinedSelectField Label="Account Type"
+                                 Id="bank-account-type"
+                                 @bind-Value="_model.AccountType"
+                                 For="@(() => _model.AccountType)"
+                                 Options="_accountTypeOptions"
+                                 Placeholder="Select Account Type"
+                                 Visible="_showValidation" />
+
+            <div class="iat-region" role="region" aria-label="International ACH Transaction Information">
+                <p>
+                    There have been changes made to the rules for making electronic payments.
+                    In order to comply with those rules and make EFT payments on this web site we must
+                    ask you if the bank account used to make your electronic payment is funded by a
+                    transfer from a financial institution outside of the U.S. If the answer is yes please
+                    check the box below, otherwise leave unchecked. Should your answer change at any time
+                    in the future you must update your EFT bank account registration with the appropriate response.
+                </p>
+                <a href="#iat-explanation"
+                       class="portal-link"
+                       aria-expanded="@_showIatExplanation"
+                       aria-controls="iat-explanation"
+                       @onclick="ToggleIatExplanation"
+                       @onclick:preventDefault="true">
+                    View Further Explanation
+                </a>
+            </div>
+
+            @if (_showIatExplanation)
+            {
+                <div id="iat-explanation"
+                     class="info-panel"
+                     role="region"
+                     aria-label="IAT Further Explanation"
+                     aria-live="polite">
+                    <p>
+                        An International ACH Transaction (IAT) is a credit or debit entry that is part of a
+                        payment transaction involving a financial agency's office that is not located in the
+                        territorial jurisdiction of the United States. If your bank account is funded by
+                        transfers from a foreign financial institution, you must check this box.
+                    </p>
+                </div>
+            }
+
+            <CheckboxInput Id="iat-checkbox"
+                           Label="The bank account used to make my electronic payment is funded by a transfer from a financial institution outside of the U.S. (This is not common)"
+                           Value="_model.IsInternational"
+                           ValueChanged="HandleIatChanged" />
+
+            @if (_model.IsInternational)
+            {
+                <div role="region"
+                     aria-label="International Financial Institution Address"
+                     aria-live="polite">
+                    <NotificationBanner NotificationType="NotificationType.Warning"
+                                        Title="Not a common situation"
+                                        Message="Only complete if absolutely necessary."
+                                        Visible="true" />
+
+                    <OutlinedSelectField Label="Country"
+                                         Id="iat-country"
+                                         Value="@(_model.IatCountryCode == 0 ? "" : _model.IatCountryCode.ToString())"
+                                         ValueChanged="HandleCountryChanged"
+                                         Options="_countryOptions"
+                                         Placeholder="Select Country"
+                                         Visible="_showValidation" />
+
+                    <OutlinedTextField Label="Street Address"
+                                       Id="iat-street"
+                                       @bind-Value="_model.IatStreetAddress"
+                                       For="@(() => _model.IatStreetAddress)"
+                                       Visible="_showValidation"
+                                       MaxLength="100" />
+
+                    <OutlinedTextField Label="City"
+                                       Id="iat-city"
+                                       @bind-Value="_model.IatCity"
+                                       For="@(() => _model.IatCity)"
+                                       Visible="_showValidation"
+                                       MaxLength="50" />
+
+                    <OutlinedTextField Label="Postal Code (optional)"
+                                       Id="iat-postal"
+                                       @bind-Value="_model.IatPostalCode"
+                                       Visible="_showValidation"
+                                       MaxLength="20" />
+                </div>
+            }
+
+            <div class="button-bar" role="group" aria-label="Form Actions">
+                <Button Variant="Button.ButtonVariant.Secondary"
+                        Size="Button.ButtonSize.Medium"
+                        AriaLabel="Go back"
+                        OnClick="HandleBack">
+                    &lt; BACK
+                </Button>
+                <div class="button-group-right">
+                    <Button Variant="Button.ButtonVariant.Primary"
+                            Type="submit"
+                            Size="Button.ButtonSize.Medium"
+                            AriaLabel="Save bank account"
+                            Disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "SAVE")
+                    </Button>
+                    <Button Variant="Button.ButtonVariant.Primary"
+                            Size="Button.ButtonSize.Medium"
+                            AriaLabel="Save and continue to billing payments"
+                            Disabled="@_isSaving"
+                            OnClick="HandleSaveAndContinue">
+                        CONTINUE <img src="@Assets["icons/chevron-right.svg"]" alt="" />
+                    </Button>
+                </div>
+            </div>
+        </EditForm>
+
+    </div>
+</div>

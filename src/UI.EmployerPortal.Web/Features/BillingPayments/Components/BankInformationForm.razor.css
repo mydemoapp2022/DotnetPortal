@@ -1,0 +1,95 @@
+::deep form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.page-wrapper {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0 24px;
+}
+
+.form-content {
+    display: flex;
+    flex-direction: column;
+    width: 684px;
+    max-width: 100%;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    font-family: Verdana, sans-serif;
+    font-size: 16px;
+    gap: 16px;
+}
+
+.page-title {
+    font-family: Verdana, sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+}
+
+.page-subtitle {
+    font-family: Verdana, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: #000000;
+    margin: 0;
+}
+
+.bank-name-region {
+    padding: 4px 0;
+}
+
+.bank-name-label {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.bank-name-value {
+    font-size: 16px;
+    min-height: 24px;
+    color: #000000;
+}
+
+.info-panel {
+    background-color: var(--color-blue-highlight, #EDF7FF);
+    border: 1px solid var(--color-gray-light, #E6E6E6);
+    border-radius: 4px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.portal-link {
+    color: var(--color-primary, #006bb7);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+    .portal-link:hover {
+        color: var(--color-header-nav, #003663);
+        text-decoration: underline;
+    }
+
+.iat-region {
+    border-left: 4px solid var(--color-header-nav, #003663);
+    padding-left: 16px;
+}
+
+.button-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-gray-light, #E6E6E6);
+}
+
+.button-group-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}

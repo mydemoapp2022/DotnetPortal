@@ -33,7 +33,9 @@ public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
         for (var d = start; d <= end; d = d.AddDays(1))
         {
             if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday || holidays.Contains(d))
+            {
                 result.Add(d);
+            }
         }
 
         return result;

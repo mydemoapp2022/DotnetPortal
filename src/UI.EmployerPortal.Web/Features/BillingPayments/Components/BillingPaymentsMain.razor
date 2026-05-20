@@ -5,21 +5,20 @@
 @inject NavigationManager Nav;
 
 <div class="billing-main">
-
-    <!-- Validation Error Summary -->
-    @if (_showValidationSummary && _validationErrors.Any())
-    {
-        <NotificationBanner NotificationType="NotificationType.Alert"
-                            MessageStyle="MessageStyle.MultiLine"
-                            Messages="_validationErrors"
-                            DismissButton="false">
-        </NotificationBanner>
-        <br />
-    }
-
     <!-- Make a Payment Section -->
     <section class="billing-section" aria-labelledby="make-payment-heading">
         <h2 id="make-payment-heading" class="billing-section-title fw-bold">Make a Payment</h2>
+        <!-- Validation Error Summary -->
+        @if (_showValidationSummary && _validationErrors.Any())
+        {
+            <div class="">
+                <NotificationBanner NotificationType="NotificationType.Alert"
+                                    MessageStyle="MessageStyle.MultiLine"
+                                    Messages="_validationErrors"
+                                    DismissButton="false">
+                </NotificationBanner>
+            </div>
+        }
         <hr class="section-divider" aria-hidden="true" />
         <p id="payment-options-description" class="section-description">Select the payment options you wish to use.</p>
 
@@ -193,6 +192,7 @@
     {
         try
         {
+            // Exit the payment flow back to the employer dashboard
             Nav.NavigateTo("/employer-dashboard");
         }
         catch (Exception)
@@ -241,22 +241,22 @@
         return true;
     }
 
-    private string BuildPath(string relativePathAndQuery)
+    /// <summary>
+    /// Builds an absolute path relative to the app's base URI.
+    /// </summary>
+    private string BuildPath(string relativePath)
     {
         var baseUri = new Uri(Nav.BaseUri);
         var basePath = baseUri.AbsolutePath.TrimEnd('/');
 
-        // Split on the first '?' to keep the query string intact
-        var queryIndex = relativePathAndQuery.IndexOf('?');
-
+        var queryIndex = relativePath.IndexOf('?');
         if (queryIndex >= 0)
         {
-            var path = relativePathAndQuery[..queryIndex];
-            var query = relativePathAndQuery[queryIndex..]; // includes the leading '?'
+            var path = relativePath[..queryIndex];
+            var query = relativePath[queryIndex..];
             return new PathString(basePath + path) + query;
         }
-
-        return new PathString(basePath + relativePathAndQuery);
+        return new PathString(basePath + relativePath);
     }
 
     private void ShowNavigationError()

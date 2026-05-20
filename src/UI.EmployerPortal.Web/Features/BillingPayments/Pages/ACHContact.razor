@@ -1,0 +1,90 @@
+@page "/billing-payments/manage-contact"
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
+@using UI.EmployerPortal.Razor.SharedComponents.Validation
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models;
+<PageTitle>ACH Contact Information</PageTitle>
+    <div class="page_wrapper">
+        <div class="bi-page-content">
+        <h1 class="page-title">Contact Information</h1>
+         <EditForm EditContext="@_editContext"
+                  OnValidSubmit="HandleContinue"
+                  OnInvalidSubmit="OnInvalid"
+                  FormName="ACHContactInformation">
+            <DataAnnotationsValidator />
+            <CustomValidator @ref="_customValidator" />
+
+        <div class="custom-divider"></div>
+        @if(_contactexist)
+        {
+        
+                          <NotificationBanner NotificationType="NotificationType.Confirmation"                                   
+                                    Message="Contact Information is Saved"
+                                    Visible="true" />
+        }
+            <p class="contact-subtitle" aria-label="noted-required-fields">All fields are required unless noted</p>
+                <div class="bi-fields-grid">
+                <div class="bi-field" aria-required="true">
+                   <OutlinedTextField Label="Name"
+                       Id="con-name"
+                       @bind-Value="Model.ContactName"
+                        For="()=>Model.ContactName"
+                         Visible="@IsVisible(() =>Model.ContactName)">
+                   </OutlinedTextField>
+
+                </div>
+                <div class="bi-field">
+                        <OutlinedSelectField Label="Phone Number Format"
+                                             Id="con-phone-format"
+                                             @bind-Value="Model.PhoneNumberFormat"
+                                             Options="PhoneNumberFormat"                                           
+                                             For="() => Model.PhoneNumberFormat" />
+                </div>
+                    <div class="bi-field"></div>
+                    <div class="bi-zip-row">
+                        <div class="bi-zip-field">
+                            <PhoneNumberField @bind-Value="Model.PhoneNumber"
+                                              For="() => Model.PhoneNumber"
+                                              Visible="@IsVisible(() => Model.PhoneNumber)"
+                                             />
+                        </div>
+                        <span class="bi-zip-dash">—</span>
+                        <div class="bi-ext-field">
+                            <OutlinedTextField Label="Ext. (optional)"
+                                               Id="record-ext"
+                                               @bind-Value="Model.PhoneExt" />
+                        </div>
+                    </div>
+                    <div class="bi-field"><p><strong>If you would like to receive a payment confirmation via email please provide an email address below.</strong></p></div>
+                    <div class="bi-field">
+                        <OutlinedTextField Label="Email Address"
+                                           Id="record-email"
+                                           Type="email"
+                                           @bind-Value="Model.Email"
+                                           For="() => Model.Email"
+                                               Visible="@IsVisible(() => Model.Email)" />
+                       
+                    </div>
+                    <div class="bi-field">
+                        <OutlinedTextField Label="Verify Email Address"
+                                           Id="record-confirmemail"
+                                           Type="email"
+                                           @bind-Value="Model.ConfirmEmail"
+                                           For="() => Model.ConfirmEmail"
+                                           Visible="@IsVisible(() => Model.ConfirmEmail)"/>
+                    </div>
+            </div>                 
+                  
+                   <BillingButtonBar ShowBack="false"
+                       ShowContinue="true"
+                       ShowCancel="false"
+                         ContinueText="SAVE"
+                          OnContinue="Save"
+                          OnBack="GoBack">
+                   </BillingButtonBar>   
+       
+   
+     </EditForm>
+ 
+     </div>
+     </div>

@@ -4,20 +4,30 @@
     border-radius: 4px;
     padding: 16px 20px;
     margin-bottom: 20px;
-    background: #f5f5f5; /* ← was #fff; Figma shows gray background */
+    background: #f3f3f3;
 }
 
 .ach-info-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
+}
+
+.ach-collapse-btn {
+    border: none;
 }
 
 .ach-info-card-title {
-    font-size: 1rem;
     margin: 0;
-    color: #003663;
+    color: #000;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 25px;
+    leading-trim: NONE;
+    line-height: 116%;
+    letter-spacing: 0%;
+    vertical-align: middle;
 }
 
 .ach-info-card-header-actions {
@@ -33,23 +43,33 @@
 
 .ach-section-divider {
     border: none;
-    border-top: 1px solid #ccc;
     margin: 10px 0 14px;
 }
 
 /* ── Edit / Add links ───────────────────────────────────────────── */
 .ach-edit-link {
-    font-size: 0.875rem;
-    color: #1a73e8;
+    color: #003663;
     text-decoration: none;
+    font-family: Inter;
+    font-weight: 400;
+    font-style: Regular;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 100%;
+    letter-spacing: 0%;
 }
 
 .ach-add-link {
-    font-size: 0.9rem;
-    color: #1a73e8;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
+    vertical-align: middle;
+    color: #0D6EFD;
     text-decoration: none;
-    display: inline-block;
-    padding: 4px 0;
 }
 
 /* ── Contact 2-col grid ─────────────────────────────────────────── */
@@ -66,17 +86,38 @@
 
 .ach-info-label {
     display: block;
-    font-size: 0.8rem;
-    color: #555;
+    color: #000;
     margin-bottom: 2px;
+    font-family: Verdana;
+    font-weight: 400;
+    font-style: Regular;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
 }
 
 .ach-info-value {
-    font-size: 0.95rem;
+    font-family: Verdana;
+    font-weight: 700;
+    font-style: Bold;
+    font-size: 16px;
+    leading-trim: NONE;
+    line-height: 160%;
+    letter-spacing: 0%;
 }
 
 @media (max-width: 575px) {
     .ach-contact-grid {
         grid-template-columns: 1fr;
     }
+}
+
+.ach-print-section .ach-info-card {
+    border: none !important;
+    background-color: #fff !important;
+}
+
+.ach-print-section .ach-info-card-header-actions {
+    display: none !important;
 }
