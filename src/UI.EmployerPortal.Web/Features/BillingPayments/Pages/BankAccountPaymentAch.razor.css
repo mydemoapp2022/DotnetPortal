@@ -425,3 +425,35 @@
 .ach-print-section .ach-info-card-header-actions {
     display: none !important;
 }
+
+.ach-print-nav-actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+/* ACH page loader */
+.ach-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    gap: 1rem;
+}
+
+.ach-loading-spinner {
+    display: inline-block;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 4px solid #dee2e6;
+    border-top-color: #0d6efd;
+    border-radius: 50%;
+    animation: ach-spin 0.75s linear infinite;
+}
+
+@keyframes ach-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

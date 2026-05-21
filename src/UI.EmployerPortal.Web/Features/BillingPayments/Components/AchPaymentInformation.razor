@@ -133,12 +133,21 @@
     /// <summary>Called when OutlinedTextField ValueChanged fires for the date field.</summary>
     private async Task OnDateInputChanged(string raw)
     {
-        _formModel.SettlementDate = string.IsNullOrWhiteSpace(raw) ? null : raw;
-        _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
-
         if (DateOnly.TryParseExact(raw, "MM-dd-yyyy", null,
                 System.Globalization.DateTimeStyles.None, out var parsed))
         {
+            // Guard: if the JS datepicker fires with a date before the minimum valid date
+            // (e.g. today), restore the field to the current valid settlement date and ignore.
+            if (parsed < _minDate)
+            {
+                _formModel.SettlementDate = _settlementDate.ToString("MM-dd-yyyy");
+                DateError = null;
+                StateHasChanged();
+                return;
+            }
+
+            _formModel.SettlementDate = raw;
+            _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
             _settlementDate = parsed;
             ValidateDate(_settlementDate);
             if (DateError is null)
@@ -146,8 +155,11 @@
         }
         else
         {
+            _formModel.SettlementDate = string.IsNullOrWhiteSpace(raw) ? null : raw;
+            _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
             DateError = string.IsNullOrWhiteSpace(raw) ? null : "Please enter a valid settlement date (MM-DD-YYYY).";
         }
+
         StateHasChanged();
     }
 
