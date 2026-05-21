@@ -380,13 +380,16 @@
 }*/
 
 @media print {
-    body > *:not(#print-section) {
+    body > *:not(.print-section) {
         display: none !important;
     }
 
-    #print-section {
+    .print-section {
         display: block !important;
     }
+        .print-section .ach-section-divider {
+            border: none !important;
+        }
 }
 
 /* ── Responsive ─────────────────────────────────────────────────── */

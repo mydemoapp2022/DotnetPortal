@@ -619,7 +619,7 @@
 
     private void HandleCancel() => Nav.NavigateTo("/employer-dashboard");
 
-    private void HandleContinue()
+    private async void HandleContinue()
     {
         _showValidationSummary = false;
         _validationErrors.Clear();
@@ -640,7 +640,10 @@
 
             case AchStep.VerifyAuthorize:
                 if (!ValidateAuthorization())
+                {
+                    await JS.InvokeVoidAsync("window.scrollTo", 0, 0);
                     return;
+                }
 
                 // TODO: Replace with actual payment submission service call.
                 _confirmationNumber = GenerateConfirmationNumber();
@@ -719,6 +722,9 @@
             return true;
 
         _authorizationError = "You must accept the authorization to proceed.";
+        _validationErrors.Clear();
+        _validationErrors.Add(_authorizationError);
+        _showValidationSummary = true;
         return false;
     }
 

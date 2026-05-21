@@ -110,6 +110,10 @@
     /// </summary>
     [Parameter] public EventCallback OnBlur { get; set; }
 
+    [Parameter] public bool ForceError { get; set; }
+
+    [Parameter] public string? ForceErrorMessage { get; set; }
+
     /// <summary>
     /// Cascaded EditContext from parent EditForm
     /// </summary>
@@ -148,9 +152,11 @@
     /// Returns the validation error messages for this field.
     /// </summary>
     private IEnumerable<string> ErrorMessages =>
-        EditContext is not null && ResolvedExpression is not null
-        ? EditContext.GetValidationMessages(FieldIdentifier.Create(ResolvedExpression))
-        : Enumerable.Empty<string>();
+    ForceError && ForceErrorMessage is not null
+        ? [ForceErrorMessage]
+        : EditContext is not null && ResolvedExpression is not null
+            ? EditContext.GetValidationMessages(FieldIdentifier.Create(ResolvedExpression))
+            : Enumerable.Empty<string>();
 
     /// <summary>
     /// Tracks whether the user has blurred this field at least once.
@@ -175,6 +181,7 @@
     /// Returns true if the field has validation errors and has been touched or forced visible.
     /// </summary>
     private bool HasError =>
+        ForceError ||
         (_touched || Visible) &&
         EditContext is not null &&
         ResolvedExpression is not null &&
