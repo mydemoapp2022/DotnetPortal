@@ -18,7 +18,7 @@
                     class="ach-collapse-btn"
                     aria-expanded="@_expanded.ToString().ToLower()"
                     aria-controls="bank-info-body"
-                    aria-lebel="@(_expanded ? "Collapse Bank Information" : "Expand Bank Information")"
+                    aria-label="@(_expanded ? "Collapse Bank Information" : "Expand Bank Information")"
                     @onclick="ToggleExpanded">
                 <span aria-hidden="true">@((MarkupString)(_expanded ? "&#8963;" : "&#8964;"))</span>
             </button>

@@ -90,6 +90,7 @@
     [Parameter] public DateOnly? InitialSettlementDate { get; set; }
     [Parameter] public EventCallback<decimal> AmountChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> SettlementDateChanged { get; set; }
+    [Parameter] public EventCallback OnAmountInput { get; set; }
 
     public string? AmountError { get; private set; }
     public string? DateError { get; private set; }
@@ -252,9 +253,18 @@
             return;
         }
 
-        if (!decimal.TryParse(cleaned, out var value))
+        if (!decimal.TryParse(cleaned, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out var value))
         {
-            AmountError = "Payment Amount must be a valid dollar amount.";
+            AmountError = "Payment Amount must include 2 decimal places. It must be numeric and in a valid format.";
+            return;
+        }
+
+        // Ensure exactly 2 decimal places (e.g. "100" or "100.1" are invalid; "100.10" is valid)
+        var dotIndex = cleaned.IndexOf('.');
+        if (dotIndex < 0 || cleaned.Length - dotIndex - 1 != 2)
+        {
+            AmountError = "Payment Amount must include 2 decimal places. It must be numeric and in a valid format.";
             return;
         }
 

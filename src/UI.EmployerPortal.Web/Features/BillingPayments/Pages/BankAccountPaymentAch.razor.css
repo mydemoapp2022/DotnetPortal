@@ -77,8 +77,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
-    user-select: none;
 }
 
     .ach-info-card-header:focus-visible {
@@ -455,5 +453,50 @@
 @keyframes ach-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+
+/* ── Accessible print definition list ──────────────────────────── */
+.ach-print-dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ach-print-dl-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.ach-print-dl-item--full {
+    grid-column: 1 / -1;
+    margin-bottom: 4px;
+}
+
+/* dt inherits .ach-info-label styles, dd inherits .ach-info-value */
+.ach-print-dl dt {
+    font-weight: 400;
+    margin: 0;
+}
+
+.ach-print-dl dd {
+    font-weight: 700;
+    margin: 0;
+}
+
+/* ── Hide print action button when printing ─────────────────────── */
+@media print {
+    .ach-no-print {
+        display: none !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .ach-print-dl {
+        grid-template-columns: 1fr;
     }
 }

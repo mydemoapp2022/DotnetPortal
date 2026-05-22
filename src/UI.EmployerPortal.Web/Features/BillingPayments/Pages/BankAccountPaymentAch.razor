@@ -302,8 +302,8 @@
                 {
                     <div class="fix-section-width">
                         <NotificationBanner NotificationType="NotificationType.Alert"
-                        Message='@($"Payment information is unavailable. Please visit <a href=\"/billing-payments/payment-history\">Payment History</a> to locate your payment.")'
-                        DismissButton="false" />
+                                            Message='@($"Payment information is unavailable. Please visit <a href=\"/billing-payments/payment-history\">Payment History</a> to locate your payment.")'
+                                            DismissButton="false" />
                     </div>
                 }
                 else
@@ -312,55 +312,113 @@
                     <h1 class="billing-section-title-black fw-bold">EFT Payment Confirmation</h1>
                     <p class="section-description">print out payment confirmation.</p>
 
-                    <div class="ach-print-actions fix-section-width">
+                    @* Hidden from @media print via CSS *@
+                    <div class="ach-print-actions fix-section-width ach-no-print" aria-hidden="false">
                         <button type="button"
-                        class="btn btn-primary ach-print-btn"
-                        aria-label="Open browser print dialog"
-                        @onclick="ExecutePrint">
+                                class="btn btn-primary ach-print-btn"
+                                aria-label="Open browser print dialog to print payment confirmation"
+                                @onclick="ExecutePrint">
                             &#128438; PRINT
                         </button>
                     </div>
 
-                    @* ── Print layout: no collapsible, plain card borders ── *@
-                    <div class="print-section">
-                        <section class="billing-section ach-print-section" aria-label="Payment Information" aria-labelledby="print-payment-heading">
+                    @* ── Accessible print layout ── *@
+                    <div class="print-section" id="print-section" role="document" aria-label="EFT Payment Confirmation">
+
+                        <section class="billing-section ach-print-section"
+                                 aria-labelledby="print-payment-heading">
                             <div class="ach-info-card ach-info-card--print">
-                                <h2 id="print-payment-heading" class="ach-info-card-title-display fw-bold">Payment Information</h2>
+                                <h2 id="print-payment-heading" class="ach-info-card-title-display fw-bold">
+                                    Payment Information
+                                </h2>
                                 <hr class="ach-section-divider" aria-hidden="true" />
-                                <div class="ach-bank-grid">
-                                    <div class="ach-info-field">
-                                        <span class="ach-info-label">Confirmation Number</span>
-                                        <strong class="ach-info-value">@_confirmationNumber</strong>
+                                <dl class="ach-print-dl">
+                                    <div class="ach-print-dl-item">
+                                        <dt class="ach-info-label">Confirmation Number</dt>
+                                        <dd class="ach-info-value">@_confirmationNumber</dd>
                                     </div>
-                                    <div class="ach-info-field">
-                                        <span class="ach-info-label">Transaction Date/Time</span>
-                                        <strong class="ach-info-value">@_transactionDateTime.ToString("MM/dd/yyyy hh:mm tt") CST</strong>
+                                    <div class="ach-print-dl-item">
+                                        <dt class="ach-info-label">Transaction Date/Time</dt>
+                                        <dd class="ach-info-value">@_transactionDateTime.ToString("MM/dd/yyyy hh:mm tt") CST</dd>
                                     </div>
-                                    <div class="ach-info-field">
-                                        <span class="ach-info-label">Description</span>
-                                        <strong class="ach-info-value">Payment</strong>
+                                    <div class="ach-print-dl-item">
+                                        <dt class="ach-info-label">Description</dt>
+                                        <dd class="ach-info-value">Payment</dd>
                                     </div>
-                                    <div class="ach-info-field">
-                                        <span class="ach-info-label">Payment Amount</span>
-                                        <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                                    <div class="ach-print-dl-item">
+                                        <dt class="ach-info-label">Payment Amount</dt>
+                                        <dd class="ach-info-value">@_confirmedAmount.ToString("C2")</dd>
                                     </div>
-                                </div>
-                                <div class="ach-info-field ach-info-field--full">
-                                    <span class="ach-info-label">Settlement Date</span>
-                                    <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
-                                </div>
+                                    <div class="ach-print-dl-item ach-print-dl-item--full">
+                                        <dt class="ach-info-label">Settlement Date</dt>
+                                        <dd class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</dd>
+                                    </div>
+                                </dl>
                             </div>
                         </section>
 
-                        <section class="billing-section ach-print-section" aria-label="Bank Information" aria-labelledby="bank-info-heading">
-                            <AchBankInfoDisplay BankAccounts="_bankAccounts"
-                            BankAccount="_bankAccount"
-                            ReadOnly="true" />
+                        <section class="billing-section ach-print-section"
+                                 aria-labelledby="print-bank-heading">
+                            <div class="ach-info-card ach-info-card--print">
+                                <h2 id="print-bank-heading" class="ach-info-card-title-display fw-bold">
+                                    Bank Information
+                                </h2>
+                                <hr class="ach-section-divider" aria-hidden="true" />
+                                @if (_bankAccount is not null)
+                                {
+                                    <dl class="ach-print-dl">
+                                        <div class="ach-print-dl-item">
+                                            <dt class="ach-info-label">Bank Account Nickname</dt>
+                                            <dd class="ach-info-value">@_bankAccount.Nickname</dd>
+                                        </div>
+                                        <div class="ach-print-dl-item">
+                                            <dt class="ach-info-label">Bank Name</dt>
+                                            <dd class="ach-info-value">@_bankAccount.BankName</dd>
+                                        </div>
+                                        <div class="ach-print-dl-item">
+                                            <dt class="ach-info-label">Bank Routing Number</dt>
+                                            <dd class="ach-info-value">@_bankAccount.RoutingNumber</dd>
+                                        </div>
+                                        <div class="ach-print-dl-item">
+                                            <dt class="ach-info-label">Bank Account Number</dt>
+                                            <dd class="ach-info-value">@_bankAccount.MaskedAccountNumber</dd>
+                                        </div>
+                                        <div class="ach-print-dl-item ach-print-dl-item--full">
+                                            <dt class="ach-info-label">Account Type</dt>
+                                            <dd class="ach-info-value">@_bankAccount.AccountType</dd>
+                                        </div>
+                                    </dl>
+                                }
+                            </div>
                         </section>
 
-                        <section class="billing-section ach-print-section" aria-label="Contact Information" aria-labelledby="contact-info-heading">
-                            <AchContactInfoDisplay ContactInfo="_contactInfo" ReadOnly="true" />
+                        <section class="billing-section ach-print-section"
+                                 aria-labelledby="print-contact-heading">
+                            <div class="ach-info-card ach-info-card--print">
+                                <h2 id="print-contact-heading" class="ach-info-card-title-display fw-bold">
+                                    Contact Information
+                                </h2>
+                                <hr class="ach-section-divider" aria-hidden="true" />
+                                @if (_contactInfo is not null)
+                                {
+                                    <dl class="ach-print-dl">
+                                        <div class="ach-print-dl-item">
+                                            <dt class="ach-info-label">Contact Name</dt>
+                                            <dd class="ach-info-value">@_contactInfo.ContactName</dd>
+                                        </div>
+                                        <div class="ach-print-dl-item">
+                                            <dt class="ach-info-label">Phone Number</dt>
+                                            <dd class="ach-info-value">@_contactInfo.PhoneNumber</dd>
+                                        </div>
+                                        <div class="ach-print-dl-item ach-print-dl-item--full">
+                                            <dt class="ach-info-label">Email Address</dt>
+                                            <dd class="ach-info-value">@_contactInfo.Email</dd>
+                                        </div>
+                                    </dl>
+                                }
+                            </div>
                         </section>
+
                     </div>
                 }
             }
@@ -713,7 +771,7 @@
         // TODO: call payment cancellation service (UIEP-730).
         // On success, advance to CancelConfirmation; on failure, show error banner.
         _step = AchStep.CancelConfirmation;
-        NavigateToStep(AchStep.CancelConfirmation, "Payment cancelled. Your are now on the Cancel Confirmation page.");
+        NavigateToStep(AchStep.CancelConfirmation, "Payment cancelled. Your are now on the Cancel Confirmation page");
     }
 
     /// <summary>Navigates to the print preview step.</summary>
@@ -757,7 +815,7 @@
         if (_authorized)
             return true;
 
-        _authorizationError = "You must accept the authorization to proceed.";
+        _authorizationError = "You must accept the user agreement or cancel the payment.";
         _validationErrors.Clear();
         _validationErrors.Add(_authorizationError);
         _showValidationSummary = true;
@@ -770,10 +828,7 @@
     /// </summary>
     private RenderFragment RenderPaymentInfoCard(string cardId, bool expanded, Action<bool> setExpanded, bool showConfirmationDetails) =>
         @<div class="ach-info-card">
-            <div class="ach-info-card-header"
-                 role="button" tabindex="0"
-                 aria-expanded="@expanded"
-                 @onclick="() => setExpanded(!expanded)">
+            <div class="ach-info-card-header">
                 <h2 id="@($"{cardId}-heading")" class="ach-info-card-title-display fw-bold">Payment Information</h2>
                 <button type="button"
                         class="ach-collapse-btn"

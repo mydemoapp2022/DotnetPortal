@@ -16,7 +16,7 @@
                     class="ach-collapse-btn"
                     aria-expanded="@_expanded.ToString().ToLower()"
                     aria-controls="contact-info-body"
-                    aria-lebel="@(_expanded ? "Collapse Contact Information" : "Expand Contact Information")"
+                    aria-label="@(_expanded ? "Collapse Contact Information" : "Expand Contact Information")"
                     @onclick="() => _expanded = !_expanded">
                 <span aria-hidden="true">@((MarkupString)(_expanded ? "&#8963;" : "&#8964;"))</span>
             </button>
