@@ -405,21 +405,25 @@ public class AchBankAccountTests : BunitContext
     /// <summary>
     /// Verifies that the loading spinner is shown while OnInitializedAsync is running,
     /// before bank accounts and contact data have been fetched.
+    /// Uses a TaskCompletionSource to hold the service call open so the spinner
+    /// is still in the markup when the assertion runs.
     /// </summary>
     [Fact]
-    public void Page_Shows_Loading_Spinner_While_Initializing()
+    public async Task Page_Shows_Loading_Spinner_While_Initializing()
     {
-        // Delay the bank account service so we can observe the loading state
+        var tcs = new TaskCompletionSource<IReadOnlyList<SavedBankAccount>>();
+
         A.CallTo(() => _bankAccountOrchestrator.GetExistingAccountsAsync())
-            .ReturnsLazily(async () =>
-            {
-                await Task.Delay(500);
-                return (IReadOnlyList<SavedBankAccount>) TwoAccounts.AsReadOnly();
-            });
+            .Returns(tcs.Task);
 
         var cut = Render<BankAccountPaymentAch>();
 
+        // Component is mid-OnInitializedAsync — spinner must be visible
         Assert.Contains("ach-loading", cut.Markup);
+
+        // Release the hold so the component can finish and avoid test-cleanup leaks
+        tcs.SetResult(TwoAccounts.AsReadOnly());
+        await cut.WaitForStateAsync(() => !cut.Markup.Contains("ach-loading"));
     }
 
     /// <summary>
@@ -558,6 +562,8 @@ public class AchBankAccountTests : BunitContext
     /// <summary>
     /// Verifies that clicking Continue on the Verify &amp; Authorize step without
     /// checking the authorization checkbox shows an error and stays on that step.
+    /// Uses WaitForAssertion because HandleContinue is async void and awaits a
+    /// JS call before re-rendering.
     /// </summary>
     [Fact]
     public void Page_VerifyAuthorize_Shows_Error_When_Authorization_Not_Accepted()
@@ -569,8 +575,11 @@ public class AchBankAccountTests : BunitContext
 
         ClickContinue(cut); // attempt without checking
 
-        Assert.Contains("You must accept the user agreement", cut.Markup);
-        Assert.DoesNotContain("EFT Payment Confirmation", cut.Markup);
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("You must accept the user agreement", cut.Markup);
+            Assert.DoesNotContain("EFT Payment Confirmation", cut.Markup);
+        });
     }
 
     /// <summary>
