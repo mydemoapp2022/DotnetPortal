@@ -98,21 +98,36 @@
                     <div class="ach-info-card">
                         <div class="ach-info-card-header">
                             <h2 id="payment-info-verify-heading" class="ach-info-card-title-display fw-bold">Payment Information</h2>
-                        </div>
-                        <hr class="ach-section-divider" aria-hidden="true" />
-                        <div class="ach-bank-grid">
-                            <div class="ach-info-field">
-                                <span class="ach-info-label">Description</span>
-                                <strong class="ach-info-value">Payment</strong>
+                            <div class="ach-info-card-header-actions">
+                                <button type="button"
+                                        class="ach-collapse-btn"
+                                        aria-expanded="@_verifyAuthorizePaymentExpanded.ToString().ToLower()"
+                                        aria-controls="verify-payment-info-body"
+                                        aria-label="@(_verifyAuthorizePaymentExpanded ? "Collapse Payment Information" : "Expand Payment Information")"
+                                        @onclick="() => _verifyAuthorizePaymentExpanded = !_verifyAuthorizePaymentExpanded">
+                                    <span aria-hidden="true">@((MarkupString)(_verifyAuthorizePaymentExpanded ? "&#8963;" : "&#8964;"))</span>
+                                </button>
                             </div>
-                            <div class="ach-info-field">
-                                <span class="ach-info-label">Payment Amount</span>
-                                <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
-                            </div>
                         </div>
-                        <div class="ach-info-field ach-info-field--full">
-                            <span class="ach-info-label">Settlement Date</span>
-                            <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                        <div id="verify-payment-info-body"
+                             role="region"
+                             aria-labelledby="payment-info-verify-heading"
+                             hidden="@(!_verifyAuthorizePaymentExpanded)">
+                            <hr class="ach-section-divider" aria-hidden="true" />
+                            <div class="ach-bank-grid">
+                                <div class="ach-info-field">
+                                    <span class="ach-info-label">Description</span>
+                                    <strong class="ach-info-value">Payment</strong>
+                                </div>
+                                <div class="ach-info-field">
+                                    <span class="ach-info-label">Payment Amount</span>
+                                    <strong class="ach-info-value">@_confirmedAmount.ToString("C2")</strong>
+                                </div>
+                            </div>
+                            <div class="ach-info-field ach-info-field--full">
+                                <span class="ach-info-label">Settlement Date</span>
+                                <strong class="ach-info-value">@_confirmedSettlementDate.ToString("MM/dd/yyyy")</strong>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -566,37 +581,14 @@
                 }
                 else if (_step == AchStep.PrintPreview)
                 {
-                    <div class="button-bar d-flex align-items-center mt-auto pt-3 no-print">
-                        <div class="button-bar-left d-flex align-items-center"
-                             role="group"
-                             aria-label="Secondary actions">
-                            <button type="button"
-                                    class="btn-outline-secondary no-flex-grow"
-                                    aria-label="Go to employer dashboard"
-                                    @onclick='() => Nav.NavigateTo("/employer-dashboard")'>
-                                <img src="/icons/button-previous.svg"
-                                     alt=""
-                                     role="presentation"
-                                     class="button-icon" />
-                                <span class="btn-secondary-label">GO TO DASHBOARD</span>
-                            </button>
-                        </div>
-                        <div class="flex-grow-1" />
-                        <div class="button-bar-right d-flex align-items-center"
-                             role="group"
-                             aria-label="Primary actions">
-                            <button type="button"
-                                    class="btn-outline-primary no-flex-grow"
-                                    aria-label="Go to payment history"
-                                    @onclick='() => Nav.NavigateTo("/billing-payments/payment-history")'>
-                                <span class="btn-primary-label">PAYMENT HISTORY</span>
-                                <img src="/icons/button-next.svg"
-                                     alt=""
-                                     role="presentation"
-                                     class="button-icon primary" />
-                            </button>
-                        </div>
-                    </div>
+                    <BillingButtonBar ShowBack="true"
+                                      ShowCancel="false"
+                                      ShowContinue="true"
+                                      BackText="DASHBOARD"
+                                      ContinueText="PAYMENT HISTORY"
+                                      OnBack='() => Nav.NavigateTo("/employer-dashboard")'
+                                      OnContinue='() => Nav.NavigateTo("/billing-payments/payment-history")'
+                                      ButtonWidth="200" />
                 }
                 else
                 {
@@ -664,6 +656,7 @@
     private bool _cameFromEdit;
     private bool _isLoading = true;
     private readonly AchPaymentFormModel _paymentDraft = new();
+    private bool _verifyAuthorizePaymentExpanded = true;
 
     protected override async Task OnInitializedAsync()
     {
