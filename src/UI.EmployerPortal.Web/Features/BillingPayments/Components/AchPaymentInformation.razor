@@ -23,7 +23,9 @@
                                    OnBlur="OnAmountBlur"
                                    Required="true"
                                    Placeholder="0.00"
-                                   For="() => _formModel.Amount" />
+                                   For="() => _formModel.Amount"
+                                   ForceError="@(AmountError is not null)"
+                                   ForceErrorMessage="@AmountError" />
             </div>
             <a href="#amount-due-details"
                class="ach-amount-due-link"
@@ -72,7 +74,9 @@
                            ValueChanged="OnDateInputChanged"
                            Required="true"
                            Placeholder="MM-DD-YYYY"
-                           For="() => _formModel.SettlementDate" />
+                           For="() => _formModel.SettlementDate"
+                           ForceError="@(DateError is not null)"
+                           ForceErrorMessage="@DateError" />
     </div>
 
     @* ── Hint text ── *@
@@ -91,11 +95,13 @@
     [Parameter] public EventCallback<decimal> AmountChanged { get; set; }
     [Parameter] public EventCallback<DateOnly> SettlementDateChanged { get; set; }
     [Parameter] public EventCallback OnAmountInput { get; set; }
+    [Parameter] public AchPaymentFormModel Draft { get; set; } = new();
 
     public string? AmountError { get; private set; }
     public string? DateError { get; private set; }
 
-    private readonly AchPaymentFormModel _formModel = new();
+    //private readonly AchPaymentFormModel _formModel = new();
+    private AchPaymentFormModel _formModel => Draft;
     private EditContext _editContext = default!;
 
     private const decimal MinAmount = 0.01m;
@@ -108,27 +114,40 @@
     private DateOnly _maxDate;
     private readonly string _dateInputId = $"settlement-date-{Guid.NewGuid():N}";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _editContext = new EditContext(_formModel);
+        // ── Initialize EditContext immediately so EditForm doesn't crash on first render ──
+        _editContext = new EditContext(Draft);
 
-        _minDate = NextValidSettlementDate(DateOnly.FromDateTime(DateTime.Today));
+        // Load holidays + first available date from WCF service
+        await HolidayService.LoadAsync();
+
+        // Use the WCF-supplied first available date as minDate
+        _minDate = HolidayService.FirstAvailableSettlementDate;
         _maxDate = DateOnly.FromDateTime(DateTime.Today).AddDays(365);
 
-        // Use provided initial date if valid, otherwise default to next valid business day
-        _settlementDate = InitialSettlementDate.HasValue && InitialSettlementDate.Value >= _minDate
-            ? InitialSettlementDate.Value
-            : _minDate;
-
-        // Sync settlement date to model
-        _formModel.SettlementDate = _settlementDate.ToString("MM-dd-yyyy");
-
-        if (InitialAmount is > 0)
+        if (Draft.ValidatedAmount is > 0)
+        {
+            _amount = Draft.ValidatedAmount.Value;
+            _displayAmount = FormatAmount(_amount);
+            Draft.Amount = _displayAmount;
+        }
+        else if (InitialAmount is > 0)
         {
             _amount = InitialAmount.Value;
             _displayAmount = FormatAmount(_amount);
-            _formModel.Amount = _displayAmount;
+            Draft.Amount = _displayAmount;
+            Draft.ValidatedAmount = _amount;
         }
+
+        var restoredDate = Draft.ValidatedSettlementDate
+                           ?? (InitialSettlementDate >= _minDate ? InitialSettlementDate : null);
+
+        _settlementDate = restoredDate.HasValue && restoredDate.Value >= _minDate
+            ? restoredDate.Value
+            : _minDate;
+
+        Draft.SettlementDate = _settlementDate.ToString("MM-dd-yyyy");
     }
 
     /// <summary>Called when OutlinedTextField ValueChanged fires for the date field.</summary>
@@ -137,17 +156,16 @@
         if (DateOnly.TryParseExact(raw, "MM-dd-yyyy", null,
                 System.Globalization.DateTimeStyles.None, out var parsed))
         {
-            // Guard: if the JS datepicker fires with a date before the minimum valid date
-            // (e.g. today), restore the field to the current valid settlement date and ignore.
             if (parsed < _minDate)
             {
-                _formModel.SettlementDate = _settlementDate.ToString("MM-dd-yyyy");
+                Draft.SettlementDate = _settlementDate.ToString("MM-dd-yyyy");
                 DateError = null;
                 StateHasChanged();
                 return;
             }
 
-            _formModel.SettlementDate = raw;
+            Draft.SettlementDate = raw;
+            Draft.ValidatedSettlementDate = parsed;   // ← persist typed value
             _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
             _settlementDate = parsed;
             ValidateDate(_settlementDate);
@@ -156,7 +174,8 @@
         }
         else
         {
-            _formModel.SettlementDate = string.IsNullOrWhiteSpace(raw) ? null : raw;
+            Draft.SettlementDate = string.IsNullOrWhiteSpace(raw) ? null : raw;
+            Draft.ValidatedSettlementDate = null;     // ← clear on invalid
             _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
             DateError = string.IsNullOrWhiteSpace(raw) ? null : "Please enter a valid settlement date (MM-DD-YYYY).";
         }
@@ -168,34 +187,47 @@
     {
         if (firstRender)
         {
+            await HolidayService.LoadAsync();
+
+            _minDate = HolidayService.FirstAvailableSettlementDate;
+            if (_minDate == default)
+                _minDate = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
+
+            // ── Use ISO format (yyyy-MM-dd) for Flatpickr config ──
+            // Flatpickr parses minDate/maxDate/disable as ISO regardless of dateFormat
             var disabledDates = HolidayService
                 .GetInvalidDatesInRange(_minDate, _maxDate)
-                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday) // holidays only; weekends handled by JS
-                .Select(d => d.ToString("MM-dd-yyyy"))
+                .Where(d => d.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
+                .Select(d => d.ToString("yyyy-MM-dd"))   // ← ISO
                 .ToArray();
 
             await JS.InvokeVoidAsync("initAchDatePicker",
                 _dateInputId,
-                _minDate.ToString("MM-dd-yyyy"),
-                _maxDate.ToString("MM-dd-yyyy"),
-                disabledDates);
+                _minDate.ToString("yyyy-MM-dd"),         // ← ISO
+                _maxDate.ToString("yyyy-MM-dd"),         // ← ISO
+                disabledDates,
+                _settlementDate.ToString("yyyy-MM-dd")); // ← ISO
         }
     }
 
     /// <summary>Public API: called by parent page to validate before proceeding.</summary>
     public bool Validate()
     {
-        ValidateAmount(_displayAmount);
+        var rawForValidation = string.IsNullOrWhiteSpace(_displayAmount)
+            ? string.Empty
+            : _displayAmount.Replace("$", "").Replace(",", "").Trim();
+
+        ValidateAmount(rawForValidation);
         ValidateDate(_settlementDate);
 
-        // Sync nulls so DataAnnotationsValidator catches empty fields
         _formModel.Amount = string.IsNullOrWhiteSpace(_displayAmount) ? null : _displayAmount;
-        _formModel.SettlementDate = _formModel.SettlementDate is null ? null : _formModel.SettlementDate;
 
-        // Fires OnValidationRequested → OutlinedTextField shows red border/label on both fields
+        // Validate AFTER setting AmountError so ForceError reflects the final state
+        // Use a local variable to avoid _editContext.Validate() overwriting
+        // AmountError via DataAnnotations before StateHasChanged runs.
         _editContext.Validate();
-
         StateHasChanged();
+
         return AmountError is null && DateError is null;
     }
 
@@ -206,23 +238,84 @@
     private async Task OnAmountBlur()
     {
         var cleaned = _displayAmount.Replace("$", "").Replace(",", "").Trim();
-        if (decimal.TryParse(cleaned, out var parsed) && parsed >= MinAmount && parsed <= MaxAmount)
+        ValidateAmount(cleaned);
+
+        if (AmountError is null)
         {
-            _amount = parsed;
             _displayAmount = FormatAmount(_amount);
-            _formModel.Amount = _displayAmount;
+            Draft.Amount = _displayAmount;
+            Draft.ValidatedAmount = _amount;          // ← persist typed value
             await AmountChanged.InvokeAsync(_amount);
         }
+        else
+        {
+            _amount = 0;
+            Draft.ValidatedAmount = null;             // ← clear on invalid
+            Draft.Amount = string.IsNullOrWhiteSpace(cleaned) ? null : _displayAmount;
+        }
+
+        _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.Amount)));
         StateHasChanged();
     }
 
     /// <summary>Callback from OutlinedTextField ValueChanged — validate on input.</summary>
-    private Task OnAmountChanged(string raw)
+    private async Task OnAmountChanged(string raw)
     {
         _displayAmount = raw;
         _formModel.Amount = string.IsNullOrWhiteSpace(raw) ? null : raw;
+
+        // Live-clear a stale error as soon as the typed value is in the valid range
+        var cleaned = raw.Replace("$", "").Replace(",", "").Trim();
+        if (!string.IsNullOrWhiteSpace(cleaned)
+            && decimal.TryParse(cleaned,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var liveValue)
+            && liveValue >= MinAmount
+            && liveValue <= MaxAmount)
+        {
+            AmountError = null;
+        }
+
         _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.Amount)));
-        return Task.CompletedTask;
+
+        // Notify parent so it can clear the notification banner immediately
+        await OnAmountInput.InvokeAsync();
+    }
+
+    private async Task OnDateInputChanged(string raw)
+    {
+        // Try both padded (MM-dd-yyyy) and non-padded (M-d-yyyy) since Flatpickr
+        // uses m-d-Y which outputs non-padded months (e.g. "6-19-2026")
+        var formats = new[] { "M-d-yyyy", "MM-dd-yyyy" };
+        if (DateOnly.TryParseExact(raw, formats, null,
+                System.Globalization.DateTimeStyles.None, out var parsed))
+        {
+            if (parsed < _minDate)
+            {
+                Draft.SettlementDate = _settlementDate.ToString("MM-dd-yyyy");
+                DateError = null;
+                StateHasChanged();
+                return;
+            }
+
+            Draft.SettlementDate = raw;
+            Draft.ValidatedSettlementDate = parsed;
+            _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
+            _settlementDate = parsed;
+            ValidateDate(_settlementDate);
+            if (DateError is null)
+                await SettlementDateChanged.InvokeAsync(_settlementDate);
+        }
+        else
+        {
+            Draft.SettlementDate = string.IsNullOrWhiteSpace(raw) ? null : raw;
+            Draft.ValidatedSettlementDate = null;
+            _editContext.NotifyFieldChanged(_editContext.Field(nameof(AchPaymentFormModel.SettlementDate)));
+            DateError = string.IsNullOrWhiteSpace(raw) ? null : "Please enter a valid settlement date (MM-DD-YYYY).";
+        }
+
+        StateHasChanged();
     }
 
     /// <summary>Callback from OutlinedTextField ValueChanged — validate on date change.</summary>
@@ -245,43 +338,47 @@
 
     private void ValidateAmount(string raw)
     {
+        // Normalize once — handles both pre-cleaned ("0.01") and
+        // formatted ("$ 1,234.56") inputs safely.
         var cleaned = raw.Replace("$", "").Replace(",", "").Trim();
 
         if (string.IsNullOrWhiteSpace(cleaned))
         {
             AmountError = "Payment Amount is required.";
+            _amount = 0;
             return;
         }
 
-        if (!decimal.TryParse(cleaned, System.Globalization.NumberStyles.Number,
-                System.Globalization.CultureInfo.InvariantCulture, out var value))
+        if (!decimal.TryParse(cleaned,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var value))
         {
-            AmountError = "Payment Amount must include 2 decimal places. It must be numeric and in a valid format.";
+            AmountError = "Payment Amount must be a valid dollar amount (e.g. 0.01).";
+            _amount = 0;
             return;
         }
 
-        // Ensure exactly 2 decimal places (e.g. "100" or "100.1" are invalid; "100.10" is valid)
-        var dotIndex = cleaned.IndexOf('.');
-        if (dotIndex < 0 || cleaned.Length - dotIndex - 1 != 2)
-        {
-            AmountError = "Payment Amount must include 2 decimal places. It must be numeric and in a valid format.";
-            return;
-        }
-
+        // Single range check — covers zero, negatives, and below-minimum in one place.
+        // MinAmount = 0.01 so this fires for 0, negative, or sub-cent values.
         if (value < MinAmount)
         {
-            AmountError = "Payment Amount must be greater than $0.00.";
+            AmountError = value <= 0
+                ? "Payment Amount must be greater than $0.00."
+                : $"Payment Amount must be at least {FormatAmount(MinAmount)}.";
+            _amount = 0;
             return;
         }
 
         if (value > MaxAmount)
         {
             AmountError = $"Payment Amount cannot exceed {FormatAmount(MaxAmount)}.";
+            _amount = 0;
             return;
         }
 
         _amount = value;
-        AmountError = null;
+        AmountError = null;  // explicitly null — always the last line on the success path
     }
 
     private void ValidateDate(DateOnly date)

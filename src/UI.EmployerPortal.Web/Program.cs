@@ -41,6 +41,13 @@ services.AddSingleton<IAccountService, AccountService>();
 services.AddScoped<ILandingOrchestrator, LandingOrchestrator>();
 services.AddScoped<IDashboardOrchestrator, DashboardOrchestrator>();
 
+// Register WCF proxy (scoped or transient depending on your WCF client lifetime)
+builder.Services.AddScoped<IEFTPaymentService, YourWcfGeneratedClient>();
+
+// Register adapters
+builder.Services.AddScoped<IEftPaymentService, EftPaymentService>();
+builder.Services.AddScoped<IFederalReserveHolidayService, FederalReserveHolidayService>();
+
 // Add mock UserAccountService for development
 services.AddScoped<IUserAccountService, MockUserAccountService>();
 //builder.AddOpenTelemetryInDevelopment();

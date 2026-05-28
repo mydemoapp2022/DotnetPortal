@@ -58,9 +58,11 @@
 
                 <section class="billing-section" aria-labelledby="payment-info-heading" aria-label="Payment Information">
                     <AchPaymentInformation @ref="_paymentInfoRef"
-                    InitialAmount="_initialAmount"
-                    AmountChanged="OnAmountChanged"
-                    SettlementDateChanged="OnSettlementDateChanged" />
+                                           Draft="_paymentDraft"
+                                           InitialAmount="_initialAmount"
+                                           AmountChanged="OnAmountChanged"
+                                           SettlementDateChanged="OnSettlementDateChanged"
+                                           OnAmountInput="OnPaymentAmountInput" />
                 </section>
             }
             else if (_step == AchStep.VerifyAuthorize)
@@ -242,10 +244,12 @@
                             <strong class="ach-info-value">@_confirmationNumber</strong>
                         </div>
                         <AchPaymentInformation @ref="_paymentInfoRef"
-                        InitialAmount="_confirmedAmount"
-                        InitialSettlementDate="_confirmedSettlementDate"
-                        AmountChanged="OnAmountChanged"
-                        SettlementDateChanged="OnSettlementDateChanged" />
+                                               Draft="_paymentDraft"
+                                               InitialAmount="@_confirmedAmount"
+                                               InitialSettlementDate="@_confirmedSettlementDate"
+                                               AmountChanged="OnAmountChanged"
+                                               SettlementDateChanged="OnSettlementDateChanged"
+                                               OnAmountInput="OnPaymentAmountInput" />
                     </div>
                 </section>
             }
@@ -564,16 +568,24 @@
                 {
                     <div class="ach-print-nav-actions fix-section-width no-print">
                         <button type="button"
-                        class="btn btn-outline-secondary ach-footer-btn"
-                        aria-label="Go to employer dashboard"
-                        @onclick='() => Nav.NavigateTo("/employer-dashboard")'>
-                            GO TO DASHBOARD
+                                class="btn-outline-secondary no-flex-grow"
+                                aria-label="Go to employer dashboard"
+                                @onclick='() => Nav.NavigateTo("/employer-dashboard")'>
+                            <img src="/icons/button-previous.svg"
+                                 alt=""
+                                 role="presentation"
+                                 class="button-icon" />
+                            <span class="btn-secondary-label">GO TO DASHBOARD</span>
                         </button>
                         <button type="button"
-                        class="btn btn-outline-secondary ach-footer-btn"
-                        aria-label="Go to payment history"
-                        @onclick='() => Nav.NavigateTo("/billing-payments/payment-history")'>
-                            PAYMENT HISTORY
+                                class="btn-outline-primary no-flex-grow"
+                                aria-label="Go to payment history"
+                                @onclick='() => Nav.NavigateTo("/billing-payments/payment-history")'>
+                            <span class="btn-primary-label">PAYMENT HISTORY</span>
+                            <img src="/icons/button-next.svg"
+                                 alt=""
+                                 role="presentation"
+                                 class="button-icon primary" />
                         </button>
                     </div>
                 }
@@ -642,6 +654,7 @@
     // Tracks whether VerifyAuthorize was reached from Edit (for Back navigation)
     private bool _cameFromEdit;
     private bool _isLoading = true;
+    private readonly AchPaymentFormModel _paymentDraft = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -713,7 +726,7 @@
 
     private void HandleCancel() => Nav.NavigateTo("/employer-dashboard");
 
-    private async void HandleContinue()
+    private async Task HandleContinue()
     {
         _showValidationSummary = false;
         _validationErrors.Clear();
@@ -723,13 +736,15 @@
         {
             case AchStep.Entry:
                 if (!ValidateEntry())
+                {
+                    await JS.InvokeVoidAsync("window.scrollTo", 0, 0);
                     return;
+                }
 
                 _confirmedAmount = _paymentInfoRef!.GetAmount();
                 _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
                 _cameFromEdit = false;
-                NavigateToStep(AchStep.VerifyAuthorize, "Proceeding to verify and Authorize step");
-                _step = AchStep.VerifyAuthorize;
+                NavigateToStep(AchStep.VerifyAuthorize, "Proceeding to Verify and Authorize step");
                 break;
 
             case AchStep.VerifyAuthorize:
@@ -739,21 +754,23 @@
                     return;
                 }
 
-                // TODO: Replace with actual payment submission service call.
                 _confirmationNumber = GenerateConfirmationNumber();
                 _transactionDateTime = DateTime.Now;
                 _authorized = false;
-                NavigateToStep(AchStep.Confirmation, "Proceeding to verify and Authorize step");
+                NavigateToStep(AchStep.Confirmation, "Payment authorized. Proceeding to Confirmation step");
                 break;
 
             case AchStep.Edit:
                 if (!ValidateEntry())
+                {
+                    await JS.InvokeVoidAsync("window.scrollTo", 0, 0);
                     return;
+                }
 
                 _confirmedAmount = _paymentInfoRef!.GetAmount();
                 _confirmedSettlementDate = _paymentInfoRef.GetSettlementDate();
                 _cameFromEdit = true;
-                NavigateToStep(AchStep.VerifyAuthorize, "Proceeding to verify and Authorize step");
+                NavigateToStep(AchStep.VerifyAuthorize, "Proceeding to Verify and Authorize step");
                 break;
         }
     }
@@ -877,5 +894,15 @@
         // TODO: Replace with server-generated confirmation number from payment service.
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         return new string(Enumerable.Range(0, 12).Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());
+    }
+
+    private void OnPaymentAmountInput()
+    {
+        if (_showValidationSummary)
+        {
+            _showValidationSummary = false;
+            _validationErrors.Clear();
+            StateHasChanged();
+        }
     }
 }
