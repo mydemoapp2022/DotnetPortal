@@ -15,7 +15,7 @@ window.initAchDatePicker = (elementId, minDate, maxDate, disabledDates, defaultD
     const instance = flatpickr(el, {
         minDate: minDate,
         maxDate: maxDate,
-        defaultDate: defaultDate,       // ← fixes the January 1901 issue
+        defaultDate: defaultDate,
         disable: [
             ...disabledDates,
             date => date.getDay() === 0 || date.getDay() === 6
@@ -26,6 +26,19 @@ window.initAchDatePicker = (elementId, minDate, maxDate, disabledDates, defaultD
         onChange: (_selectedDates, dateStr) => {
             el.value = dateStr;
             el.dispatchEvent(new Event("change", { bubbles: true }));
+        },
+        onDayCreate: (_dObj, _dStr, _fp, dayElem) => {
+            // currentMonth is the month currently displayed in the calendar (0-based)
+            const displayedMonth = _fp.currentMonth;
+            const dayMonth = dayElem.dateObj.getMonth();
+
+            if (dayMonth > displayedMonth || (displayedMonth === 11 && dayMonth === 0)) {
+                // Next month overflow dates
+                dayElem.classList.add("flatpickr-next-month-day");
+            } else if (dayMonth < displayedMonth || (displayedMonth === 0 && dayMonth === 11)) {
+                // Prev month overflow dates (optional — keep consistent)
+                dayElem.classList.add("flatpickr-prev-month-day");
+            }
         }
     });
 
