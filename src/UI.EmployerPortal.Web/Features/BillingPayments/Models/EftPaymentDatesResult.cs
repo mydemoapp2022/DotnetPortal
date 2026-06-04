@@ -12,3 +12,6 @@ public sealed class EftPaymentDatesResult
     /// <summary>FirstAvailableSettlementDate</summary>
     public DateOnly FirstAvailableSettlementDate { get; init; }
 }
+
+
+

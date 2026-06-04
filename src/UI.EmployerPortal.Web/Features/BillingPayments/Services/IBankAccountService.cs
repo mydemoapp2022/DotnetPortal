@@ -24,6 +24,12 @@ internal interface IBankAccountService
     /// Returns an empty list if none exist or the service is unavailable.
     /// </summary>
     Task<IReadOnlyList<SavedBankAccount>> GetExistingAccountsAsync(int employerAccountSk);
+
+    /// <summary>
+    /// Inactivates the specified bank account for the currently selected employer
+    /// Returns a result indicating success or the first rule violation message.
+    /// </summary>
+    Task<SaveBankAccountResult> InactivateBankAccountAsync(int bankAccountSk, int employerAccountSk);
 }
 
 /// <summary>

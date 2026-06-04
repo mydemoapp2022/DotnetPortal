@@ -1,43 +1,37 @@
 @page "/billing-payments/billing"
 @using UI.EmployerPortal.Razor.SharedComponents
 @using UI.EmployerPortal.Web.Features.Dashboard
+@using UI.EmployerPortal.Web.Features.BillingPayments.Components
 @using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
 @inject IDashboardOrchestrator DashboardOrchestrator
 @inject NavigationManager Nav;
 
-<PageTitle>Billing</PageTitle>
-<div class="section-page">
-    <h1 class="section-header fw-bold">Billing</h1>
-    <p class="section-description">You are in the Billing section.</p>
 
-    <nav class="billing-footer" aria-label="Page actions">
-        <BillingButtonBar ShowBack="false"
-                          ShowContinue="true"
-                          ShowCancel="false"
-                          ContinueText="Next"
-                          OnContinue="HandleContinue">
-        </BillingButtonBar>
-    </nav>
-</div>
+@*<div class="section-page">
+    <h1 class="section-header fw-bold">Billing</h1>
+    <p class="section-description">You are in the Billing section.</p>*@
+    @if (_istaxable)
+{
+    var baseUri = new Uri(Nav.BaseUri);
+    var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/billing-detail");
+    Nav.NavigateTo(pathBase);
+}
+else
+{
+    <BillDetailReimbursable></BillDetailReimbursable>
+}
 
 @code {
     private EmployerAccount? _employerAccount;
-
+    private bool _istaxable = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _employerAccount = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
+            _istaxable = _employerAccount?.IsTaxble ?? false;
+
             StateHasChanged();
         }
-    }
-
-    private void HandleContinue()
-    {
-        // ?source=flow tells PaymentOptions the user arrived via the payment workflow
-        // so Back and Cancel buttons are shown
-        var baseUri = new Uri(Nav.BaseUri);
-        var pathBase = new PathString(baseUri.AbsolutePath.TrimEnd('/') + "/billing-payments/payment-options");
-        Nav.NavigateTo(pathBase + "?source=flow");
     }
 }

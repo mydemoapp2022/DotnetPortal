@@ -23,9 +23,23 @@ public interface IBankAccountOrchestrator
     Task<SaveBankAccountResult> AddBankAccountAsync(BankAccountModel model);
 
     /// <summary>
+    /// Inactivates the selected bank account
+    /// </summary>
+    Task<SaveBankAccountResult> InactivateBankAccountAsync(int bankAccountSk);
+
+    /// <summary>
     /// Returns all existing bank accounts for the currently selected employer.
     /// </summary>
     Task<IReadOnlyList<SavedBankAccount>> GetExistingAccountsAsync();
+    /// <summary>
+    /// GetPendingReimbursePaymentToSessionAsync
+    /// </summary>
+    /// <returns></returns>
+    Task<ReimbursableBillingDetail?> GetPendingReimbursePaymentToSessionAsync();
+    /// <summary>
+    /// Stores the selected payment in session storage.
+    /// </summary>
+    Task SavePendingReimbursePaymentToSessionAsync(ReimbursableBillingDetail model);
 }
 
 /// <summary>
@@ -59,20 +73,20 @@ internal class BankAccountOrchestrator : IBankAccountOrchestrator
         var employerSk = await GetEmployerSkAsync();
         if (employerSk is null)
         {
-            return new SaveBankAccountResult(false, "No employer account selected.");
+            return new SaveBankAccountResult(false, "No employer account selected");
         }
 
         var existing = await _bankAccountService.GetExistingAccountsAsync(employerSk.Value);
 
         return existing.Any(a =>
         { return string.Equals(a.Nickname, model.Nickname, StringComparison.OrdinalIgnoreCase); })
-            ? new SaveBankAccountResult(false, "An account with this nickname already exists.")
+            ? new SaveBankAccountResult(false, "An account with this nickname already exists")
             : existing.Any(a =>
             {
                 return a.RoutingNumber == model.RoutingNumber &&
                                        a.MaskedAccountNumber.EndsWith(model.AccountNumber?[^4..] ?? string.Empty);
             })
-            ? new SaveBankAccountResult(false, "An account with this account number already exists.")
+            ? new SaveBankAccountResult(false, "An account with this account number already exists")
             : await _bankAccountService.SaveBankAccountAsync(model, employerSk.Value);
     }
 
@@ -87,5 +101,28 @@ internal class BankAccountOrchestrator : IBankAccountOrchestrator
     {
         var selected = await _sessionManager.GetAsync<SelectedEmployerAccount>();
         return selected?.EmployerAccount?.Id;
+    }
+
+    /// <inheritdoc/>
+    public async Task<SaveBankAccountResult> InactivateBankAccountAsync(int bankAccountSk)
+    {
+        var employerSk = await GetEmployerSkAsync();
+
+        return employerSk is null ? new SaveBankAccountResult(false, "No employer account selected") : await _bankAccountService.InactivateBankAccountAsync(bankAccountSk, employerSk.Value);
+    }
+
+    public async Task SavePendingReimbursePaymentToSessionAsync(ReimbursableBillingDetail model)
+    {
+        var selectedEmployer = await _sessionManager.GetAsync<SelectedEmployerAccount>();
+        if (selectedEmployer != null)
+        {
+            selectedEmployer.SelectPayment = model;
+            await _sessionManager.SetAsync(selectedEmployer);
+        }
+    }
+    public async Task<ReimbursableBillingDetail?> GetPendingReimbursePaymentToSessionAsync()
+    {
+        var selectedEmployer = await _sessionManager.GetAsync<SelectedEmployerAccount>();
+        return selectedEmployer?.SelectPayment;
     }
 }

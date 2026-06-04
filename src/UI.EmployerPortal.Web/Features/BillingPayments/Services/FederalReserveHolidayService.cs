@@ -1,5 +1,3 @@
-using UI.EmployerPortal.Web.Features.BillingPayments.Models;
-
 namespace UI.EmployerPortal.Web.Features.BillingPayments.Services;
 
 /// <summary>
@@ -18,12 +16,13 @@ public interface IFederalReserveHolidayService
     IReadOnlyList<DateOnly> GetInvalidDatesInRange(DateOnly start, DateOnly end);
 
     /// <summary>
-    /// Loads holiday data from the WCF service. Must be called once before using other members.
+    /// Loads holidays data from the WDF service.
     /// </summary>
+    /// <returns></returns>
     Task LoadAsync();
 
     /// <summary>
-    /// The first available settlement date as returned by the WCF service.
+    /// First Available Settlement Date
     /// </summary>
     DateOnly FirstAvailableSettlementDate { get; }
 }
@@ -34,36 +33,36 @@ public interface IFederalReserveHolidayService
 /// Independence Day, Labor Day, Columbus Day, Veterans Day, Thanksgiving, Christmas Day.
 /// Weekend observed dates follow the Fed's Friday/Monday rule.
 /// </summary>
-public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
+internal class FederalReserveHolidayService : IFederalReserveHolidayService
 {
     private readonly IEftPaymentService _eftPaymentService;
-    private HashSet<DateOnly> _holidays = [];
-
+    private HashSet<DateOnly> _fedResHolidays = [];
     public DateOnly FirstAvailableSettlementDate { get; private set; }
-
+    /// <summary>
+    /// FederalReserveHolidayService
+    /// </summary>
+    /// <param name="eftPaymentService"></param>
     public FederalReserveHolidayService(IEftPaymentService eftPaymentService)
     {
         _eftPaymentService = eftPaymentService;
     }
 
-    /// <inheritdoc />
     public async Task LoadAsync()
     {
         var result = await _eftPaymentService.GetEftPaymentDatesAsync();
-        _holidays = [.. result.BankHolidays];
+        _fedResHolidays = [.. result.BankHolidays];
         FirstAvailableSettlementDate = result.FirstAvailableSettlementDate;
     }
-
     /// <summary>
     /// IsFederalReserveHoliday
     /// </summary>
     /// <param name="date"></param>
     /// <returns></returns>
-    //public bool IsFederalReserveHoliday(DateOnly date)
-    //{
-    //    return GetHolidaysForYear(date.Year).Contains(date);
-    //}
-    public bool IsFederalReserveHoliday(DateOnly date) => _holidays.Contains(date);
+    public bool IsFederalReserveHoliday(DateOnly date)
+    {
+        //return GetHolidaysForYear(date.Year).Contains(date);
+        return _fedResHolidays.Contains(date);
+    }
 
     /// <summary>
     /// GetInvalidDatesInRange
@@ -74,31 +73,18 @@ public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
     public IReadOnlyList<DateOnly> GetInvalidDatesInRange(DateOnly start, DateOnly end)
     {
         var result = new List<DateOnly>();
+        //var years = Enumerable.Range(start.Year, end.Year - start.Year + 1);
+        //var holidays = years.SelectMany(GetHolidaysForYear).ToHashSet();
+
         for (var d = start; d <= end; d = d.AddDays(1))
         {
-            if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday || _holidays.Contains(d))
+            if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday || _fedResHolidays.Contains(d))
             {
                 result.Add(d);
             }
         }
         return result;
     }
-    //public IReadOnlyList<DateOnly> GetInvalidDatesInRange(DateOnly start, DateOnly end)
-    //{
-    //    var result = new List<DateOnly>();
-    //    var years = Enumerable.Range(start.Year, end.Year - start.Year + 1);
-    //    var holidays = years.SelectMany(GetHolidaysForYear).ToHashSet();
-
-    //    for (var d = start; d <= end; d = d.AddDays(1))
-    //    {
-    //        if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday || holidays.Contains(d))
-    //        {
-    //            result.Add(d);
-    //        }
-    //    }
-
-    //    return result;
-    //}
 
     private static HashSet<DateOnly> GetHolidaysForYear(int year)
     {
@@ -116,7 +102,6 @@ public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
             NthWeekdayOfMonth(year, 11, DayOfWeek.Thursday, 4),         // Thanksgiving
             Observe(new DateOnly(year, 12, 25)),                         // Christmas Day
         };
-
         return [.. holidays];
     }
 
@@ -134,10 +119,9 @@ public sealed class FederalReserveHolidayService : IFederalReserveHolidayService
     private static DateOnly NthWeekdayOfMonth(int year, int month, DayOfWeek weekday, int nth)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(nth, 1);
-
         var first = new DateOnly(year, month, 1);
-        var daysUntilWeekday = ((int) weekday - (int) first.DayOfWeek + 7) % 7;
-        var daysToAdd = daysUntilWeekday + ((nth - 1) * 7);
+        var daysUnitWeekday = ((int) weekday - (int) first.DayOfWeek + 7) % 7;
+        var daysToAdd = daysUnitWeekday + ((nth - 1) * 7);
         return first.AddDays(daysToAdd);
     }
 

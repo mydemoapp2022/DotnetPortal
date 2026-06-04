@@ -30,4 +30,9 @@ public sealed record SavedBankAccount
     /// Account type — Checking or Savings.
     /// </summary>
     public string AccountType { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Surrogate key identifying the bank account
+    /// </summary>
+    public int BankAccountSk { get; init; }
 }

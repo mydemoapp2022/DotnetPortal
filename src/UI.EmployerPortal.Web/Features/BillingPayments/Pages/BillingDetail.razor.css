@@ -1,0 +1,193 @@
+/* ── Container ── */
+.billing-detail-container {
+    max-width: 761px;
+}
+
+/* ── Page title / description ── */
+.billing-detail-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.billing-detail-description {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+}
+
+/* ── Sections — 48px gap from Figma ── */
+.billing-detail-section {
+    margin-bottom: 48px;
+}
+
+/* ── Section heading — Figma: Verdana Bold 18px #003663 ── */
+.billing-detail-section-heading {
+    font-family: 'Verdana';
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 160%;
+    color: var(--color-header-nav);
+    margin-bottom: 8px;
+}
+
+/* ── Divider — Figma: border-bottom 1px solid #003663 ── */
+.billing-detail-divider {
+    border: none;
+    border-top: 1px solid var(--color-header-nav);
+    margin: 0 0 8px;
+}
+
+/* ── Amount displays — Figma: h3/bold Verdana 25px black ── */
+.billing-detail-liability-amount,
+.billing-detail-credits-amount {
+    font-family: 'Verdana';
+    font-weight: 700;
+    font-size: 25px;
+    line-height: 116%;
+    color: #000000;
+    margin: 8px 0 16px;
+}
+
+/* ── Tables ── */
+.billing-detail-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 0;
+}
+
+.billing-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* ── Table header — Figma: 56px, #E6E6E6, 14px bold ── */
+.billing-detail-th {
+    height: 56px;
+    background-color: #E6E6E6;
+    border-bottom: 1px solid #ADADAD;
+    padding: 0 !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* ── Sort button inside th ── */
+.billing-detail-sort-btn {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    height: 56px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    font-family: 'Verdana';
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 150%;
+    color: #000000;
+    white-space: nowrap;
+}
+
+    .billing-detail-sort-btn:focus-visible {
+        outline: 2px solid var(--color-blue-focus);
+        outline-offset: -2px;
+    }
+
+.billing-detail-sort-icon {
+    font-size: 0.75rem;
+    color: var(--color-header-nav);
+}
+
+/* ── Table data cells — Figma: 56px, 14px normal, #ADADAD border ── */
+.billing-detail-table td {
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #ADADAD;
+    padding: 0 8px !important;
+    font-family: 'Verdana';
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #000000;
+    vertical-align: middle;
+}
+
+/* ── Total row — Figma: border-top #000, bold 16px ── */
+.billing-detail-total-row td {
+    height: 56px;
+    background: #FFFFFF;
+    border-top: 1px solid #000000;
+    border-bottom: none;
+    font-family: 'Verdana';
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 160%;
+    color: #000000;
+    padding: 0 8px !important;
+    vertical-align: middle;
+}
+
+/* ── Payment Summary — Figma: rows 56px, label 18px bold, value 16px ── */
+.billing-detail-summary {
+    width: 100%;
+}
+
+.billing-detail-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 56px;
+    padding: 0 8px;
+    border-bottom: 1px solid #ADADAD;
+    box-sizing: border-box;
+}
+
+.billing-detail-summary-label {
+    flex: 1;
+    font-family: 'Verdana';
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 160%;
+    color: #000000;
+}
+
+/* ── Figma: value column 164px, right-aligned, 16px ── */
+.billing-detail-summary-value {
+    width: 164px;
+    text-align: right;
+    font-family: 'Verdana';
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 160%;
+    color: #000000;
+}
+
+/* ── Amount to Pay row — Figma: border #000 ── */
+.billing-detail-amount-to-pay-row {
+    border-bottom: 1px solid #000000;
+    align-items: center;
+}
+
+/* ── Amount to Pay input — Figma: 110px × 38px ── */
+.billing-detail-amount-input {
+    width: 110px;
+}
+
+    .billing-detail-amount-input ::deep .master-text-field {
+        width: 110px;
+        max-width: 110px;
+    }
+
+    .billing-detail-amount-input ::deep .master-input {
+        height: 38px !important;
+        padding: 0 14px !important;
+    }
+
+/* ── Footer ── */
+.billing-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}

@@ -1,6 +1,7 @@
 using System.ServiceModel;
 using UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
+//using UI.EmployerPortal.Web.Features.BillingPayments.Services;
 using UI.EmployerPortal.Web.Features.Shared.Accounts.Services;
 using UI.EmployerPortal.Web.Startup.ResiliencyProtocols;
 
@@ -39,6 +40,44 @@ internal class BankAccountService : IBankAccountService
         catch (CommunicationException)
         {
             return null;
+        }
+    }
+
+
+    /// <inheritdoc/>
+    public async Task<SaveBankAccountResult> InactivateBankAccountAsync(int bankAccountSk, int employerAccountSk)
+    {
+        try
+        {
+            var secureUserSk = _userAccountService.GetUserSKClaim();
+
+            var request = new BankAccountInactivateRequest
+            {
+                BankAccountSK = bankAccountSk,
+                EmployerSK = employerAccountSk,
+                SecureUserSK = secureUserSk
+            };
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+            {
+                return _eftPaymentService.InactivateBankAccountAsync(request);
+            });
+
+            if (response is null)
+            {
+                return new SaveBankAccountResult(false, "Unable to remove bank account. Please try again .");
+            }
+            if (!response.Success)
+            {
+                var message = response.RuleViolations is not null && response.RuleViolations.Length > 0 ? response.RuleViolations[0].RuleViolation ?? "Unable to remove Bank Account. Please try again." : "Unable to remove Bank Account. Please try again.";
+
+                return new SaveBankAccountResult(false, message);
+            }
+            return new SaveBankAccountResult(true, string.Empty);
+        }
+        catch (Exception)
+        {
+            return new SaveBankAccountResult(false, "Unable to remove bank account. Please try again.");
         }
     }
 
@@ -111,7 +150,8 @@ internal class BankAccountService : IBankAccountService
                     RoutingNumber = account.RoutingNumber ?? string.Empty,
                     MaskedAccountNumber = account.AccountNumberMasked ?? string.Empty,
                     BankName = account.FederalBankName ?? string.Empty,
-                    AccountType = MapAccountTypeToString(account.AccountType)
+                    AccountType = MapAccountTypeToString(account.AccountType),
+                    BankAccountSk = account.BankAccountSK
                 });
             }
 

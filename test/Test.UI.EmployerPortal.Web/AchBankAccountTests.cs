@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.DependencyInjection;
+using AngleSharp.Dom;
 using Bunit;
 using FakeItEasy;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using UI.EmployerPortal.Web.Features.BillingPayments;
 using UI.EmployerPortal.Web.Features.BillingPayments.Components;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
@@ -58,6 +59,7 @@ public class AchBankAccountTests : BunitContext
     private readonly IContactInformationService _contactInfoService;
     private readonly IDashboardOrchestrator _dashboardOrchestrator;
     private readonly IUserAccountService _userAccountService;
+    private readonly IEftPaymentService _eftPaymentService;
 
     // ── Constructor ─────────────────────────────────────────────────────
 
@@ -86,12 +88,31 @@ public class AchBankAccountTests : BunitContext
 
         _userAccountService = A.Fake<IUserAccountService>();
 
+        // ── EFT Payment service (used by VerifyAuthorize + VerifyCancel) ──
+        _eftPaymentService = A.Fake<IEftPaymentService>();
+
+        // Default happy-path: SaveEftPaymentAsync succeeds
+        A.CallTo(() => _eftPaymentService.SaveEftPaymentAsync(A<UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentRequest>._))
+            .Returns(new UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentResponse
+            {
+                ConfirmationID = "TESTCONF0001",
+                EFTPaymentSK = 42
+            });
+
+        // Default happy-path: CancelEftPaymentAsync succeeds (no rule violations)
+        A.CallTo(() => _eftPaymentService.CancelEftPaymentAsync(A<int>._, A<int>._, A<int>._))
+            .Returns(new UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.CancelEFTPaymentResponse
+            {
+                RuleViolations = []
+            });
+
         // Register all fakes
         Services.AddSingleton(_holidayService);
         Services.AddSingleton(_bankAccountOrchestrator);
         Services.AddSingleton(_contactInfoService);
         Services.AddSingleton(_dashboardOrchestrator);
         Services.AddSingleton(_userAccountService);
+        Services.AddSingleton(_eftPaymentService);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -793,5 +814,226 @@ public class AchBankAccountTests : BunitContext
         ClickBack(cut); // should return to Edit, not Entry
 
         Assert.Contains("Edit Bank Account Payment (ACH)", cut.Markup);
+    }
+
+    // =========================================================
+    // BankAccountPaymentAch page — Save Payment (EFT)
+    // =========================================================
+
+    /// <summary>
+    /// Verifies that a successful SaveEftPaymentAsync call advances the page to the
+    /// Confirmation step and displays the confirmation number returned by the service.
+    /// </summary>
+    [Fact]
+    public void Page_SavePayment_Success_Navigates_To_Confirmation_With_ConfirmationNumber()
+    {
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut); // → VerifyAuthorize
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → SaveEftPaymentAsync → Confirmation
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("EFT Payment Confirmation", cut.Markup);
+            Assert.Contains("Payment Request Submitted", cut.Markup);
+            Assert.Contains("TESTCONF0001", cut.Markup);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that SaveEftPaymentAsync is called exactly once with the payment amount
+    /// and settlement date that were entered on the Entry step.
+    /// </summary>
+    [Fact]
+    public void Page_SavePayment_Calls_Service_With_Correct_Amount()
+    {
+        var cut = RenderPage();
+
+        FillValidAmount(cut, "1234.56");
+        ClickContinue(cut); // → VerifyAuthorize
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → SaveEftPaymentAsync
+
+        cut.WaitForAssertion(() =>
+        {
+            A.CallTo(() => _eftPaymentService.SaveEftPaymentAsync(
+                A<UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentRequest>
+                    .That.Matches(r => r.PaymentAmount == 1234.56m)))
+             .MustHaveHappenedOnceExactly();
+        });
+    }
+
+    /// <summary>
+    /// Verifies that when SaveEftPaymentAsync returns null the page stays on the
+    /// Verify &amp; Authorize step and shows an error banner.
+    /// </summary>
+    [Fact]
+    public void Page_SavePayment_Failure_Returns_Null_Shows_Error_And_Stays_On_VerifyAuthorize()
+    {
+        A.CallTo(() => _eftPaymentService.SaveEftPaymentAsync(
+                A<UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentRequest>._))
+            .Returns(Task.FromResult<UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentResponse?>(null));
+
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut); // → VerifyAuthorize
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → SaveEftPaymentAsync returns null
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("An error occured while processing your payment", cut.Markup);
+            Assert.DoesNotContain("EFT Payment Confirmation", cut.Markup);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that a failed save resets the authorization flag so the user must
+    /// re-check the checkbox to attempt submission again.
+    /// </summary>
+    [Fact]
+    public void Page_SavePayment_Failure_Resets_Authorization_Checkbox()
+    {
+        A.CallTo(() => _eftPaymentService.SaveEftPaymentAsync(
+                A<UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentRequest>._))
+            .Returns(Task.FromResult<UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.SaveEFTPaymentResponse?>(null));
+
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut); // → VerifyAuthorize
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → save fails
+
+        cut.WaitForAssertion(() =>
+        {
+            var checkbox = cut.Find("#achAuthorizeCheckbox");
+            Assert.False(checkbox.IsChecked());
+        });
+    }
+
+    // =========================================================
+    // BankAccountPaymentAch page — Cancel Payment (EFT)
+    // =========================================================
+
+    /// <summary>
+    /// Verifies that a successful CancelEftPaymentAsync call (no rule violations) advances
+    /// from the Verify &amp; Cancel step to the Cancel Confirmation step.
+    /// </summary>
+    [Fact]
+    public void Page_CancelPayment_Success_Advances_To_CancelConfirmation()
+    {
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut);
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → Confirmation
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // → VerifyCancel
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // → CancelEftPaymentAsync → CancelConfirmation
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Cancelled EFT Payment Confirmation", cut.Markup));
+    }
+
+    /// <summary>
+    /// Verifies that CancelEftPaymentAsync is called exactly once when the user confirms
+    /// cancellation on the Verify &amp; Cancel step.
+    /// </summary>
+    [Fact]
+    public void Page_CancelPayment_Calls_Service_Once_On_Confirm()
+    {
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut);
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → Confirmation
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // → VerifyCancel
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // confirm cancel
+
+        cut.WaitForAssertion(() =>
+            A.CallTo(() => _eftPaymentService.CancelEftPaymentAsync(A<int>._, A<int>._, A<int>._))
+             .MustHaveHappenedOnceExactly());
+    }
+
+    /// <summary>
+    /// Verifies that when CancelEftPaymentAsync returns rule violations the page stays on
+    /// the Verify &amp; Cancel step and displays each violation message in an error banner.
+    /// </summary>
+    [Fact]
+    public void Page_CancelPayment_Failure_With_RuleViolations_Shows_Errors_And_Stays_On_VerifyCancel()
+    {
+        A.CallTo(() => _eftPaymentService.CancelEftPaymentAsync(A<int>._, A<int>._, A<int>._))
+            .Returns(new UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.CancelEFTPaymentResponse
+            {
+                RuleViolations =
+                [
+                    new UI.EmployerPortal.Generated.ServiceClients.EFTPaymentService.RuleViolationItem
+                        { RuleViolation = "Payment cannot be cancelled after settlement." }
+                ]
+            });
+
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut);
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → Confirmation
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // → VerifyCancel
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // confirm cancel → fails
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Payment cannot be cancelled after settlement.", cut.Markup);
+            Assert.DoesNotContain("Cancelled EFT Payment Confirmation", cut.Markup);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the original payment confirmation number is still visible on the
+    /// Cancel Confirmation step after a successful cancellation.
+    /// </summary>
+    [Fact]
+    public void Page_CancelConfirmation_Still_Shows_Original_Confirmation_Number()
+    {
+        var cut = RenderPage();
+
+        FillValidAmount(cut);
+        ClickContinue(cut);
+        cut.Find("#achAuthorizeCheckbox").Change(true);
+        ClickContinue(cut); // → Confirmation (saves TESTCONF0001)
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // → VerifyCancel
+
+        cut.FindAll("button")
+            .Single(b => b.TextContent.Contains("CANCEL PAYMENT", StringComparison.OrdinalIgnoreCase))
+            .Click(); // → CancelConfirmation
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("TESTCONF0001", cut.Markup));
     }
 }

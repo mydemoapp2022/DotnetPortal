@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Compile Include="Features\BillingPayments\Components\BankAccountSavedConfirmation.razor.css" />
+    <Compile Include="Features\BillingPayments\Pages\BillingDetail.razor.css" />
   </ItemGroup>
 
   <ItemGroup>

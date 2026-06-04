@@ -1,0 +1,117 @@
+@using UI.EmployerPortal.Razor.SharedComponents.TextBoxes
+@using UI.EmployerPortal.Razor.SharedComponents.Helpers
+@using Microsoft.AspNetCore.Components.Forms
+@using UI.EmployerPortal.Web.Features.Shared.Layout.Components
+
+<div class="billing-container" role="region" aria-label="Billing Details Section">
+    <h2 id="billing-heading" class="billing-title"> Billing Details</h2>
+ 
+    <p class="billing-description">
+        This page reflects the amount due on the most recent monthly statement. Payments made this month will be reflected in the next billing statement.
+    </p> 
+    <EditForm EditContext="_editContext"
+              OnValidSubmit="HandleContinue"
+              OnInvalidSubmit="OnInvalid" >
+        <DataAnnotationsValidator/>        
+        <ValidationSummary />
+     
+    <div class="billing-summary" aria-labelledby="billing-heading">    
+                <div class="billing-row">
+                    <span class="label">Balance Due From Last Statement</span>
+                    <span class="value" aria-label="Balance Due">
+                        @Model.TotalOutstandingBalance.ToString("C")                       
+                    </span>
+                </div>
+ 
+                <div class="billing-row">
+                    <span class="label">Total Pending EFT Payments</span>
+                    <span class="value" aria-label="Total EFT Payments">
+                        @Model.TotalEFTPayments.ToString("C")                      
+                    </span>
+                </div>
+         
+            <div class="billing-row">
+                <label for="amount" class="label">Amount to Pay</label>
+                <span class="value">
+                <NumericTextBox Value="@Model.AmountToPay"
+                          Id="amount"
+                          AriaLabel="Amount to pay"
+                          IsReadonly="false"
+                          InputType="@InputDataTypes.Currency"
+                          ShowCurrencyIcon="false"                        
+                          DecimalPlaces="2"                          
+                          Min="0" Max="1000000000"
+                          CssClass="form-control amount-input"
+                          ValueChanged="@(val => Model.AmountToPay = val ?? 0m)" />
+                <ValidationMessage For="@(() => Model.AmountToPay)" />
+                </span>
+            </div>
+           
+    </div>
+  
+ 
+    <h3 id="payment-method-heading" class="section-title">
+        Payment Method
+    </h3>
+ 
+    <fieldset aria-labelledby="payment-method-heading">
+        <legend class="sr-only">Payment Method Selection</legend>
+ 
+        <div class="option">
+            <label for="ach">
+            <input type="radio"
+                   id="ach"
+                   name="paymentMethod"
+                   value="ACH"
+                   @onchange="OnpaymentChanged"
+                   aria-label="ACH payment method" />           
+                <strong>ACH</strong>   <br/>
+                 <div class="description">
+                      Pay your UI taxes online directly from your bank account.
+                </div>
+            </label>
+            
+               
+            
+        </div>
+ 
+        <div class="option">
+            <label for="card">
+            <input type="radio"
+                   id="card"
+                   name="paymentMethod"
+                   value="Card"
+                       @onchange="OnpaymentChanged"
+                   aria-label="Credit or Debit Card payment method" />           
+                <strong>Credit/Debit Card</strong>  <br />
+                <div class="description">
+                    Make a payment by credit or debit card.
+                </div>
+            </label>
+        </div>
+ 
+        <div class="option">
+            <label for="check">
+            <input type="radio"
+                   id="check"
+                   name="paymentMethod"
+                   value="Check"
+                       @onchange="OnpaymentChanged"
+                   aria-label="Check payment method" />          
+                <strong>Check</strong>   <br />
+                <div class="description">
+                    Print out a payment coupon you can send in to us with your payment.
+                </div>
+            </label>
+        </div>
+       
+        <BillingButtonBar ShowBack="false"
+                          ShowContinue="true"
+                          ShowCancel="false"                     
+                          OnContinue="PaymentAsync"
+                          ContinueText="MAKE A PAYMENT"
+                          ButtonWidth="200">
+        </BillingButtonBar>
+    </fieldset>
+    </EditForm>
+</div>
