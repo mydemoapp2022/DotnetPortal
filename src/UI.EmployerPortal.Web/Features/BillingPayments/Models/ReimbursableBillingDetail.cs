@@ -25,6 +25,11 @@ public class ReimbursableBillingDetail
     /// </summary>
     public decimal TotalOutstandingBalance { get; set; }
 
+    /// <summary>
+    /// The payment method selected by the user (e.g. "ACH", "Card", "Check").
+    /// Persisted in session so it is restored when navigating back.
+    /// </summary>
+    public string? SelectedPaymentMethod { get; set; }
 
     /// <summary>
     /// check

@@ -40,25 +40,6 @@ public partial class BillDetailReimbursable
     /// <returns></returns>
     protected override async Task OnInitializedAsync()
     {
-        //try
-        //{
-        //    var response = await BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
-        //    if (response != null)
-        //    {
-        //        Model = response;
-        //    }
-        //}
-        //finally
-        //{
-
-        //}
-
-        _editContext = new EditContext(Model);
-        _editContext.OnFieldChanged += (_, e) =>
-        {
-            _editContext.Validate();
-            StateHasChanged();
-        };
         _employerSK = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
         var secureUserSK = UserAccountService.GetUserSKClaim();
         var employerSk = _employerSK?.Id ?? 0;
@@ -77,6 +58,28 @@ public partial class BillDetailReimbursable
             Model.TotalEFTPayments = result.TotalEFTPayments;
             Model.TotalOutstandingBalance = result.TotalOutstandingBalance;
         }
+
+        var sessionData = await BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
+        if (sessionData != null)
+        {
+            if (sessionData.AmountToPay > 0)
+            {
+                Model.AmountToPay = sessionData.AmountToPay;
+            }
+
+            if (!string.IsNullOrEmpty(sessionData.SelectedPaymentMethod))
+            {
+                _selectedpayment = sessionData.SelectedPaymentMethod;
+            }
+        }
+
+        _editContext = new EditContext(Model);
+        _editContext.OnFieldChanged += (_, e) =>
+        {
+            _editContext.Validate();
+            StateHasChanged();
+        };
+        
         await base.OnInitializedAsync();
     }
     private async Task PaymentAsync()
@@ -84,7 +87,7 @@ public partial class BillDetailReimbursable
         //Nav.NavigateTo(Nav.BaseUri);
         if (_selectedpayment == "ACH")
         {
-
+            Model.SelectedPaymentMethod = _selectedpayment;
             await BankAccountOrchestrator.SavePendingReimbursePaymentToSessionAsync(Model);
             Nav.NavigateTo("billing-payments/bank-account-payment-ach");
         }
