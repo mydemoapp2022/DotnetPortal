@@ -202,6 +202,17 @@
             {
                 <h1 class="billing-section-title fw-bold">Payment Verification</h1>
 
+                @* Card payment provider error — shown after a failed modal attempt *@
+                @if (_cardPaymentError is not null)
+                {
+                    <NotificationBanner NotificationType="NotificationType.Alert"
+                                        MessageStyle="MessageStyle.SingleLine"
+                                        Title="Card Payment Error"
+                                        Message="@_cardPaymentError"
+                                        DismissButton="false" />
+                }
+
+                @* Form validation errors *@
                 @if (_showValidationSummary && _validationErrors.Any())
                 {
                     <div class="fix-section-width" style="max-width:684px;">
@@ -214,31 +225,35 @@
 
                 <p class="section-description">Please verify the payment information is correct.</p>
 
-                <div class="card-verify-grid">
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Payment Amount</span>
-                        <strong class="ach-info-value">@_paymentAmount.ToString("C")</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Contact Name</span>
-                        <strong class="ach-info-value">@_profile.FirstName @_profile.LastName</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Email Address</span>
-                        <strong class="ach-info-value">@_profile.Email</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Address</span>
-                        <strong class="ach-info-value">
-                            @_profile.AddressLine1<br />
-                            @if (!string.IsNullOrWhiteSpace(_profile.AddressLine2))
-                            {
-                                @_profile.AddressLine2
-                                <br />
-                            }
-                            @_profile.City@((_showState && !string.IsNullOrWhiteSpace(_profile.State)) ? $", {_profile.State}" : "")
-                            @(" " + _profile.ZipCode)@(!string.IsNullOrWhiteSpace(_profile.ZipExt) ? $"-{_profile.ZipExt}" : "")
-                        </strong>
+                <div class="ach-info-card">
+                    <hr class="ach-section-divider" aria-hidden="true" />
+
+                    <div class="ach-contact-grid">
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Payment Amount</span>
+                            <strong class="ach-info-value">@_paymentAmount.ToString("C")</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Contact Name</span>
+                            <strong class="ach-info-value">@_profile.FirstName @_profile.LastName</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Email Address</span>
+                            <strong class="ach-info-value">@_profile.Email</strong>
+                        </div>
+                        <div class="ach-info-field">
+                            <span class="ach-info-label">Address</span>
+                            <strong class="ach-info-value">
+                                @_profile.AddressLine1<br />
+                                @if (!string.IsNullOrWhiteSpace(_profile.AddressLine2))
+                                {
+                                    @_profile.AddressLine2
+                                    <br />
+                                }
+                                @_profile.City@((_showState && !string.IsNullOrWhiteSpace(_profile.State)) ? $", {_profile.State}" : "")
+                                @(" " + _profile.ZipCode)@(!string.IsNullOrWhiteSpace(_profile.ZipExt) ? $"-{_profile.ZipExt}" : "")
+                            </strong>
+                        </div>
                     </div>
                 </div>
             }
@@ -250,33 +265,21 @@
             {
                 <h1 class="billing-section-title fw-bold">Card Payment Confirmation</h1>
 
-                <div class="fix-section-width" style="max-width:684px;">
-                    <NotificationBanner NotificationType="NotificationType.Confirmation"
-                                        Message="Payment Submitted Successfully"
-                                        DismissButton="false" />
-                </div>
+                <NotificationBanner NotificationType="NotificationType.Confirmation"
+                                    Message="Payment Request Submitted"
+                                    DismissButton="false" />
 
-                <p class="section-description">
-                    Thank you for your Wisconsin Unemployment Insurance payment.
-                    A confirmation email has been sent to <strong>@_profile.Email</strong>.
-                </p>
+                <p class="section-description">A confirmation email has been sent.</p>
+                <p class="section-description">Allow two business days for your payment to post to your account.</p>
 
-                <div class="card-verify-grid">
+                <div class="ach-info-card">
+                    <div class="ach-info-card-header">
+                        <h2 class="ach-info-card-title fw-bold">Payment Information</h2>
+                    </div>
+                    <hr class="ach-section-divider" aria-hidden="true" />
                     <div class="ach-info-field">
                         <span class="ach-info-label">Confirmation Number</span>
                         <strong class="ach-info-value">@_confirmationNumber</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Payment Amount</span>
-                        <strong class="ach-info-value">@_paymentAmount.ToString("C")</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Contact Name</span>
-                        <strong class="ach-info-value">@_profile.FirstName @_profile.LastName</strong>
-                    </div>
-                    <div class="ach-info-field">
-                        <span class="ach-info-label">Email Address</span>
-                        <strong class="ach-info-value">@_profile.Email</strong>
                     </div>
                 </div>
             }
@@ -342,6 +345,7 @@
     private bool _showValidationSummary;
     private bool _isSubmitting;
     private List<string> _validationErrors = new();
+    private string? _cardPaymentError;
 
     private List<SelectOption> _countryOptions = new();
     private List<SelectOption> _stateOptions   = new();
@@ -468,6 +472,7 @@
         switch (_step)
         {
             case CardStep.Verification:
+                _cardPaymentError = null;   // clear provider error when going back
                 await NavigateToStep(CardStep.Registration, "Returned to Registration step.");
                 break;
             default:
@@ -476,7 +481,11 @@
         }
     }
 
-    private void HandleCancel() => Nav.NavigateTo("/billing-payments/billing");
+    private void HandleCancel()
+    {
+        _cardPaymentError = null;
+        Nav.NavigateTo("/billing-payments/billing");
+    }
 
     private async Task LaunchPaymentModal()
     {
@@ -484,6 +493,7 @@
         _isSubmitting = true;
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _cardPaymentError = null;
         StateHasChanged();
 
         try
@@ -499,9 +509,11 @@
 
             if (!result.Success)
             {
-                _validationErrors.Add(result.ErrorMessage
-                    ?? "Payment session could not be started. Please try again.");
-                _showValidationSummary = true;
+                _cardPaymentError = result.ErrorMessage
+                    ?? "There was an error while attempting to process the payment. "
+                     + "The request cannot be completed with the given funding source as it does not have sufficient balance. "
+                     + "Choose a different type of funding source and try again. "
+                     + "Please contact your financial institution or select Continue to update the payment.";
                 return;
             }
 
@@ -511,8 +523,7 @@
         }
         catch
         {
-            _validationErrors.Add("An unexpected error occurred. Please try again.");
-            _showValidationSummary = true;
+            _cardPaymentError = "An unexpected error occurred while processing your payment. Please try again.";
         }
         finally
         {
