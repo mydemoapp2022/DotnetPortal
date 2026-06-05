@@ -47,6 +47,7 @@ builder.Services.AddScoped<IEFTPaymentService, YourWcfGeneratedClient>();
 // Register adapters
 builder.Services.AddScoped<IEftPaymentService, EftPaymentService>();
 builder.Services.AddScoped<IFederalReserveHolidayService, FederalReserveHolidayService>();
+builder.Services.AddScoped<ICardPaymentService, CardPaymentService>(); // stub — replace when provider is confirmed
 
 // Add mock UserAccountService for development
 services.AddScoped<IUserAccountService, MockUserAccountService>();
