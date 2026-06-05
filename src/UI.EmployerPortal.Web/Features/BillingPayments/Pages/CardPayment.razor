@@ -32,6 +32,19 @@
                ════════════════════════════════════════════════════════ *@
             @if (_step == CardStep.Registration)
             {
+                @* ── Balance Due banner — above the page title, matching Figma ── *@
+                <div class="card-balance-banner" aria-label="Balance Due Summary">
+                    <span class="card-balance-banner-label fw-bold">Balance Due</span>
+                    <div class="card-balance-banner-right">
+                        <span class="card-balance-banner-amount fw-bold">@_paymentAmount.ToString("C")</span>
+                        <a href="/billing-payments/billing"
+                           class="card-amount-due-link"
+                           aria-label="View Amount Due Details">
+                            Amount Due Details
+                        </a>
+                    </div>
+                </div>
+
                 <h1 class="billing-section-title fw-bold">Credit/Debit Card Registration Profile</h1>
 
                 @if (_showValidationSummary && _validationErrors.Any())
@@ -43,12 +56,6 @@
                                             DismissButton="false" />
                     </div>
                 }
-
-                <div class="card-payment-balance-row">
-                    <span class="card-payment-balance-label fw-bold">Balance Due</span>
-                    <span class="card-payment-balance-value fw-bold">@_paymentAmount.ToString("C")</span>
-                </div>
-                <a href="/billing-payments/billing" class="card-amount-due-link">Amount Due Details</a>
 
                 <EditForm EditContext="_editContext"
                           OnValidSubmit="GoToVerification"
@@ -69,30 +76,31 @@
 
                     <p class="card-all-required-note">All fields are required.</p>
 
+                    @* ── Name ── *@
                     <p class="card-section-label fw-bold">
                         First and last name of the person making the payment online.
                     </p>
-                    <div class="card-form-row">
-                        <OutlinedTextField Label="First Name"
-                                           Id="card-first-name"
-                                           @bind-Value="_profile.FirstName"
-                                           For="@(() => _profile.FirstName)"
-                                           Visible="_showValidation"
-                                           MaxLength="50" />
 
-                        <OutlinedTextField Label="Last Name"
-                                           Id="card-last-name"
-                                           @bind-Value="_profile.LastName"
-                                           For="@(() => _profile.LastName)"
-                                           Visible="_showValidation"
-                                           MaxLength="50" />
-                    </div>
+                    @* Figma: First Name and Last Name are stacked vertically, full-width *@
+                    <OutlinedTextField Label="First Name"
+                                       Id="card-first-name"
+                                       @bind-Value="_profile.FirstName"
+                                       For="@(() => _profile.FirstName)"
+                                       Visible="_showValidation"
+                                       MaxLength="50" />
 
+                    <OutlinedTextField Label="Last Name"
+                                       Id="card-last-name"
+                                       @bind-Value="_profile.LastName"
+                                       For="@(() => _profile.LastName)"
+                                       Visible="_showValidation"
+                                       MaxLength="50" />
+
+                    @* ── Billing Address ── *@
                     <p class="card-section-label fw-bold">
                         Billing address for the card being used to make a payment.
                     </p>
 
-                    @* Country — populated from WCF GetCountryCodes *@
                     <OutlinedSelectField Label="Country"
                                          Id="card-country"
                                          Value="@_profile.Country"
@@ -134,23 +142,23 @@
                                              Visible="_showValidation" />
                     }
 
-                    <div class="card-form-row">
-                        <OutlinedTextField Label="Zip Code"
-                                           Id="card-zip"
-                                           @bind-Value="_profile.ZipCode"
-                                           For="@(() => _profile.ZipCode)"
-                                           Visible="_showValidation"
-                                           InputMode="numeric"
-                                           MaxLength="5" />
+                    @* Figma: Zip Code and Ext. are stacked vertically, full-width *@
+                    <OutlinedTextField Label="Zip Code"
+                                       Id="card-zip"
+                                       @bind-Value="_profile.ZipCode"
+                                       For="@(() => _profile.ZipCode)"
+                                       Visible="_showValidation"
+                                       InputMode="numeric"
+                                       MaxLength="5" />
 
-                        <OutlinedTextField Label="Ext. (Optional)"
-                                           Id="card-zip-ext"
-                                           @bind-Value="_profile.ZipExt"
-                                           Visible="_showValidation"
-                                           InputMode="numeric"
-                                           MaxLength="4" />
-                    </div>
+                    <OutlinedTextField Label="Ext. (Optional)"
+                                       Id="card-zip-ext"
+                                       @bind-Value="_profile.ZipExt"
+                                       Visible="_showValidation"
+                                       InputMode="numeric"
+                                       MaxLength="4" />
 
+                    @* ── Phone ── *@
                     <p class="card-section-label fw-bold">
                         Telephone number of the person making the payment online.
                     </p>
@@ -162,6 +170,7 @@
                                        InputMode="tel"
                                        MaxLength="10" />
 
+                    @* ── Email ── *@
                     <p class="card-section-label fw-bold">
                         Email address to which we should send payment confirmation.
                     </p>
@@ -313,8 +322,6 @@
     [Inject] private IEftPaymentService EftPaymentService { get; set; } = default!;
     [Inject] private ICardPaymentService CardPaymentService { get; set; } = default!;
 
-    // ── Step state ───────────────────────────────────────────────────────
-
     private CardStep _step = CardStep.Registration;
     private string _stepAnnouncement = string.Empty;
 
@@ -330,68 +337,44 @@
     private bool _isSubmitting;
     private List<string> _validationErrors = new();
 
-    // ── Dropdown data ─────────────────────────────────────────────────────
-
     private List<SelectOption> _countryOptions = new();
     private List<SelectOption> _stateOptions   = new();
 
-    /// <summary>
-    /// The WCF country list uses uppercase names (e.g. "UNITED STATES").
-    /// We store the selected CodeSK as a string in <see cref="CardPaymentProfileModel.Country"/>
-    /// and resolve the display match via <see cref="_unitedStatesCodeSK"/>.
-    /// </summary>
     private int _unitedStatesCodeSK = -1;
 
     private bool _showState =>
         !string.IsNullOrEmpty(_profile.Country) &&
         _profile.Country == _unitedStatesCodeSK.ToString();
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────
-
     protected override async Task OnInitializedAsync()
     {
         _editContext = new EditContext(_profile);
 
-        // Load all three data sources in parallel
-        var sessionTask  = BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
-        var countryTask  = EftPaymentService.GetCountryCodesAsync();
-        var stateTask    = EftPaymentService.GetUSStateCodesAsync();
+        var sessionTask = BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
+        var countryTask = EftPaymentService.GetCountryCodesAsync();
+        var stateTask   = EftPaymentService.GetUSStateCodesAsync();
 
         await Task.WhenAll(sessionTask, countryTask, stateTask);
 
-        // Payment amount from session
         _paymentAmount = sessionTask.Result?.AmountToPay ?? 0m;
 
-        // Build country dropdown — Value = CodeSK string, Text = Title-cased name
         var countries = countryTask.Result;
         _countryOptions = countries
-            .Select(c => new SelectOption
-            {
-                Value = c.CodeSK.ToString(),
-                Text  = ToTitleCase(c.LongDescription)
-            })
+            .Select(c => new SelectOption { Value = c.CodeSK.ToString(), Text = ToTitleCase(c.LongDescription) })
             .ToList();
 
-        // Cache the CodeSK for "UNITED STATES" so the State dropdown shows correctly
         var us = countries.FirstOrDefault(c =>
             c.LongDescription.Equals("UNITED STATES", StringComparison.OrdinalIgnoreCase));
         if (us is not null)
         {
-            _unitedStatesCodeSK = us.CodeSK;
-            // Default country to United States
-            _profile.Country = _unitedStatesCodeSK.ToString();
+            _unitedStatesCodeSK  = us.CodeSK;
+            _profile.Country     = _unitedStatesCodeSK.ToString();
         }
 
-        // Build state dropdown — Value = ShortDescription (e.g. "WI"), Text = LongDescription
         _stateOptions = stateTask.Result
-            .Select(s => new SelectOption
-            {
-                Value = s.ShortDescription,
-                Text  = ToTitleCase(s.LongDescription)
-            })
+            .Select(s => new SelectOption { Value = s.ShortDescription, Text = ToTitleCase(s.LongDescription) })
             .ToList();
 
-        // Pre-populate contact info (best-effort)
         try
         {
             var employer = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
@@ -411,26 +394,18 @@
         }
         catch
         {
-            // Pre-population is best-effort; user fills manually if this fails
+            // Pre-population is best-effort
         }
 
         _isLoading = false;
     }
 
-    // ── Country / State ───────────────────────────────────────────────────
-
     private void OnCountryChanged(string value)
     {
         _profile.Country = value;
-
-        // Clear state whenever the user picks a non-US country
         if (!_showState)
-        {
             _profile.State = null;
-        }
     }
-
-    // ── Form submission ───────────────────────────────────────────────────
 
     private void SubmitRegistrationForm()
     {
@@ -468,14 +443,9 @@
     {
         _showValidation = true;
         _showValidationSummary = true;
-        _validationErrors = _editContext
-            .GetValidationMessages()
-            .Distinct()
-            .ToList();
+        _validationErrors = _editContext.GetValidationMessages().Distinct().ToList();
         StateHasChanged();
     }
-
-    // ── Navigation ────────────────────────────────────────────────────────
 
     private async Task NavigateToStep(CardStep next, string announcement)
     {
@@ -502,8 +472,6 @@
 
     private void HandleCancel() => Nav.NavigateTo("/billing-payments/billing");
 
-    // ── Third-party modal (Step 2 → Continue) ─────────────────────────────
-
     private async Task LaunchPaymentModal()
     {
         if (_isSubmitting) return;
@@ -514,7 +482,6 @@
 
         try
         {
-            // Resolve the state abbreviation for display (ShortDescription stored directly)
             var result = await CardPaymentService.CreateSessionAsync(
                 amount:       _paymentAmount,
                 contactName:  $"{_profile.FirstName} {_profile.LastName}".Trim(),
@@ -532,13 +499,9 @@
                 return;
             }
 
-            // TODO: pass result.SessionToken to the provider modal via JS interop once
-            // the third-party integration contract is confirmed:
-            // await JS.InvokeVoidAsync("launchCardPaymentModal", result.SessionToken);
-
-            _confirmationNumber = "PENDING"; // replaced by provider response
-            await NavigateToStep(CardStep.Confirmation,
-                "Payment submitted. You are on the confirmation page.");
+            // TODO: await JS.InvokeVoidAsync("launchCardPaymentModal", result.SessionToken);
+            _confirmationNumber = "PENDING";
+            await NavigateToStep(CardStep.Confirmation, "Payment submitted. You are on the confirmation page.");
         }
         catch
         {
@@ -552,18 +515,13 @@
         }
     }
 
-    // ── Validation ────────────────────────────────────────────────────────
-
     private bool ValidateStep1()
     {
         _validationErrors.Clear();
 
         if (!_editContext.Validate())
         {
-            _validationErrors = _editContext
-                .GetValidationMessages()
-                .Distinct()
-                .ToList();
+            _validationErrors = _editContext.GetValidationMessages().Distinct().ToList();
             return false;
         }
 
@@ -576,9 +534,6 @@
         return true;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
-
-    /// <summary>Converts "UNITED STATES" → "United States" for display.</summary>
     private static string ToTitleCase(string value) =>
         string.IsNullOrWhiteSpace(value)
             ? value

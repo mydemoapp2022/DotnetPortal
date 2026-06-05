@@ -1,0 +1,32 @@
+body {
+}
+/* Balance Due banner — sits above the page title */
+.card-balance-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.card-balance-banner-label {
+    font-size: 1rem;
+    color: #003663;
+}
+
+.card-balance-banner-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.card-balance-banner-amount {
+    font-size: 1rem;
+    color: #003663;
+}
+
+.card-amount-due-link {
+    font-size: 0.875rem;
+    color: #0066cc;
+    text-decoration: underline;
+}
