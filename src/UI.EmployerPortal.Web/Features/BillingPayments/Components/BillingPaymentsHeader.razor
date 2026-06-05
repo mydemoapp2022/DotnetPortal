@@ -1,21 +1,24 @@
 @using UI.EmployerPortal.Web.Features.Shared.Accounts.Models
 <header class="billing-header" role="banner" aria-label="Account balance summary">
     <div class="billing-header-content fs-sm">
-        <span class="detail-label fw-bold" id="balance-due-label">Balance Due</span>
+        <span class="detail-label fw-bold" id="balance-due-label">@HeaderText</span>
         <div class="billing-header-right">
             <span class="balance-amount fw-bold"
                   aria-labelledby="balance-due-label"
                   aria-live="polite"
                   aria-atomic="true">
-                @EmployerAccount?.BalanceDue.ToString("C")
+                @Amount?.ToString("C")
             </span>
             <a href="#" class="amount-due-link" aria-label="View amount due details for your account">
-                Amount Due Details
+                @LinkText
             </a>
         </div>
     </div>
 </header>
 
 @code {
-    [Parameter] public EmployerAccount? EmployerAccount { get; set; }
+    //[Parameter] public EmployerAccount? EmployerAccount { get; set; }
+    [Parameter] public string? HeaderText { get; set; } = "Balance Due";
+    [Parameter] public string? LinkText { get; set; } = "Amount Due Details";
+    [Parameter] public decimal? Amount { get; set; } = 0;
 }

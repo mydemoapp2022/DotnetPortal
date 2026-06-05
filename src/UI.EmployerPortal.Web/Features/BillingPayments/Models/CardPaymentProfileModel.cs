@@ -19,7 +19,9 @@ public class CardPaymentProfileModel
     public string LastName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Phone number is required.")]
-    [RegularExpression(@"^\d{10}$", ErrorMessage = "Enter a 10-digit phone number.")]
+    [RegularExpression(
+      @"^(\d{10}|\(\d{3}\)\s?\d{3}-\d{4}|\d{3}[-.\s]\d{3}[-.\s]\d{4})$",
+      ErrorMessage = "Enter a 10-digit phone number.")]
     public string PhoneNumber { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Email address is required.")]

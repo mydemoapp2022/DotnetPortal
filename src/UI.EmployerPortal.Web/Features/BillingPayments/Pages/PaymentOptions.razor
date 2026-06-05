@@ -8,7 +8,7 @@
 <PageTitle>Payment Options</PageTitle>
 <main id="main-content" aria-label="Billing and Payments">
     <div class="billing-payments-container">
-        <BillingPaymentsHeader EmployerAccount="@_employerAccount" />
+        <BillingPaymentsHeader Amount="@_employerAccount?.BalanceDue" />
         <BillingPaymentsMain EmployerAccount="@_employerAccount"
                              Source="@_navigationSource" />
     </div>

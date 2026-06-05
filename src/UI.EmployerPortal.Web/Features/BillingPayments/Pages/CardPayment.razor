@@ -33,7 +33,7 @@
             @if (_step == CardStep.Registration)
             {
                 @* ── Balance Due banner — above the page title, matching Figma ── *@
-                <div class="card-balance-banner" aria-label="Balance Due Summary">
+                @* <div class="card-balance-banner" aria-label="Balance Due Summary">
                     <span class="card-balance-banner-label fw-bold">Balance Due</span>
                     <div class="card-balance-banner-right">
                         <span class="card-balance-banner-amount fw-bold">@_paymentAmount.ToString("C")</span>
@@ -43,7 +43,8 @@
                             Amount Due Details
                         </a>
                     </div>
-                </div>
+                </div> *@
+                <BillingPaymentsHeader Amount="@_paymentAmount"/>
 
                 <h1 class="billing-section-title fw-bold">Credit/Debit Card Registration Profile</h1>
 
@@ -142,21 +143,26 @@
                                              Visible="_showValidation" />
                     }
 
-                    @* Figma: Zip Code and Ext. are stacked vertically, full-width *@
-                    <OutlinedTextField Label="Zip Code"
-                                       Id="card-zip"
-                                       @bind-Value="_profile.ZipCode"
-                                       For="@(() => _profile.ZipCode)"
-                                       Visible="_showValidation"
-                                       InputMode="numeric"
-                                       MaxLength="5" />
-
-                    <OutlinedTextField Label="Ext. (Optional)"
-                                       Id="card-zip-ext"
-                                       @bind-Value="_profile.ZipExt"
-                                       Visible="_showValidation"
-                                       InputMode="numeric"
-                                       MaxLength="4" />
+                    <div class="bi-zip-row">
+                        <div class="bi-zip-field">
+                            <OutlinedTextField Label="Zip Code"
+                                               Id="card-zip"
+                                               @bind-Value="_profile.ZipCode"
+                                               For="@(() => _profile.ZipCode)"
+                                               Visible="_showValidation"
+                                               InputMode="numeric"
+                                               MaxLength="5" />
+                        </div>
+                        <span class="bi-zip-dash" aria-hidden="true">—</span>
+                        <div class="bi-ext-field">
+                            <OutlinedTextField Label="Ext. (Optional)"
+                                               Id="card-zip-ext"
+                                               @bind-Value="_profile.ZipExt"
+                                               Visible="_showValidation"
+                                               InputMode="numeric"
+                                               MaxLength="4" />
+                        </div>
+                    </div>                
 
                     @* ── Phone ── *@
                     <p class="card-section-label fw-bold">
