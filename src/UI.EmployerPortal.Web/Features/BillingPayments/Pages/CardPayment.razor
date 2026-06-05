@@ -17,7 +17,6 @@
 <main id="main-content" class="section-page" aria-label="Credit/Debit Card Payment">
     <div class="billing-payments-container">
 
-        {{!-- ARIA live region for step announcements --}}
         <div aria-live="polite" aria-atomic="true" class="visually-hidden" role="status">
             @_stepAnnouncement
         </div>
@@ -45,7 +44,6 @@
                     </div>
                 }
 
-                {{!-- Balance Due header row --}}
                 <div class="card-payment-balance-row">
                     <span class="card-payment-balance-label fw-bold">Balance Due</span>
                     <span class="card-payment-balance-value fw-bold">@_paymentAmount.ToString("C")</span>
@@ -57,14 +55,12 @@
                           OnInvalidSubmit="OnFormInvalid">
                     <DataAnnotationsValidator />
 
-                    {{!-- Service fee notice --}}
                     <p class="card-service-fee-notice">
                         A non-refundable 2% service fee is assessed on the amount of the card payment.
                         In order to make your card payment, please complete the information below.
                         If the information listed is not correct, update the applicable fields.
                     </p>
 
-                    {{!-- Accepted card logos --}}
                     <div class="card-accepted-logos" aria-label="Accepted card types">
                         <img src="/images/billing/visa.svg"       alt="Visa"       height="28" />
                         <img src="/images/billing/mastercard.svg" alt="Mastercard" height="28" />
@@ -73,7 +69,6 @@
 
                     <p class="card-all-required-note">All fields are required.</p>
 
-                    {{!-- ── Name ── --}}
                     <p class="card-section-label fw-bold">
                         First and last name of the person making the payment online.
                     </p>
@@ -93,11 +88,11 @@
                                            MaxLength="50" />
                     </div>
 
-                    {{!-- ── Billing Address ── --}}
                     <p class="card-section-label fw-bold">
                         Billing address for the card being used to make a payment.
                     </p>
 
+                    @* Country — populated from WCF GetCountryCodes *@
                     <OutlinedSelectField Label="Country"
                                          Id="card-country"
                                          Value="@_profile.Country"
@@ -127,7 +122,7 @@
                                        Visible="_showValidation"
                                        MaxLength="60" />
 
-                    @* State — only shown for United States *@
+                    @* State — only visible when United States is selected *@
                     @if (_showState)
                     {
                         <OutlinedSelectField Label="State"
@@ -156,7 +151,6 @@
                                            MaxLength="4" />
                     </div>
 
-                    {{!-- ── Phone ── --}}
                     <p class="card-section-label fw-bold">
                         Telephone number of the person making the payment online.
                     </p>
@@ -168,7 +162,6 @@
                                        InputMode="tel"
                                        MaxLength="10" />
 
-                    {{!-- ── Email ── --}}
                     <p class="card-section-label fw-bold">
                         Email address to which we should send payment confirmation.
                     </p>
@@ -273,7 +266,7 @@
                 </div>
             }
 
-            @* ── Button Bar ─────────────────────────────────────────── *@
+            @* ── Button Bar ──────────────────────────────────────────── *@
             <nav class="billing-footer" aria-label="Page actions">
                 @if (_step == CardStep.Registration)
                 {
@@ -316,9 +309,11 @@
     [Inject] private IBankAccountOrchestrator BankAccountOrchestrator { get; set; } = default!;
     [Inject] private IDashboardOrchestrator DashboardOrchestrator { get; set; } = default!;
     [Inject] private IUserAccountService UserAccountService { get; set; } = default!;
+    [Inject] private IContactInformationService ContactInformationService { get; set; } = default!;
+    [Inject] private IEftPaymentService EftPaymentService { get; set; } = default!;
     [Inject] private ICardPaymentService CardPaymentService { get; set; } = default!;
 
-    // ── State ────────────────────────────────────────────────────────────
+    // ── Step state ───────────────────────────────────────────────────────
 
     private CardStep _step = CardStep.Registration;
     private string _stepAnnouncement = string.Empty;
@@ -335,71 +330,108 @@
     private bool _isSubmitting;
     private List<string> _validationErrors = new();
 
-    // ── Dropdown options ─────────────────────────────────────────────────
+    // ── Dropdown data ─────────────────────────────────────────────────────
 
-    private List<SelectOption> _countryOptions = BuildCountryOptions();
-    private List<SelectOption> _stateOptions = new();
-    private bool _showState => _profile.Country == "United States";
+    private List<SelectOption> _countryOptions = new();
+    private List<SelectOption> _stateOptions   = new();
 
-    // ── Lifecycle ────────────────────────────────────────────────────────
+    /// <summary>
+    /// The WCF country list uses uppercase names (e.g. "UNITED STATES").
+    /// We store the selected CodeSK as a string in <see cref="CardPaymentProfileModel.Country"/>
+    /// and resolve the display match via <see cref="_unitedStatesCodeSK"/>.
+    /// </summary>
+    private int _unitedStatesCodeSK = -1;
+
+    private bool _showState =>
+        !string.IsNullOrEmpty(_profile.Country) &&
+        _profile.Country == _unitedStatesCodeSK.ToString();
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────
 
     protected override async Task OnInitializedAsync()
     {
         _editContext = new EditContext(_profile);
 
-        // Load payment amount from session (carried forward from Billing page)
-        var session = await BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
-        _paymentAmount = session?.AmountToPay ?? 0m;
+        // Load all three data sources in parallel
+        var sessionTask  = BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
+        var countryTask  = EftPaymentService.GetCountryCodesAsync();
+        var stateTask    = EftPaymentService.GetUSStateCodesAsync();
 
-        // Pre-populate contact info from the same service used by ACH
+        await Task.WhenAll(sessionTask, countryTask, stateTask);
+
+        // Payment amount from session
+        _paymentAmount = sessionTask.Result?.AmountToPay ?? 0m;
+
+        // Build country dropdown — Value = CodeSK string, Text = Title-cased name
+        var countries = countryTask.Result;
+        _countryOptions = countries
+            .Select(c => new SelectOption
+            {
+                Value = c.CodeSK.ToString(),
+                Text  = ToTitleCase(c.LongDescription)
+            })
+            .ToList();
+
+        // Cache the CodeSK for "UNITED STATES" so the State dropdown shows correctly
+        var us = countries.FirstOrDefault(c =>
+            c.LongDescription.Equals("UNITED STATES", StringComparison.OrdinalIgnoreCase));
+        if (us is not null)
+        {
+            _unitedStatesCodeSK = us.CodeSK;
+            // Default country to United States
+            _profile.Country = _unitedStatesCodeSK.ToString();
+        }
+
+        // Build state dropdown — Value = ShortDescription (e.g. "WI"), Text = LongDescription
+        _stateOptions = stateTask.Result
+            .Select(s => new SelectOption
+            {
+                Value = s.ShortDescription,
+                Text  = ToTitleCase(s.LongDescription)
+            })
+            .ToList();
+
+        // Pre-populate contact info (best-effort)
         try
         {
             var employer = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
-            var userSk = UserAccountService.GetUserSKClaim();
-            var employerSk = employer?.Id ?? 0;
+            var userSk   = UserAccountService.GetUserSKClaim();
+            var empSk    = employer?.Id ?? 0;
             const int contactTypeCodeSK = 4;
 
-            var contact = await ContactInformationService.GetEmployerWebContact(userSk, employerSk, contactTypeCodeSK);
+            var contact = await ContactInformationService.GetEmployerWebContact(userSk, empSk, contactTypeCodeSK);
             if (contact is not null)
             {
-                // ContactName may be "FirstName LastName" — split for the profile
                 var parts = (contact.ContactName ?? string.Empty).Split(' ', 2);
-                _profile.FirstName = parts.Length > 0 ? parts[0] : string.Empty;
-                _profile.LastName  = parts.Length > 1 ? parts[1] : string.Empty;
+                _profile.FirstName   = parts.Length > 0 ? parts[0] : string.Empty;
+                _profile.LastName    = parts.Length > 1 ? parts[1] : string.Empty;
                 _profile.PhoneNumber = contact.PhoneNumber ?? string.Empty;
-                _profile.Email = contact.Email ?? string.Empty;
+                _profile.Email       = contact.Email ?? string.Empty;
             }
         }
         catch
         {
-            // Pre-population is best-effort; user can fill manually
+            // Pre-population is best-effort; user fills manually if this fails
         }
-
-        // Load states from WCF service
-        _stateOptions = await LoadStatesAsync();
 
         _isLoading = false;
     }
 
-    // ── Country / State logic ─────────────────────────────────────────────
+    // ── Country / State ───────────────────────────────────────────────────
 
     private void OnCountryChanged(string value)
     {
         _profile.Country = value;
 
-        // Clear state when switching away from United States
+        // Clear state whenever the user picks a non-US country
         if (!_showState)
         {
             _profile.State = null;
         }
     }
 
-    // ── Form submission helpers ───────────────────────────────────────────
+    // ── Form submission ───────────────────────────────────────────────────
 
-    /// <summary>
-    /// Called by the Continue button on Step 1.
-    /// Forces validation visible and programmatically submits the EditForm.
-    /// </summary>
     private void SubmitRegistrationForm()
     {
         _showValidation = true;
@@ -412,16 +444,14 @@
             return;
         }
 
-        GoToVerification();
+        _ = GoToVerification();
     }
 
-    /// <summary>Invoked by EditForm OnValidSubmit — advance to Verification step.</summary>
     private async Task GoToVerification()
     {
         _showValidationSummary = false;
         _validationErrors.Clear();
 
-        // Extra US-only state check
         if (_showState && string.IsNullOrWhiteSpace(_profile.State))
         {
             _validationErrors.Add("State is required.");
@@ -430,7 +460,8 @@
             return;
         }
 
-        await NavigateToStep(CardStep.Verification, "Payment Verification step. Please review your information.");
+        await NavigateToStep(CardStep.Verification,
+            "Payment Verification step. Please review your information.");
     }
 
     private void OnFormInvalid()
@@ -444,7 +475,7 @@
         StateHasChanged();
     }
 
-    // ── Navigation ───────────────────────────────────────────────────────
+    // ── Navigation ────────────────────────────────────────────────────────
 
     private async Task NavigateToStep(CardStep next, string announcement)
     {
@@ -463,9 +494,7 @@
             case CardStep.Verification:
                 await NavigateToStep(CardStep.Registration, "Returned to Registration step.");
                 break;
-
             default:
-                // Step 1 back → return to Billing page
                 Nav.NavigateTo("/billing-payments/billing");
                 break;
         }
@@ -473,7 +502,7 @@
 
     private void HandleCancel() => Nav.NavigateTo("/billing-payments/billing");
 
-    // ── Third-party modal launch (Step 2 → Continue) ─────────────────────
+    // ── Third-party modal (Step 2 → Continue) ─────────────────────────────
 
     private async Task LaunchPaymentModal()
     {
@@ -485,6 +514,7 @@
 
         try
         {
+            // Resolve the state abbreviation for display (ShortDescription stored directly)
             var result = await CardPaymentService.CreateSessionAsync(
                 amount:       _paymentAmount,
                 contactName:  $"{_profile.FirstName} {_profile.LastName}".Trim(),
@@ -496,16 +526,19 @@
 
             if (!result.Success)
             {
-                _validationErrors.Add(result.ErrorMessage ?? "Payment session could not be started. Please try again.");
+                _validationErrors.Add(result.ErrorMessage
+                    ?? "Payment session could not be started. Please try again.");
                 _showValidationSummary = true;
                 return;
             }
 
-            // TODO: pass result.SessionToken to the third-party modal via JS interop
+            // TODO: pass result.SessionToken to the provider modal via JS interop once
+            // the third-party integration contract is confirmed:
             // await JS.InvokeVoidAsync("launchCardPaymentModal", result.SessionToken);
-            // For now, advance directly to confirmation as a placeholder.
+
             _confirmationNumber = "PENDING"; // replaced by provider response
-            await NavigateToStep(CardStep.Confirmation, "Payment submitted. You are on the confirmation page.");
+            await NavigateToStep(CardStep.Confirmation,
+                "Payment submitted. You are on the confirmation page.");
         }
         catch
         {
@@ -519,7 +552,7 @@
         }
     }
 
-    // ── Validation helpers ───────────────────────────────────────────────
+    // ── Validation ────────────────────────────────────────────────────────
 
     private bool ValidateStep1()
     {
@@ -543,34 +576,12 @@
         return true;
     }
 
-    // ── Data loaders ─────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Loads US state options from the WCF web service via <see cref="IStateService"/>.
-    /// Falls back to an empty list on failure so the rest of the page still renders.
-    /// </summary>
-    private async Task<List<SelectOption>> LoadStatesAsync()
-    {
-        try
-        {
-            var states = await StateService.GetStatesAsync();
-            return states
-                .Select(s => new SelectOption { Value = s.StateCode, Text = s.StateName })
-                .ToList();
-        }
-        catch
-        {
-            return new List<SelectOption>();
-        }
-    }
-
-    // ── Static helpers ────────────────────────────────────────────────────
-
-    private static List<SelectOption> BuildCountryOptions() =>
-    [
-        new SelectOption { Value = "United States", Text = "United States" },
-        new SelectOption { Value = "Canada",         Text = "Canada" },
-        new SelectOption { Value = "Mexico",         Text = "Mexico" },
-        new SelectOption { Value = "Other",          Text = "Other" }
-    ];
+    /// <summary>Converts "UNITED STATES" → "United States" for display.</summary>
+    private static string ToTitleCase(string value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? value
+            : System.Globalization.CultureInfo.InvariantCulture.TextInfo
+                .ToTitleCase(value.ToLowerInvariant());
 }
