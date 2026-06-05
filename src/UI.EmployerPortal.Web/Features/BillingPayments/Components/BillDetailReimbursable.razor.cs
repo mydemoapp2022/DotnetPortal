@@ -91,6 +91,12 @@ public partial class BillDetailReimbursable
             await BankAccountOrchestrator.SavePendingReimbursePaymentToSessionAsync(Model);
             Nav.NavigateTo("billing-payments/bank-account-payment-ach");
         }
+        else if (_selectedpayment == "Card")
+        {
+            Model.SelectedPaymentMethod = _selectedpayment;
+            await BankAccountOrchestrator.SavePendingReimbursePaymentToSessionAsync(Model);
+            Nav.NavigateTo("billing-payments/card-payment");
+        }
 
     }
 

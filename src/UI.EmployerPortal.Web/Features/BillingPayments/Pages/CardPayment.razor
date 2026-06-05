@@ -1,0 +1,576 @@
+@page "/billing-payments/card-payment"
+@using Microsoft.AspNetCore.Components.Forms
+@using UI.EmployerPortal.Razor.SharedComponents
+@using UI.EmployerPortal.Razor.SharedComponents.Inputs
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
+@using UI.EmployerPortal.Web.Features.BillingPayments.Components
+@using UI.EmployerPortal.Web.Features.BillingPayments.Models
+@using UI.EmployerPortal.Web.Features.BillingPayments.Services
+@using UI.EmployerPortal.Web.Features.Dashboard
+@using UI.EmployerPortal.Web.Features.Shared.Accounts.Services
+
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Credit/Debit Card Payment</PageTitle>
+
+<main id="main-content" class="section-page" aria-label="Credit/Debit Card Payment">
+    <div class="billing-payments-container">
+
+        {{!-- ARIA live region for step announcements --}}
+        <div aria-live="polite" aria-atomic="true" class="visually-hidden" role="status">
+            @_stepAnnouncement
+        </div>
+
+        @if (_isLoading)
+        {
+            <LoadingSpinner Message="Loading payment details, please wait..." />
+        }
+        else
+        {
+            @* ════════════════════════════════════════════════════════
+               STEP 1 — Registration / Profile
+               ════════════════════════════════════════════════════════ *@
+            @if (_step == CardStep.Registration)
+            {
+                <h1 class="billing-section-title fw-bold">Credit/Debit Card Registration Profile</h1>
+
+                @if (_showValidationSummary && _validationErrors.Any())
+                {
+                    <div class="fix-section-width" style="max-width:684px;">
+                        <NotificationBanner NotificationType="NotificationType.Alert"
+                                            MessageStyle="MessageStyle.MultiLine"
+                                            Messages="_validationErrors"
+                                            DismissButton="false" />
+                    </div>
+                }
+
+                {{!-- Balance Due header row --}}
+                <div class="card-payment-balance-row">
+                    <span class="card-payment-balance-label fw-bold">Balance Due</span>
+                    <span class="card-payment-balance-value fw-bold">@_paymentAmount.ToString("C")</span>
+                </div>
+                <a href="/billing-payments/billing" class="card-amount-due-link">Amount Due Details</a>
+
+                <EditForm EditContext="_editContext"
+                          OnValidSubmit="GoToVerification"
+                          OnInvalidSubmit="OnFormInvalid">
+                    <DataAnnotationsValidator />
+
+                    {{!-- Service fee notice --}}
+                    <p class="card-service-fee-notice">
+                        A non-refundable 2% service fee is assessed on the amount of the card payment.
+                        In order to make your card payment, please complete the information below.
+                        If the information listed is not correct, update the applicable fields.
+                    </p>
+
+                    {{!-- Accepted card logos --}}
+                    <div class="card-accepted-logos" aria-label="Accepted card types">
+                        <img src="/images/billing/visa.svg"       alt="Visa"       height="28" />
+                        <img src="/images/billing/mastercard.svg" alt="Mastercard" height="28" />
+                        <img src="/images/billing/discover.svg"   alt="Discover"   height="28" />
+                    </div>
+
+                    <p class="card-all-required-note">All fields are required.</p>
+
+                    {{!-- ── Name ── --}}
+                    <p class="card-section-label fw-bold">
+                        First and last name of the person making the payment online.
+                    </p>
+                    <div class="card-form-row">
+                        <OutlinedTextField Label="First Name"
+                                           Id="card-first-name"
+                                           @bind-Value="_profile.FirstName"
+                                           For="@(() => _profile.FirstName)"
+                                           Visible="_showValidation"
+                                           MaxLength="50" />
+
+                        <OutlinedTextField Label="Last Name"
+                                           Id="card-last-name"
+                                           @bind-Value="_profile.LastName"
+                                           For="@(() => _profile.LastName)"
+                                           Visible="_showValidation"
+                                           MaxLength="50" />
+                    </div>
+
+                    {{!-- ── Billing Address ── --}}
+                    <p class="card-section-label fw-bold">
+                        Billing address for the card being used to make a payment.
+                    </p>
+
+                    <OutlinedSelectField Label="Country"
+                                         Id="card-country"
+                                         Value="@_profile.Country"
+                                         ValueChanged="OnCountryChanged"
+                                         Options="_countryOptions"
+                                         Placeholder="Select Country"
+                                         For="@(() => _profile.Country)"
+                                         Visible="_showValidation" />
+
+                    <OutlinedTextField Label="Address Line 1"
+                                       Id="card-address1"
+                                       @bind-Value="_profile.AddressLine1"
+                                       For="@(() => _profile.AddressLine1)"
+                                       Visible="_showValidation"
+                                       MaxLength="100" />
+
+                    <OutlinedTextField Label="Address Line 2 (Optional)"
+                                       Id="card-address2"
+                                       @bind-Value="_profile.AddressLine2"
+                                       Visible="_showValidation"
+                                       MaxLength="100" />
+
+                    <OutlinedTextField Label="City"
+                                       Id="card-city"
+                                       @bind-Value="_profile.City"
+                                       For="@(() => _profile.City)"
+                                       Visible="_showValidation"
+                                       MaxLength="60" />
+
+                    @* State — only shown for United States *@
+                    @if (_showState)
+                    {
+                        <OutlinedSelectField Label="State"
+                                             Id="card-state"
+                                             Value="@_profile.State"
+                                             ValueChanged="v => _profile.State = v"
+                                             Options="_stateOptions"
+                                             Placeholder="Select State"
+                                             Visible="_showValidation" />
+                    }
+
+                    <div class="card-form-row">
+                        <OutlinedTextField Label="Zip Code"
+                                           Id="card-zip"
+                                           @bind-Value="_profile.ZipCode"
+                                           For="@(() => _profile.ZipCode)"
+                                           Visible="_showValidation"
+                                           InputMode="numeric"
+                                           MaxLength="5" />
+
+                        <OutlinedTextField Label="Ext. (Optional)"
+                                           Id="card-zip-ext"
+                                           @bind-Value="_profile.ZipExt"
+                                           Visible="_showValidation"
+                                           InputMode="numeric"
+                                           MaxLength="4" />
+                    </div>
+
+                    {{!-- ── Phone ── --}}
+                    <p class="card-section-label fw-bold">
+                        Telephone number of the person making the payment online.
+                    </p>
+                    <OutlinedTextField Label="Phone Number"
+                                       Id="card-phone"
+                                       @bind-Value="_profile.PhoneNumber"
+                                       For="@(() => _profile.PhoneNumber)"
+                                       Visible="_showValidation"
+                                       InputMode="tel"
+                                       MaxLength="10" />
+
+                    {{!-- ── Email ── --}}
+                    <p class="card-section-label fw-bold">
+                        Email address to which we should send payment confirmation.
+                    </p>
+                    <OutlinedTextField Label="Email Address"
+                                       Id="card-email"
+                                       @bind-Value="_profile.Email"
+                                       For="@(() => _profile.Email)"
+                                       Visible="_showValidation"
+                                       MaxLength="100" />
+
+                    <p class="card-effective-date-note">
+                        Note that the payment is effective as of the date you make it. It can take up to
+                        two business days after the settlement date to post to your account.
+                    </p>
+
+                </EditForm>
+            }
+
+            @* ════════════════════════════════════════════════════════
+               STEP 2 — Verification (read-only review)
+               ════════════════════════════════════════════════════════ *@
+            else if (_step == CardStep.Verification)
+            {
+                <h1 class="billing-section-title fw-bold">Payment Verification</h1>
+
+                @if (_showValidationSummary && _validationErrors.Any())
+                {
+                    <div class="fix-section-width" style="max-width:684px;">
+                        <NotificationBanner NotificationType="NotificationType.Alert"
+                                            MessageStyle="MessageStyle.MultiLine"
+                                            Messages="_validationErrors"
+                                            DismissButton="false" />
+                    </div>
+                }
+
+                <p class="section-description">Please verify the payment information is correct.</p>
+
+                <div class="card-verify-grid">
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Payment Amount</span>
+                        <strong class="ach-info-value">@_paymentAmount.ToString("C")</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Contact Name</span>
+                        <strong class="ach-info-value">@_profile.FirstName @_profile.LastName</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Email Address</span>
+                        <strong class="ach-info-value">@_profile.Email</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Address</span>
+                        <strong class="ach-info-value">
+                            @_profile.AddressLine1<br />
+                            @if (!string.IsNullOrWhiteSpace(_profile.AddressLine2))
+                            {
+                                @_profile.AddressLine2
+                                <br />
+                            }
+                            @_profile.City@((_showState && !string.IsNullOrWhiteSpace(_profile.State)) ? $", {_profile.State}" : "")
+                            @(" " + _profile.ZipCode)@(!string.IsNullOrWhiteSpace(_profile.ZipExt) ? $"-{_profile.ZipExt}" : "")
+                        </strong>
+                    </div>
+                </div>
+            }
+
+            @* ════════════════════════════════════════════════════════
+               STEP 3 — Confirmation
+               ════════════════════════════════════════════════════════ *@
+            else if (_step == CardStep.Confirmation)
+            {
+                <h1 class="billing-section-title fw-bold">Card Payment Confirmation</h1>
+
+                <div class="fix-section-width" style="max-width:684px;">
+                    <NotificationBanner NotificationType="NotificationType.Confirmation"
+                                        Message="Payment Submitted Successfully"
+                                        DismissButton="false" />
+                </div>
+
+                <p class="section-description">
+                    Thank you for your Wisconsin Unemployment Insurance payment.
+                    A confirmation email has been sent to <strong>@_profile.Email</strong>.
+                </p>
+
+                <div class="card-verify-grid">
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Confirmation Number</span>
+                        <strong class="ach-info-value">@_confirmationNumber</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Payment Amount</span>
+                        <strong class="ach-info-value">@_paymentAmount.ToString("C")</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Contact Name</span>
+                        <strong class="ach-info-value">@_profile.FirstName @_profile.LastName</strong>
+                    </div>
+                    <div class="ach-info-field">
+                        <span class="ach-info-label">Email Address</span>
+                        <strong class="ach-info-value">@_profile.Email</strong>
+                    </div>
+                </div>
+            }
+
+            @* ── Button Bar ─────────────────────────────────────────── *@
+            <nav class="billing-footer" aria-label="Page actions">
+                @if (_step == CardStep.Registration)
+                {
+                    <BillingButtonBar ShowBack="true"
+                                      ShowCancel="true"
+                                      ShowContinue="true"
+                                      OnBack="HandleBack"
+                                      OnCancel="HandleCancel"
+                                      OnContinue="SubmitRegistrationForm"
+                                      ContinueText="CONTINUE"
+                                      ButtonWidth="200" />
+                }
+                else if (_step == CardStep.Verification)
+                {
+                    <BillingButtonBar ShowBack="true"
+                                      ShowCancel="true"
+                                      ShowContinue="true"
+                                      ContinueEnabled="!_isSubmitting"
+                                      OnBack="HandleBack"
+                                      OnCancel="HandleCancel"
+                                      OnContinue="LaunchPaymentModal"
+                                      ContinueText="CONTINUE"
+                                      ButtonWidth="200" />
+                }
+                else if (_step == CardStep.Confirmation)
+                {
+                    <BillingButtonBar ShowBack="false"
+                                      ShowCancel="false"
+                                      ShowContinue="true"
+                                      OnContinue='() => Nav.NavigateTo("/billing-payments/payment-history")'
+                                      ContinueText="PAYMENT HISTORY"
+                                      ButtonWidth="200" />
+                }
+            </nav>
+        }
+    </div>
+</main>
+
+@code {
+    [Inject] private IBankAccountOrchestrator BankAccountOrchestrator { get; set; } = default!;
+    [Inject] private IDashboardOrchestrator DashboardOrchestrator { get; set; } = default!;
+    [Inject] private IUserAccountService UserAccountService { get; set; } = default!;
+    [Inject] private ICardPaymentService CardPaymentService { get; set; } = default!;
+
+    // ── State ────────────────────────────────────────────────────────────
+
+    private CardStep _step = CardStep.Registration;
+    private string _stepAnnouncement = string.Empty;
+
+    private CardPaymentProfileModel _profile = new();
+    private EditContext _editContext = default!;
+
+    private decimal _paymentAmount;
+    private string _confirmationNumber = string.Empty;
+
+    private bool _isLoading = true;
+    private bool _showValidation;
+    private bool _showValidationSummary;
+    private bool _isSubmitting;
+    private List<string> _validationErrors = new();
+
+    // ── Dropdown options ─────────────────────────────────────────────────
+
+    private List<SelectOption> _countryOptions = BuildCountryOptions();
+    private List<SelectOption> _stateOptions = new();
+    private bool _showState => _profile.Country == "United States";
+
+    // ── Lifecycle ────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _editContext = new EditContext(_profile);
+
+        // Load payment amount from session (carried forward from Billing page)
+        var session = await BankAccountOrchestrator.GetPendingReimbursePaymentToSessionAsync();
+        _paymentAmount = session?.AmountToPay ?? 0m;
+
+        // Pre-populate contact info from the same service used by ACH
+        try
+        {
+            var employer = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
+            var userSk = UserAccountService.GetUserSKClaim();
+            var employerSk = employer?.Id ?? 0;
+            const int contactTypeCodeSK = 4;
+
+            var contact = await ContactInformationService.GetEmployerWebContact(userSk, employerSk, contactTypeCodeSK);
+            if (contact is not null)
+            {
+                // ContactName may be "FirstName LastName" — split for the profile
+                var parts = (contact.ContactName ?? string.Empty).Split(' ', 2);
+                _profile.FirstName = parts.Length > 0 ? parts[0] : string.Empty;
+                _profile.LastName  = parts.Length > 1 ? parts[1] : string.Empty;
+                _profile.PhoneNumber = contact.PhoneNumber ?? string.Empty;
+                _profile.Email = contact.Email ?? string.Empty;
+            }
+        }
+        catch
+        {
+            // Pre-population is best-effort; user can fill manually
+        }
+
+        // Load states from WCF service
+        _stateOptions = await LoadStatesAsync();
+
+        _isLoading = false;
+    }
+
+    // ── Country / State logic ─────────────────────────────────────────────
+
+    private void OnCountryChanged(string value)
+    {
+        _profile.Country = value;
+
+        // Clear state when switching away from United States
+        if (!_showState)
+        {
+            _profile.State = null;
+        }
+    }
+
+    // ── Form submission helpers ───────────────────────────────────────────
+
+    /// <summary>
+    /// Called by the Continue button on Step 1.
+    /// Forces validation visible and programmatically submits the EditForm.
+    /// </summary>
+    private void SubmitRegistrationForm()
+    {
+        _showValidation = true;
+        _editContext.Validate();
+
+        if (!ValidateStep1())
+        {
+            _showValidationSummary = true;
+            StateHasChanged();
+            return;
+        }
+
+        GoToVerification();
+    }
+
+    /// <summary>Invoked by EditForm OnValidSubmit — advance to Verification step.</summary>
+    private async Task GoToVerification()
+    {
+        _showValidationSummary = false;
+        _validationErrors.Clear();
+
+        // Extra US-only state check
+        if (_showState && string.IsNullOrWhiteSpace(_profile.State))
+        {
+            _validationErrors.Add("State is required.");
+            _showValidationSummary = true;
+            StateHasChanged();
+            return;
+        }
+
+        await NavigateToStep(CardStep.Verification, "Payment Verification step. Please review your information.");
+    }
+
+    private void OnFormInvalid()
+    {
+        _showValidation = true;
+        _showValidationSummary = true;
+        _validationErrors = _editContext
+            .GetValidationMessages()
+            .Distinct()
+            .ToList();
+        StateHasChanged();
+    }
+
+    // ── Navigation ───────────────────────────────────────────────────────
+
+    private async Task NavigateToStep(CardStep next, string announcement)
+    {
+        _step = next;
+        _stepAnnouncement = announcement;
+        _showValidationSummary = false;
+        _validationErrors.Clear();
+        await JS.InvokeVoidAsync("window.scrollTo", 0, 0);
+        StateHasChanged();
+    }
+
+    private async Task HandleBack()
+    {
+        switch (_step)
+        {
+            case CardStep.Verification:
+                await NavigateToStep(CardStep.Registration, "Returned to Registration step.");
+                break;
+
+            default:
+                // Step 1 back → return to Billing page
+                Nav.NavigateTo("/billing-payments/billing");
+                break;
+        }
+    }
+
+    private void HandleCancel() => Nav.NavigateTo("/billing-payments/billing");
+
+    // ── Third-party modal launch (Step 2 → Continue) ─────────────────────
+
+    private async Task LaunchPaymentModal()
+    {
+        if (_isSubmitting) return;
+        _isSubmitting = true;
+        _showValidationSummary = false;
+        _validationErrors.Clear();
+        StateHasChanged();
+
+        try
+        {
+            var result = await CardPaymentService.CreateSessionAsync(
+                amount:       _paymentAmount,
+                contactName:  $"{_profile.FirstName} {_profile.LastName}".Trim(),
+                email:        _profile.Email,
+                addressLine1: _profile.AddressLine1,
+                city:         _profile.City,
+                state:        _showState ? _profile.State : null,
+                zip:          _profile.ZipCode);
+
+            if (!result.Success)
+            {
+                _validationErrors.Add(result.ErrorMessage ?? "Payment session could not be started. Please try again.");
+                _showValidationSummary = true;
+                return;
+            }
+
+            // TODO: pass result.SessionToken to the third-party modal via JS interop
+            // await JS.InvokeVoidAsync("launchCardPaymentModal", result.SessionToken);
+            // For now, advance directly to confirmation as a placeholder.
+            _confirmationNumber = "PENDING"; // replaced by provider response
+            await NavigateToStep(CardStep.Confirmation, "Payment submitted. You are on the confirmation page.");
+        }
+        catch
+        {
+            _validationErrors.Add("An unexpected error occurred. Please try again.");
+            _showValidationSummary = true;
+        }
+        finally
+        {
+            _isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    // ── Validation helpers ───────────────────────────────────────────────
+
+    private bool ValidateStep1()
+    {
+        _validationErrors.Clear();
+
+        if (!_editContext.Validate())
+        {
+            _validationErrors = _editContext
+                .GetValidationMessages()
+                .Distinct()
+                .ToList();
+            return false;
+        }
+
+        if (_showState && string.IsNullOrWhiteSpace(_profile.State))
+        {
+            _validationErrors.Add("State is required.");
+            return false;
+        }
+
+        return true;
+    }
+
+    // ── Data loaders ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Loads US state options from the WCF web service via <see cref="IStateService"/>.
+    /// Falls back to an empty list on failure so the rest of the page still renders.
+    /// </summary>
+    private async Task<List<SelectOption>> LoadStatesAsync()
+    {
+        try
+        {
+            var states = await StateService.GetStatesAsync();
+            return states
+                .Select(s => new SelectOption { Value = s.StateCode, Text = s.StateName })
+                .ToList();
+        }
+        catch
+        {
+            return new List<SelectOption>();
+        }
+    }
+
+    // ── Static helpers ────────────────────────────────────────────────────
+
+    private static List<SelectOption> BuildCountryOptions() =>
+    [
+        new SelectOption { Value = "United States", Text = "United States" },
+        new SelectOption { Value = "Canada",         Text = "Canada" },
+        new SelectOption { Value = "Mexico",         Text = "Mexico" },
+        new SelectOption { Value = "Other",          Text = "Other" }
+    ];
+}
