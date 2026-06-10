@@ -1,0 +1,1 @@
+<%@ Page Title="Card Payment Post" Language="vb" AutoEventWireup="false" CodeBehind="CardPaymentPost.aspx.vb" Inherits="DWD.UI.SUITES.UserService.Web.CardPaymentPost" %>

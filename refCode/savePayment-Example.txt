@@ -1,0 +1,169 @@
+[HttpPost]
+      public ActionResult TransferPayment()
+      {
+         CardPaymentSystem.eBillAccountProxy accountProxy = (DWD.UI.Tax.Web.PaymentPortal.CardPaymentSystem.eBillAccountProxy)Session["AccountProxy"];
+         string amount = accountProxy.Amount.ToString();
+         CardPaymentSystem.eBillConfigurationProxy configProxy = (CardPaymentSystem.eBillConfigurationProxy)HttpContext.Application["EBillConfig"];
+
+         string client_key;
+         string signature_key;
+         string client_api_key;
+         string client_private_key;
+         string hwf_public_key = configProxy.PublicKey;
+         string live_mode = configProxy.LiveMode.ToString().ToLower();
+         string paymentDescription;
+         string paymentType;
+         string website;
+         string customerServiceNumber;
+
+         client_key = configProxy.TaxClientKey;
+         signature_key = configProxy.TaxSecretKey;
+         client_api_key = configProxy.TaxAPIKey;
+         client_private_key = configProxy.TaxPrivateKey;
+         paymentDescription = "Employer Portal";
+         paymentType = "Employer";
+         website = configProxy.EmployerCollectionsWebsite;
+         customerServiceNumber = configProxy.EmployerCollectionsPhoneNumber;
+
+         //grab the Request token
+         StreamReader req = new StreamReader(Request.InputStream, Request.ContentEncoding);
+         string tokenstring = HttpUtility.UrlDecode(req.ReadToEnd());
+         ResponseToken rspToken = GetResponseToken(tokenstring);
+
+         //get these from the response
+         string token = rspToken.Token;
+         string digi_sign = rspToken.DigiSign;
+         string customer_account_reference = rspToken.Customer_Account_Reference;
+
+         // To know about custom_fields, please refer 
+         // "https://developers.orbipay.com/paymentsapi/references/v1.14.0/#tag/Custom-Fields"
+         // Note:  custom_fields are limited to 64 characters
+         Dictionary<string, string> customerAccountCustomFields = new Dictionary<String, String>();
+         customerAccountCustomFields.Add("cdf001", Me.Employer.LegalName.Value.First(64)); //Legal Name must be limited to 64 characters per eBill.
+         customerAccountCustomFields.Add("cdf002", paymentDescription;
+         customerAccountCustomFields.Add("cdf003", Me.Employer.UIAccountNumber.Value;
+         customerAccountCustomFields.Add("cdf004", Me.Employer.AccountNumber.Value;
+         customerAccountCustomFields.Add("cdf005", paymentType;
+         customerAccountCustomFields.Add("cdf006", website.First(64);
+         customerAccountCustomFields.Add("cdf007", customerServiceNumber.First(64);
+         customerAccountCustomFields.Add("cdf008", Me.Employer.AccountNumber.Value.Substring(0, 5));
+
+         Com.Alacriti.Checkout.Api.InvocationContext invocation_context = new Com.Alacriti.Checkout.Api.InvocationContext(client_api_key, client_private_key, hwf_public_key);
+
+         Payment payment = new Com.Alacriti.Checkout.Api.Payment(customer_account_reference, amount)
+             .withToken(token, digi_sign)
+             .forClient(client_key, signature_key, client_api_key)
+             .withCustomFields(customerAccountCustomFields)
+             .confirm(invocation_context, live_mode);
+
+            if (payment != null && payment.Error == null)
+            {
+               //save card payment and CCDC Confirmation to SUITES
+               SaveCardPayment(payment, pymtData.Voluntary);
+
+               // create the payment confirmation view model from the returned payment information and route.
+               PaymentConfirmationModel model = new PaymentConfirmationModel
+               {
+                  Confirmation = payment.ConfirmationNumber,                  
+                  PaymentAmount = payment.Amount,
+                  PaymentDate = payment.PaymentDate,
+                  PaymentMethod = payment.PaymentMethod,
+                  CustomerAccount = payment.CustomerAccount.CustomerAccountId
+               };
+               PaymentConfirmationViewModel vm = new PaymentConfirmationViewModel { ConfirmationInfo = model };
+               return View("PaymentConfirmation", vm);
+            }
+            else
+            {
+               string errorString = string.Empty;
+               string errorCodes = string.Empty;
+               string errorField = string.Empty;
+               string phoneNumber = string.Empty;
+               string displayErrorCodes = ConfigurationManager.AppSettings["DisplayErrorCodes"];
+               bool displayError = false;
+               
+               foreach(Error error in payment.Error)
+               {
+                  errorString += error.Message + " ";
+                  errorString += error.Field + " ";
+                  errorField += error.Field + " ";
+                  errorCodes += error.Code + " ";
+                  if (error.Code != "0" && displayErrorCodes.Contains(error.Code)) { displayError = true; }   
+               }
+
+               phoneNumber= configProxy.EmployerCollectionsPhoneNumber;
+
+               //Log the error
+
+               //add the error to the Navigation Log
+               
+               //email bits about error
+
+               // create the payment error view model from the returned payment error and route.
+               PaymentErrorModel model = new PaymentErrorModel
+               {
+                  ErrorDescription = errorString,
+                  ErrorField = errorField,
+                  ErrorCode = errorCodes,
+                  PhoneNumber = phoneNumber,
+                  DisplayError = displayError
+               };
+               PaymentErrorViewModel vm = new PaymentErrorViewModel { PaymentErrorInfo = model };
+               return View("PaymentError", vm);
+            }       
+      }
+
+private void SaveCardPayment(Payment payment, bool isVoluntary)
+      {
+         try
+         {
+            //save card payment and CCDC Confirmation to SUITES
+            accountProxy.ConfirmationNumber = payment.ConfirmationNumber;
+            accountProxy.LastFourAccountNumber = payment.FundingAccount.AccountNumber.Last(4);
+            accountProxy.PaymentMethod = payment.PaymentMethod;
+
+            accountProxy.CardType = payment.PaymentMethod;
+            if (!string.IsNullOrEmpty(payment.Fee.Feeamount))
+            {
+               accountProxy.Fee = decimal.Parse(payment.Fee.Feeamount);
+            }
+             
+            CardPaymentSystem.eBillRegistrationProxy regProxy = (CardPaymentSystem.eBillRegistrationProxy)Session["RegProxy"];
+            CardPaymentSystem.CardPaymentSystemClient cardPaymentSvc = new CardPaymentSystem.CardPaymentSystemClient();
+            cardPaymentSvc.SavePayment(regProxy, accountProxy, payment.ToJson(), isVoluntary);
+         }
+         catch (System.Exception ex)
+         {
+            // log the error
+            //email bits about error
+         }         
+      }
+
+    private ResponseToken GetResponseToken(string response)
+      {
+         ResponseToken rtn = new ResponseToken();
+         string[] responseValues = response.Split('&');
+         string[] switchStrings = { "token", "digisign", "customer_account_reference", "customer_reference" };
+
+         foreach (var item in responseValues)
+         {
+            switch (switchStrings.FirstOrDefault<string>(s => item.ToLower().Contains(s)))
+            {
+               case "token":
+                  rtn.Token = item.Substring(item.IndexOf("=") + 1);
+                  break;
+               case "digisign":
+                  rtn.DigiSign = item.Substring(item.IndexOf("=") + 1);
+                  break;
+               case "customer_account_reference":
+                  rtn.Customer_Account_Reference = item.Substring(item.IndexOf("=") + 1);
+                  break;
+               case "customer_reference":
+                  rtn.Customer_Reference = item.Substring(item.IndexOf("=") + 1);
+                  break;
+               default:
+                  break;
+            }
+         }
+         return rtn;
+      }

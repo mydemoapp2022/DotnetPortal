@@ -1,0 +1,59 @@
+public string GetHostedForm()
+      {
+         CardPaymentSystem.eBillAccountProxy accountProxy = (DWD.UI.Tax.Web.PaymentPortal.CardPaymentSystem.eBillAccountProxy)Session["AccountProxy"];
+         CardPaymentSystem.eBillRegistrationProxy regProxy = (CardPaymentSystem.eBillRegistrationProxy)Session["RegProxy"];
+         CardPaymentSystem.eBillConfigurationProxy configProxy = (CardPaymentSystem.eBillConfigurationProxy)HttpContext.Application["EBillConfig"];
+         string dataclientkey = configProxy.TaxClientKey;
+
+         string formID = "orbipay-checkout-form";
+         string scriptID = "orbipay-checkout-script";
+         string url = configProxy.HostedFormURL;
+         string apievent = "create_payment";
+         string amount = accountProxy.Amount.ToString();
+         string customerAccountRef = regProxy.RegistrationSK.ToString();
+         string firstName = regProxy.FirstName;
+         string lastName = regProxy.LastName;
+         string address1 = regProxy.AddressLine1;
+         string address2 = regProxy.AddressLine2;
+         string city = regProxy.City;
+         string state = regProxy.State;
+         string zip = regProxy.Zip;
+         string postalCode = regProxy.NonUSPostalCode;
+         string country = regProxy.ISOCountryCode3;
+         string paymentOption = "card";
+         string paymentOptionReadOnly "true";
+         string customerID = reg.UserIDDecrypted.ToString();
+         string customerEmail = regProxy.Email;
+         string locale = "en"; // es for spanish
+         char quote = (char)34;
+         StringBuilder form = new StringBuilder();
+
+         form.AppendLine($"<form id={quote}{formID}{quote} action={quote}TransferPayment{quote} method={quote}POST{quote}>");
+         form.AppendLine($"<script id={quote}{scriptID}{quote} src={quote}{url}{quote}");
+         form.AppendLine($"data-id_customer={quote}{customerID}{quote}");
+         //form.AppendLine($"data-customer_reference={quote}{customerRef}{quote}");
+         form.AppendLine($"data-locale={quote}{locale}{quote}");
+         form.AppendLine($"data-customer_account_reference={quote}{customerAccountRef}{quote}");
+         form.AppendLine($"data-customer_email={quote}{customerEmail}{quote}");
+         form.AppendLine($"data-customer_last_name={quote}{lastName}{quote}");
+         form.AppendLine($"data-customer_first_name={quote}{firstName}{quote}");
+         form.AppendLine($"data-customer_address_line1={quote}{address1}{quote}");
+         form.AppendLine($"data-customer_address_line2={quote}{address2}{quote}");
+         form.AppendLine($"data-customer_city={quote}{city}{quote}");
+         form.AppendLine($"data-customer_state={quote}{state}{quote}");
+         form.AppendLine($"data-customer_country={quote}{country}{quote}");
+         if (zip != postalCode)
+         {
+            form.AppendLine($"data-customer_zip_code1={quote}{zip}{quote}");
+         }
+         form.AppendLine($"data-customer_postal_code={quote}{postalCode}{quote}");
+         form.AppendLine($"data-payment_option={quote}{paymentOption}{quote}");
+         form.AppendLine($"data-payment_option_readonly={quote}{paymentOptionReadOnly}{quote}");
+         form.AppendLine($"data-client_key={quote}{dataclientkey}{quote}");
+         form.AppendLine($"data-api_event={quote}{apievent}{quote}");
+         form.AppendLine($"data-amount={quote}{amount}{quote}>");
+         form.AppendLine("</script>");
+         form.AppendLine("</form>");
+
+         return form.ToString();
+      }

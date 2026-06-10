@@ -1,6 +1,7 @@
 @using UI.EmployerPortal.Razor.SharedComponents.TextBoxes
 @using UI.EmployerPortal.Razor.SharedComponents.Helpers
 @using Microsoft.AspNetCore.Components.Forms
+@using UI.EmployerPortal.Razor.SharedComponents.NotificationBanners
 @using UI.EmployerPortal.Web.Features.Shared.Layout.Components
 
 <div class="billing-container" role="region" aria-label="Billing Details Section">
@@ -9,11 +10,19 @@
     <p class="billing-description">
         This page reflects the amount due on the most recent monthly statement. Payments made this month will be reflected in the next billing statement.
     </p>
+
+    @if (_showValidationSummary && _validationErrors.Any())
+    {
+        <NotificationBanner NotificationType="NotificationType.Alert"
+                            MessageStyle="MessageStyle.MultiLine"
+                            Messages="_validationErrors"
+                            DismissButton="false" />
+    }
+
     <EditForm EditContext="_editContext"
               OnValidSubmit="HandleContinue"
               OnInvalidSubmit="OnInvalid">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="billing-summary" aria-labelledby="billing-heading">
             <div class="billing-row">
@@ -41,8 +50,8 @@
                                     ShowCurrencyIcon="false"
                                     DecimalPlaces="2"
                                     Min="0" Max="1000000000"
-                                    CssClass="form-control amount-input"
-                                    ValueChanged="@(val => Model.AmountToPay = val ?? 0m)" />
+                                    CssClass="@($"form-control amount-input {(_amountHasError ? "billing-field-error" : string.Empty)}")"
+                                    ValueChanged="OnAmountChanged" />
                     <ValidationMessage For="@(() => Model.AmountToPay)" />
                 </span>
             </div>
@@ -52,7 +61,9 @@
             Payment Method
         </h3>
 
-        <fieldset aria-labelledby="payment-method-heading">
+        <fieldset aria-labelledby="payment-method-heading"
+                  class="@(_paymentMethodHasError ? "billing-fieldset-error" : string.Empty)"
+                  aria-invalid="@(_paymentMethodHasError ? "true" : "false")">
             <legend class="sr-only">Payment Method Selection</legend>
 
             <div class="option">

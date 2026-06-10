@@ -54,6 +54,7 @@
                         <NotificationBanner NotificationType="NotificationType.Alert"
                                             MessageStyle="MessageStyle.MultiLine"
                                             Messages="_validationErrors"
+                                            MessageFieldIds="_validationFieldIds"
                                             DismissButton="false" />
                     </div>
                 }
@@ -345,6 +346,7 @@
     private bool _showValidationSummary;
     private bool _isSubmitting;
     private List<string> _validationErrors = new();
+    private List<string> _validationFieldIds = [];
     private string? _cardPaymentError;
 
     private List<SelectOption> _countryOptions = new();
@@ -384,6 +386,13 @@
         _stateOptions = stateTask.Result
             .Select(s => new SelectOption { Value = s.ShortDescription, Text = ToTitleCase(s.LongDescription) })
             .ToList();
+
+        // Default state to Wisconsin (CodeSK = 58) when country is United States
+        var wisconsin = stateTask.Result.FirstOrDefault(s => s.CodeSK == 58);
+        if (wisconsin is not null)
+        {
+            _profile.State = wisconsin.ShortDescription;
+        }
 
         try
         {
@@ -436,10 +445,12 @@
     {
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _validationFieldIds.Clear();
 
         if (_showState && string.IsNullOrWhiteSpace(_profile.State))
         {
             _validationErrors.Add("State is required.");
+            _validationFieldIds.Add("card-state");
             _showValidationSummary = true;
             StateHasChanged();
             return;
@@ -454,6 +465,13 @@
         _showValidation = true;
         _showValidationSummary = true;
         _validationErrors = _editContext.GetValidationMessages().Distinct().ToList();
+        _validationFieldIds.Clear();
+
+        foreach (var message in _validationErrors)
+        {
+            _validationFieldIds.Add(GetFieldIdForMessage(message));
+        }
+
         StateHasChanged();
     }
 
@@ -463,6 +481,7 @@
         _stepAnnouncement = announcement;
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _validationFieldIds.Clear();
         await JS.InvokeVoidAsync("window.scrollTo", 0, 0);
         StateHasChanged();
     }
@@ -493,6 +512,7 @@
         _isSubmitting = true;
         _showValidationSummary = false;
         _validationErrors.Clear();
+        _validationFieldIds.Clear();
         _cardPaymentError = null;
         StateHasChanged();
 
@@ -535,16 +555,22 @@
     private bool ValidateStep1()
     {
         _validationErrors.Clear();
+        _validationFieldIds.Clear();
 
         if (!_editContext.Validate())
         {
             _validationErrors = _editContext.GetValidationMessages().Distinct().ToList();
+            foreach (var message in _validationErrors)
+            {
+                _validationFieldIds.Add(GetFieldIdForMessage(message));
+            }
             return false;
         }
 
         if (_showState && string.IsNullOrWhiteSpace(_profile.State))
         {
             _validationErrors.Add("State is required.");
+            _validationFieldIds.Add("card-state");
             return false;
         }
 
@@ -556,4 +582,68 @@
             ? value
             : System.Globalization.CultureInfo.InvariantCulture.TextInfo
                 .ToTitleCase(value.ToLowerInvariant());
+
+    private static string GetFieldIdForMessage(string message)
+    {
+        return message switch
+        {
+            var m when m.Contains("First name", StringComparison.OrdinalIgnoreCase) => "card-first-name",
+            var m when m.Contains("Last name", StringComparison.OrdinalIgnoreCase) => "card-last-name",
+            var m when m.Contains("Phone", StringComparison.OrdinalIgnoreCase) => "card-phone",
+            var m when m.Contains("Email", StringComparison.OrdinalIgnoreCase) => "card-email",
+            var m when m.Contains("Country", StringComparison.OrdinalIgnoreCase) => "card-country",
+            var m when m.Contains("Address line 1", StringComparison.OrdinalIgnoreCase) => "card-address1",
+            var m when m.Contains("City", StringComparison.OrdinalIgnoreCase) => "card-city",
+            var m when m.Contains("State", StringComparison.OrdinalIgnoreCase) => "card-state",
+            var m when m.Contains("Zip", StringComparison.OrdinalIgnoreCase) => "card-zip",
+            _ => string.Empty
+        };
+    }
+
+    private OrbipayHostedFormModal? _paymentModal;
+
+    private async Task LaunchPaymentModal()
+    {
+        if (_isSubmitting) return;
+        _isSubmitting = true;
+        _showValidationSummary = false;
+        _validationErrors.Clear();
+        _validationFieldIds.Clear();
+        _cardPaymentError = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await CardPaymentService.CreateHostedFormSessionAsync(
+                amount: _paymentAmount,
+                contactName: $"{_profile.FirstName} {_profile.LastName}".Trim(),
+                email: _profile.Email,
+                addressLine1: _profile.AddressLine1,
+                addressLine2: _profile.AddressLine2,
+                city: _profile.City,
+                state: _showState ? _profile.State : null,
+                zip: _profile.ZipCode,
+                country: _profile.Country);
+
+            if (!result.Success)
+            {
+                _cardPaymentError = result.ErrorMessage
+                    ?? "Unable to load the payment form. Please try again.";
+                _isSubmitting = false;
+                StateHasChanged();
+                return;
+            }
+
+            // Open the Orbipay modal
+            await _paymentModal?.OpenAsync(result)!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error launching payment modal");
+            _cardPaymentError = "An unexpected error occurred. Please try again.";
+            _isSubmitting = false;
+        }
+
+        StateHasChanged();
+    }
 }

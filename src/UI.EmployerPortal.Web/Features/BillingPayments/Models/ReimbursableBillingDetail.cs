@@ -46,13 +46,11 @@ public class ReimbursableBillingDetail
         /// </returns>
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value is ReimbursableBillingDetail model)
+            if (value is decimal amount && amount <= 0)
             {
-                if (model.AmountToPay < 0)
-                {
-                    return new ValidationResult("Amount To Pay cannot be negative.");
-                }
+                return new ValidationResult("Amount to Pay is required and must be greater than $0.00.");
             }
+
             return ValidationResult.Success;
         }
     }

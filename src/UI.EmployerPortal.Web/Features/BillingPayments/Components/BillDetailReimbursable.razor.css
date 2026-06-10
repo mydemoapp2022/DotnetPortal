@@ -59,3 +59,13 @@
     margin-top: 20px;
     margin-bottom: 16px;
 }
+
+.billing-field-error {
+    border: 1px solid #c82838 !important;
+}
+
+.billing-fieldset-error {
+    border: 1px solid #c82838;
+    border-radius: 4px;
+    padding: 8px 12px;
+}

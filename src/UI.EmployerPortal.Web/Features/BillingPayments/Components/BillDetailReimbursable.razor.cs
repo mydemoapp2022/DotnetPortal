@@ -13,31 +13,28 @@ namespace UI.EmployerPortal.Web.Features.BillingPayments.Components;
 /// </summary>
 public partial class BillDetailReimbursable
 {
-
     [Inject] private NavigationManager Nav { get; set; } = default!;
-    [Inject]
-    private IUserAccountService UserAccountService { get; set; } = default!;
-    [Inject]
-    private IDashboardOrchestrator DashboardOrchestrator { get; set; } = default!;
-
-    [Inject]
-    private IBankAccountOrchestrator BankAccountOrchestrator { get; set; } = default!;
-    /// <summary>
-    /// 
-    /// </summary>
+    [Inject] private IUserAccountService UserAccountService { get; set; } = default!;
+    [Inject] private IDashboardOrchestrator DashboardOrchestrator { get; set; } = default!;
+    [Inject] private IBankAccountOrchestrator BankAccountOrchestrator { get; set; } = default!;
+    [Inject] private IBillDetailServices BillDetailServices { get; set; } = default!;
     public ReimbursableBillingDetail Model { get; set; } = new();
-
-    [Inject]
-    private IBillDetailServices BillDetailServices { get; set; } = default!;
+    [Inject] private IBillDetailServices BillDetailServices { get; set; } = default!;
     private EmployerAccount? _employerSK;
     private EditContext? _editContext;
     private readonly HashSet<FieldIdentifier> _touchedFields = new();
     private string? _selectedpayment;
+    private bool _showValidationSummary;
+    private readonly List<string> _validationErrors = [];
+    private bool _amountHasError;
+    private bool _paymentMethodHasError;
 
-    /// <summary>
-    /// OnInitializedAsync
-    /// </summary>
-    /// <returns></returns>
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(Model);
+    }
+
+    /// <summary>OnInitializedAsync</summary>
     protected override async Task OnInitializedAsync()
     {
         _employerSK = await DashboardOrchestrator.GetSelectedEmployerAccountAsync();
@@ -74,17 +71,29 @@ public partial class BillDetailReimbursable
         }
 
         _editContext = new EditContext(Model);
-        _editContext.OnFieldChanged += (_, e) =>
+        _editContext.OnFieldChanged += (_, _) =>
         {
-            _editContext.Validate();
-            StateHasChanged();
+            if (_showValidationSummary)
+            {
+                ValidateForBanner();
+            }
         };
-        
+
         await base.OnInitializedAsync();
     }
+    private void OnAmountChanged(decimal? value)
+    {
+        Model.AmountToPay = value ?? 0m;
+        ValidateForBanner();
+    }
+
     private async Task PaymentAsync()
     {
-        //Nav.NavigateTo(Nav.BaseUri);
+        if (!ValidateForBanner())
+        {
+            return;
+        }
+
         if (_selectedpayment == "ACH")
         {
             Model.SelectedPaymentMethod = _selectedpayment;
@@ -102,12 +111,13 @@ public partial class BillDetailReimbursable
 
     private void OnpaymentChanged(ChangeEventArgs e)
     {
-        _selectedpayment = e.Value?.ToString() ?? "";
-
+        _selectedpayment = e.Value?.ToString() ?? string.Empty;
+        ValidateForBanner();
     }
 
     private void HandleContinue()
     {
+        ValidateForBanner();
         StateHasChanged();
     }
 
@@ -115,26 +125,45 @@ public partial class BillDetailReimbursable
 
     private void OnInvalid()
     {
+        ValidateForBanner();
         StateHasChanged();
     }
     /// <summary>
     /// Gets the current validation state.
     /// </summary>
-    public bool IsValid => _editContext?.Validate() ?? false;
+    public bool IsValid => _editContext?.Validate();
     /// <summary>
     /// Validates the form and returns true if valid, false otherwise.
     /// Called by parent wizard to validate before navigation.
     /// </summary>
     public bool Validate()
     {
-        if (_editContext == null)
+        var isValid = _editContext.Validate();
+        var customValid = ValidateForBanner();
+        StateHasChanged();
+        return isValid && customValid;
+    }
+
+    private bool ValidateForBanner()
+    {
+        _validationErrors.Clear();
+
+        _amountHasError = Model.AmountToPay <= 0;
+        _paymentMethodHasError = string.IsNullOrWhiteSpace(_selectedpayment);
+
+        if (_amountHasError)
         {
-            return false;
+            _validationErrors.Add("Amount to Pay is required and must be greater than $0.00.");
         }
 
+        if (_paymentMethodHasError)
+        {
+            _validationErrors.Add("Payment Method Selection is required.");
+        }
 
-        var isValid = _editContext.Validate();
+        _showValidationSummary = _validationErrors.Count > 0;
         StateHasChanged();
-        return isValid;
+
+        return !_showValidationSummary;
     }
 }
