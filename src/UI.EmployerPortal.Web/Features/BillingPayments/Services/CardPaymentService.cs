@@ -1,6 +1,5 @@
 using System.ServiceModel;
 using System.Text;
-using Microsoft.AspNetCore.Http;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
 
 namespace UI.EmployerPortal.Web.Features.BillingPayments.Services;
@@ -40,77 +39,11 @@ public interface ICardPaymentService
         OrbipayPaymentConfirmationRequest request);
 }
 
-/// <summary>Result from creating an Orbipay hosted form session.</summary>
-public sealed record OrbipaySessionResult
-{
-    /// <summary>True if session created successfully.</summary>
-    public bool Success { get; init; }
-
-    /// <summary>HTML markup containing the Orbipay form and script tag.</summary>
-    public string? HostedFormHtml { get; init; }
-
-    /// <summary>Error message if creation failed.</summary>
-    public string? ErrorMessage { get; init; }
-}
-
-/// <summary>Result from confirming payment via Orbipay API.</summary>
-public sealed record OrbipayConfirmationResult
-{
-    /// <summary>True if payment was successfully confirmed.</summary>
-    public bool Success { get; init; }
-
-    /// <summary>Confirmation number from Orbipay.</summary>
-    public string? ConfirmationNumber { get; init; }
-
-    /// <summary>Payment amount processed.</summary>
-    public decimal? Amount { get; init; }
-
-    /// <summary>Payment method (e.g., VISA, MASTERCARD).</summary>
-    public string? PaymentMethod { get; init; }
-
-    /// <summary>Last 4 digits of card.</summary>
-    public string? LastFourDigits { get; init; }
-
-    /// <summary>Convenience fee applied (2% per business rules).</summary>
-    public decimal? ConvenienceFee { get; init; }
-
-    /// <summary>Payment date/time.</summary>
-    public DateTime? PaymentDate { get; init; }
-
-    /// <summary>Error description if confirmation failed.</summary>
-    public string? ErrorDescription { get; init; }
-
-    /// <summary>Error field from Orbipay if applicable.</summary>
-    public string? ErrorField { get; init; }
-
-    /// <summary>Error code from Orbipay if applicable.</summary>
-    public string? ErrorCode { get; init; }
-}
-
-/// <summary>Request payload for payment confirmation.</summary>
-public sealed record OrbipayPaymentConfirmationRequest
-{
-    public decimal Amount { get; init; }
-    public string ContactName { get; init; } = string.Empty;
-    public string Email { get; init; } = string.Empty;
-    public string AddressLine1 { get; init; } = string.Empty;
-    public string City { get; init; } = string.Empty;
-    public string? State { get; init; }
-    public string Zip { get; init; } = string.Empty;
-    public string Country { get; init; } = string.Empty;
-    public int EmployerSk { get; init; }
-    public int RegistrationSk { get; init; }
-    public string EmployerLegalName { get; init; } = string.Empty;
-    public string EmployerAccountNumber { get; init; } = string.Empty;
-    public string UIAccountNumber { get; init; } = string.Empty;
-    public bool IsVoluntary { get; init; }
-}
-
 /// <summary>
 /// Implementation of Orbipay hosted payment form integration.
 /// Follows the US Bank eBill system workflow for card payments.
 /// </summary>
-internal sealed class CardPaymentService : ICardPaymentService
+internal sealed partial class CardPaymentService : ICardPaymentService
 {
     private readonly IConfiguration _config;
     private readonly ILogger<CardPaymentService> _logger;
@@ -142,7 +75,7 @@ internal sealed class CardPaymentService : ICardPaymentService
             var orbipaySection = _config.GetSection("Orbipay");
             if (!orbipaySection.Exists())
             {
-                _logger.LogError("Orbipay configuration section not found in appsettings");
+                LogOrbipayConfigMissing(_logger);
                 return new OrbipaySessionResult
                 {
                     Success = false,
@@ -157,7 +90,7 @@ internal sealed class CardPaymentService : ICardPaymentService
 
             if (string.IsNullOrEmpty(hostedFormUrl) || string.IsNullOrEmpty(clientKey))
             {
-                _logger.LogError("Orbipay HostedFormUrl or ClientKey is missing");
+                LogOrbipayConfigIncomplete(_logger);
                 return new OrbipaySessionResult
                 {
                     Success = false,
@@ -192,7 +125,7 @@ internal sealed class CardPaymentService : ICardPaymentService
                 amount,
                 locale);
 
-            _logger.LogInformation("Orbipay hosted form session created for amount {Amount}", amount);
+            LogHostedFormSessionCreated(_logger, amount);
 
             return new OrbipaySessionResult
             {
@@ -202,7 +135,7 @@ internal sealed class CardPaymentService : ICardPaymentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating Orbipay hosted form session");
+            LogErrorCreatingHostedFormSession(_logger, ex);
             return new OrbipaySessionResult
             {
                 Success = false,
@@ -229,7 +162,7 @@ internal sealed class CardPaymentService : ICardPaymentService
 
             if (string.IsNullOrEmpty(clientKey) || string.IsNullOrEmpty(signatureKey))
             {
-                _logger.LogError("Orbipay credentials incomplete");
+                LogOrbipayCredentialsIncomplete(_logger);
                 return new OrbipayConfirmationResult
                 {
                     Success = false,
@@ -295,16 +228,13 @@ internal sealed class CardPaymentService : ICardPaymentService
                     PaymentDate = DateTime.UtcNow
                 };
 
-                _logger.LogInformation(
-                    "Payment confirmed: ConfirmationNumber={ConfirmationNumber}, Amount={Amount}",
-                    confirmation.ConfirmationNumber,
-                    confirmation.Amount);
+                LogPaymentConfirmed(_logger, confirmation.ConfirmationNumber, confirmation.Amount);
 
                 return confirmation;
             }
             catch (CommunicationException ex)
             {
-                _logger.LogError(ex, "Communication error with Alacriti payment API");
+                LogCommunicationErrorWithAlacritiApi(_logger, ex);
                 return new OrbipayConfirmationResult
                 {
                     Success = false,
@@ -314,7 +244,7 @@ internal sealed class CardPaymentService : ICardPaymentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error confirming Orbipay payment");
+            LogErrorConfirmingOrbipayPayment(_logger, ex);
             return new OrbipayConfirmationResult
             {
                 Success = false,
@@ -342,7 +272,7 @@ internal sealed class CardPaymentService : ICardPaymentService
         string locale)
     {
         var sb = new StringBuilder();
-        char quote = '"';
+        var quote = '"';
 
         sb.AppendLine($"<form id={quote}{formId}{quote} action={quote}card-payment-post{quote} method={quote}POST{quote}>");
         sb.AppendLine($"<script id={quote}{scriptId}{quote} src={quote}{hostedFormUrl}{quote}");
@@ -371,7 +301,7 @@ internal sealed class CardPaymentService : ICardPaymentService
     }
 
     /// <summary>Builds custom fields for Orbipay payment (max 64 chars per field).</summary>
-    private static Dictionary<string, string> BuildCustomFields(OrbipayPaymentConfirmationRequest request)
+    private Dictionary<string, string> BuildCustomFields(OrbipayPaymentConfirmationRequest request)
     {
         return new Dictionary<string, string>
         {
@@ -382,17 +312,73 @@ internal sealed class CardPaymentService : ICardPaymentService
             { "cdf005", request.IsVoluntary ? "Voluntary" : "Employer" },
             { "cdf006", Truncate(_config["Orbipay:Website"] ?? string.Empty, 64) },
             { "cdf007", Truncate(_config["Orbipay:PhoneNumber"] ?? string.Empty, 64) },
-            { "cdf008", Truncate(request.EmployerAccountNumber.Substring(0, Math.Min(5, request.EmployerAccountNumber.Length)), 64) }
+            { "cdf008", Truncate(request.EmployerAccountNumber[..Math.Min(5, request.EmployerAccountNumber.Length)], 64) }
         };
     }
 
     private static string Truncate(string? value, int maxLength)
-        => string.IsNullOrEmpty(value)
+    {
+        return string.IsNullOrEmpty(value)
             ? string.Empty
             : value.Length > maxLength
                 ? value[..maxLength]
                 : value;
+    }
 
     private static string HtmlEncode(string? value)
-        => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+    {
+        return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+    }
+
+    #region LoggerMessage Delegates
+
+    [LoggerMessage(
+        EventId = 1001,
+        Level = LogLevel.Error,
+        Message = "Orbipay configuration section not found in appsettings")]
+    private static partial void LogOrbipayConfigMissing(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 1002,
+        Level = LogLevel.Error,
+        Message = "Orbipay HostedFormUrl or ClientKey is missing")]
+    private static partial void LogOrbipayConfigIncomplete(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 1003,
+        Level = LogLevel.Information,
+        Message = "Orbipay hosted form session created for amount {Amount}")]
+    private static partial void LogHostedFormSessionCreated(ILogger logger, decimal amount);
+
+    [LoggerMessage(
+        EventId = 1004,
+        Level = LogLevel.Error,
+        Message = "Error creating Orbipay hosted form session")]
+    private static partial void LogErrorCreatingHostedFormSession(ILogger logger, Exception ex);
+
+    [LoggerMessage(
+        EventId = 1005,
+        Level = LogLevel.Error,
+        Message = "Orbipay credentials incomplete")]
+    private static partial void LogOrbipayCredentialsIncomplete(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 1006,
+        Level = LogLevel.Information,
+        Message = "Payment confirmed: ConfirmationNumber={ConfirmationNumber}, Amount={Amount}")]
+    private static partial void LogPaymentConfirmed(ILogger logger, string confirmationNumber, decimal? amount);
+
+    [LoggerMessage(
+        EventId = 1007,
+        Level = LogLevel.Error,
+        Message = "Communication error with Alacriti payment API")]
+    private static partial void LogCommunicationErrorWithAlacritiApi(ILogger logger, Exception ex);
+
+    [LoggerMessage(
+        EventId = 1008,
+        Level = LogLevel.Error,
+        Message = "Error confirming Orbipay payment")]
+    private static partial void LogErrorConfirmingOrbipayPayment(ILogger logger, Exception ex);
+
+    #endregion
 }
