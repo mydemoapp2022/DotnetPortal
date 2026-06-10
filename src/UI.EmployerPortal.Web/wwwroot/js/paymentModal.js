@@ -1,17 +1,45 @@
 // PaymentModal.ts - JS interop for Orbipay callback
-export function setupPaymentCallback(componentReference: any) {
-    window.paymentModalInstance = componentReference;
+let paymentCompleteHandler = null;
 
-    // Listen for Orbipay completion event
-    document.addEventListener('orbipay-payment-complete', async (event: CustomEvent) => {
-        const { token, digisign, customer_account_reference } = event.detail;
+export function setupPaymentCallback(componentReference) {
+    disposePaymentCallback();
+
+    paymentCompleteHandler = async (event) => {
+        const isObjectPayload = event && typeof event.data === "object" && event.data !== null;
+        const payload = isObjectPayload ? event.data : {};
+
+        const token =
+            payload.token ??
+            payload.data?.token ??
+            "";
+
+        const digisign =
+            payload.digisign ??
+            payload.digiSign ??
+            payload.data?.digisign ??
+            payload.data?.digiSign ??
+            "";
+
+        const customerAccountReference =
+            payload.customer_account_reference ??
+            payload.customerAccountReference ??
+            payload.data?.customer_account_reference ??
+            payload.data?.customerAccountReference ??
+            "";
+
+        if (!token || !digisign || !customerAccountReference) {
+            return;
+        }
+
         await componentReference.invokeMethodAsync(
-            'OnPaymentTokenReceived',
+            "OnPaymentTokenReceived",
             token,
             digisign,
-            customer_account_reference
+            customerAccountReference
         );
-    });
+    };
+
+    window.addEventListener("message", paymentCompleteHandler);
 }
 
 
@@ -54,5 +82,11 @@ export function closePaymentModal() {
     if (modal) {
         modal.classList.remove('visible');
         modal.classList.add('hidden');
+    }
+}
+export function disposePaymentCallback() {
+    if (paymentCompleteHandler) {
+        window.removeEventListener("message", paymentCompleteHandler);
+        paymentCompleteHandler = null;
     }
 }
