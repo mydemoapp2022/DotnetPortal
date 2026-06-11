@@ -536,12 +536,11 @@
                 return;
             }
 
-            _paymentModalJsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/paymentModal.js");
             _paymentCallbackRef?.Dispose();
             _paymentCallbackRef = DotNetObjectReference.Create(this);
 
-            await _paymentModalJsModule.InvokeVoidAsync("setupPaymentCallback", _paymentCallbackRef);
-            await _paymentModalJsModule.InvokeVoidAsync("openOrbipayOverlay", result.HostedFormHtml);
+            await JS.InvokeVoidAsync("paymentModal.setupPaymentCallback", _paymentCallbackRef);
+            await JS.InvokeVoidAsync("paymentModal.openOrbipayOverlay", result.HostedFormHtml);
         }
         catch (Exception ex)
         {
@@ -662,11 +661,7 @@
     {
         try
         {
-            if (_paymentModalJsModule is not null)
-            {
-                await _paymentModalJsModule.InvokeVoidAsync("disposePaymentCallback");
-                await _paymentModalJsModule.DisposeAsync();
-            }
+            await JS.InvokeVoidAsync("paymentModal.disposePaymentCallback");
         }
         catch
         {
