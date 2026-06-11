@@ -41,6 +41,17 @@
   </ItemGroup>
 
   <ItemGroup>
+      <Reference Include="checkout-dotnet-core-sdk-v6.0.0">
+          <HintPath>lib\orbipay\checkout-dotnet-core-sdk-v6.0.0.dll</HintPath>
+          <Private>true</Private>
+      </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+      <None Include="orbipay_checkout_config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\generated\UI.EmployerPortal.Generated.ServiceClients\UI.EmployerPortal.Generated.ServiceClients.csproj" />
     <ProjectReference Include="..\UI.EmployerPortal.Razor.SharedComponents\UI.EmployerPortal.Razor.SharedComponents.csproj" />
   </ItemGroup>

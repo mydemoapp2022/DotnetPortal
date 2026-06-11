@@ -1,0 +1,5 @@
+{
+  "CHECKOUT_PUBLIC_KEY_LOCATION": "C:\\secure\\orbipay\\coserver_pub.pem",
+  "CLIENT_PRIVATE_KEY_LOCATION": "C:\\secure\\orbipay\\client_private.pem",
+  "CLIENT_PRIVATE_KEY_PASSWORD": "CHANGE_ME"
+}

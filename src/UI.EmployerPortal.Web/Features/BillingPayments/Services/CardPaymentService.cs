@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.ServiceModel;
 using System.Text;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
@@ -48,6 +49,8 @@ internal sealed partial class CardPaymentService : ICardPaymentService
     private readonly IConfiguration _config;
     private readonly ILogger<CardPaymentService> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private static readonly object CheckoutInitLock = new();
+    private static bool _checkoutInitialized;
 
     public CardPaymentService(
         IConfiguration config,
@@ -57,6 +60,45 @@ internal sealed partial class CardPaymentService : ICardPaymentService
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        EnsureCheckoutInitialized();
+    }
+
+    /// <summary>
+    /// Initializes Orbipay checkout SDK configuration one time per app domain.
+    /// </summary>
+    private void EnsureCheckoutInitialized()
+    {
+        if (_checkoutInitialized)
+        {
+            return;
+        }
+
+        lock (CheckoutInitLock)
+        {
+            if (_checkoutInitialized)
+            {
+                return;
+            }
+
+            var path = _config["Orbipay:CheckoutConfigPath"];
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            if (!Path.IsPathRooted(path))
+            {
+                path = Path.Combine(AppContext.BaseDirectory, path);
+            }
+
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            Checkout.initProperties(path);
+            _checkoutInitialized = true;
+        }
     }
 
     public async Task<OrbipaySessionResult> CreateHostedFormSessionAsync(
@@ -155,12 +197,16 @@ internal sealed partial class CardPaymentService : ICardPaymentService
             var orbipaySection = _config.GetSection("Orbipay");
             var clientKey = orbipaySection["ClientKey"];
             var signatureKey = orbipaySection["SignatureKey"];
-            var apiKey = orbipaySection["ApiKey"];
-            var privateKey = orbipaySection["PrivateKey"];
-            var publicKey = orbipaySection["PublicKey"];
+            var clientApiKey = orbipaySection["ApiKey"];
+            var clientPrivateKey = orbipaySection["PrivateKey"];
+            var hwfPublicKey = orbipaySection["PublicKey"];
             var liveMode = orbipaySection["LiveMode"]?.ToLowerInvariant() ?? "false";
 
-            if (string.IsNullOrEmpty(clientKey) || string.IsNullOrEmpty(signatureKey))
+            if (string.IsNullOrWhiteSpace(clientKey) ||
+                string.IsNullOrWhiteSpace(signatureKey) ||
+                string.IsNullOrWhiteSpace(clientApiKey) ||
+                string.IsNullOrWhiteSpace(clientPrivateKey) ||
+                string.IsNullOrWhiteSpace(hwfPublicKey))
             {
                 LogOrbipayCredentialsIncomplete(_logger);
                 return new OrbipayConfirmationResult
@@ -170,77 +216,77 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                 };
             }
 
-            // Build custom fields (mirrors reference implementation)
             var customFields = BuildCustomFields(request);
+            var invocationContext = new InvocationContext(clientApiKey, clientPrivateKey, hwfPublicKey);
 
-            try
+            Payment payment = new Payment(customerAccountReference, request.Amount.ToString("F2", CultureInfo.InvariantCulture))
+                .withToken(token, digiSign)
+                .forClient(clientKey, signatureKey, clientApiKey)
+                .withCustomFields(customFields)
+                .confirm(invocationContext, liveMode);
+
+            if (payment is not null && payment.Error is null)
             {
-                // TODO: Integrate with actual Alacriti Com.Alacriti.Checkout.Api.Payment class
-                // Pseudocode below shows the intended flow from reference VB.NET:
-                //
-                // var invocationContext = new Com.Alacriti.Checkout.Api.InvocationContext(
-                //     apiKey, privateKey, publicKey);
-                //
-                // var payment = new Com.Alacriti.Checkout.Api.Payment(customerAccountReference, request.Amount.ToString())
-                //     .withToken(token, digiSign)
-                //     .forClient(clientKey, signatureKey, apiKey)
-                //     .withCustomFields(customFields)
-                //     .confirm(invocationContext, liveMode);
-                //
-                // if (payment != null && payment.Error == null)
-                // {
-                //     // Success: Save payment details
-                //     return new OrbipayConfirmationResult
-                //     {
-                //         Success = true,
-                //         ConfirmationNumber = payment.ConfirmationNumber,
-                //         Amount = decimal.Parse(payment.Amount),
-                //         PaymentMethod = payment.PaymentMethod,
-                //         LastFourDigits = payment.FundingAccount?.AccountNumber?.Last(4).ToString(),
-                //         ConvenienceFee = string.IsNullOrEmpty(payment.Fee?.Feeamount)
-                //             ? null
-                //             : decimal.Parse(payment.Fee.Feeamount),
-                //         PaymentDate = DateTime.Parse(payment.PaymentDate)
-                //     };
-                // }
-                // else
-                // {
-                //     // Error: Extract error details
-                //     var errorDesc = string.Join("; ", payment.Error.Select(e => e.Message));
-                //     return new OrbipayConfirmationResult
-                //     {
-                //         Success = false,
-                //         ErrorDescription = errorDesc,
-                //         ErrorField = payment.Error.FirstOrDefault()?.Field,
-                //         ErrorCode = payment.Error.FirstOrDefault()?.Code
-                //     };
-                // }
-
-                // Temporary stub implementation for testing flow
-                var confirmation = new OrbipayConfirmationResult
+                var convenienceFee = 0m;
+                if (!string.IsNullOrWhiteSpace(payment.Fee?.Feeamount))
                 {
-                    Success = true,
-                    ConfirmationNumber = $"ORB{DateTime.UtcNow:yyyyMMddHHmmss}",
-                    Amount = request.Amount,
-                    PaymentMethod = "CREDIT CARD",
-                    LastFourDigits = "4242",
-                    ConvenienceFee = Math.Round(request.Amount * 0.02m, 2),
-                    PaymentDate = DateTime.UtcNow
-                };
+                    _ = decimal.TryParse(payment.Fee.Feeamount, NumberStyles.Number, CultureInfo.InvariantCulture, out convenienceFee);
+                }
 
-                LogPaymentConfirmed(_logger, confirmation.ConfirmationNumber, confirmation.Amount);
+                decimal amount = request.Amount;
+                if (!string.IsNullOrWhiteSpace(payment.Amount))
+                {
+                    _ = decimal.TryParse(payment.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out amount);
+                }
 
-                return confirmation;
-            }
-            catch (CommunicationException ex)
-            {
-                LogCommunicationErrorWithAlacritiApi(_logger, ex);
+                DateTime? paymentDate = null;
+                if (!string.IsNullOrWhiteSpace(payment.PaymentDate) &&
+                    DateTime.TryParse(payment.PaymentDate, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsedDate))
+                {
+                    paymentDate = parsedDate;
+                }
+
+                var lastFour = payment.FundingAccount?.AccountNumber;
+                if (!string.IsNullOrWhiteSpace(lastFour) && lastFour.Length > 4)
+                {
+                    lastFour = lastFour[^4..];
+                }
+
+                LogPaymentConfirmed(_logger, payment.ConfirmationNumber, amount);
+
                 return new OrbipayConfirmationResult
                 {
-                    Success = false,
-                    ErrorDescription = "Unable to reach the payment provider. Please try again."
+                    Success = true,
+                    ConfirmationNumber = payment.ConfirmationNumber,
+                    Amount = amount,
+                    PaymentMethod = payment.PaymentMethod,
+                    LastFourDigits = lastFour,
+                    ConvenienceFee = convenienceFee == 0m ? null : convenienceFee,
+                    PaymentDate = paymentDate
                 };
             }
+
+            var errors = payment?.Error?.ToList() ?? [];
+            var errorMessage = string.Join(" ", errors.Select(e => e.Message).Where(m => !string.IsNullOrWhiteSpace(m)));
+            var errorField = string.Join(" ", errors.Select(e => e.Field).Where(f => !string.IsNullOrWhiteSpace(f)));
+            var errorCode = string.Join(" ", errors.Select(e => e.Code).Where(c => !string.IsNullOrWhiteSpace(c)));
+
+            return new OrbipayConfirmationResult
+            {
+                Success = false,
+                ErrorDescription = string.IsNullOrWhiteSpace(errorMessage) ? "Card payment failed." : errorMessage,
+                ErrorField = errorField,
+                ErrorCode = errorCode
+            };
+        }
+        catch (CommunicationException ex)
+        {
+            LogCommunicationErrorWithAlacritiApi(_logger, ex);
+            return new OrbipayConfirmationResult
+            {
+                Success = false,
+                ErrorDescription = "Unable to reach the payment provider. Please try again."
+            };
         }
         catch (Exception ex)
         {
@@ -274,25 +320,23 @@ internal sealed partial class CardPaymentService : ICardPaymentService
         var sb = new StringBuilder();
         var quote = '"';
 
-        sb.AppendLine($"<form id={quote}{formId}{quote} action={quote}card-payment-post{quote} method={quote}POST{quote}>");
+        sb.AppendLine($"<form id={quote}{formId}{quote} action={quote}/billing-payments/card-payment{quote} method={quote}POST{quote}>");
         sb.AppendLine($"<script id={quote}{scriptId}{quote} src={quote}{hostedFormUrl}{quote}");
-        sb.AppendLine($"data-id_customer={quote}CUSTOMER_ID{quote}"); // Replaced at runtime
-        sb.AppendLine($"data-customer_account_reference={quote}ACCOUNT_REF{quote}"); // Replaced at runtime
-        sb.AppendLine($"data-customer_email={quote}{HtmlEncode(email)}{quote}");
+        sb.AppendLine($"data-prevent_posting={quote}true{quote}");
+        sb.AppendLine($"data-client_key={quote}{clientKey}{quote}");
+        sb.AppendLine($"data-api_event={quote}create_payment{quote}");
+        sb.AppendLine($"data-payment_option={quote}card{quote}");
+        sb.AppendLine($"data-payment_option_readonly={quote}true{quote}");
+        sb.AppendLine($"data-amount={quote}{amount.ToString("F2", CultureInfo.InvariantCulture)}{quote}");
         sb.AppendLine($"data-customer_first_name={quote}{HtmlEncode(firstName)}{quote}");
         sb.AppendLine($"data-customer_last_name={quote}{HtmlEncode(lastName)}{quote}");
+        sb.AppendLine($"data-customer_email={quote}{HtmlEncode(email)}{quote}");
         sb.AppendLine($"data-customer_address_line1={quote}{HtmlEncode(addressLine1)}{quote}");
         sb.AppendLine($"data-customer_address_line2={quote}{HtmlEncode(addressLine2 ?? string.Empty)}{quote}");
         sb.AppendLine($"data-customer_city={quote}{HtmlEncode(city)}{quote}");
         sb.AppendLine($"data-customer_state={quote}{HtmlEncode(state ?? string.Empty)}{quote}");
         sb.AppendLine($"data-customer_country={quote}{HtmlEncode(country)}{quote}");
         sb.AppendLine($"data-customer_zip_code1={quote}{HtmlEncode(zip)}{quote}");
-        sb.AppendLine($"data-customer_postal_code={quote}{HtmlEncode(zip)}{quote}");
-        sb.AppendLine($"data-payment_option={quote}card{quote}");
-        sb.AppendLine($"data-payment_option_readonly={quote}true{quote}");
-        sb.AppendLine($"data-client_key={quote}{clientKey}{quote}");
-        sb.AppendLine($"data-api_event={quote}create_payment{quote}");
-        sb.AppendLine($"data-amount={quote}{amount:F2}{quote}");
         sb.AppendLine($"data-locale={quote}{locale}{quote}>");
         sb.AppendLine("</script>");
         sb.AppendLine("</form>");
