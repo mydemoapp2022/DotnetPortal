@@ -1,108 +1,67 @@
 using System.Globalization;
 using System.ServiceModel;
 using System.Text;
-using Com.Alacriti.Checkout;
 using Com.Alacriti.Checkout.Api;
+using Microsoft.Extensions.Caching.Memory;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
 
 namespace UI.EmployerPortal.Web.Features.BillingPayments.Services;
 
-/// <summary>
-/// Integrates with US Bank eBill Orbipay (Alacriti) for hosted card payment forms.
-/// This service handles session creation and payment confirmation following Orbipay's
-/// hosted payment workflow, mirroring the reference VB.NET CardPaymentPost.aspx.vb implementation.
-/// </summary>
-public interface ICardPaymentService
-{
-    /// <summary>
-    /// Creates an Orbipay hosted form session for card payment entry.
-    /// Returns HTML markup to embed the Orbipay form in the page.
-    /// </summary>
-    Task<OrbipaySessionResult> CreateHostedFormSessionAsync(
-        decimal amount,
-        string contactName,
-        string email,
-        string addressLine1,
-        string? addressLine2,
-        string city,
-        string? state,
-        string zip,
-        string country);
-
-    /// <summary>
-    /// Confirms payment after Orbipay hosted form submission.
-    /// Called when user completes the form and posts back to the application.
-    /// Mirrors the reference CardPaymentPost workflow: extract token, call Alacriti API,
-    /// save result to database.
-    /// </summary>
-    Task<OrbipayConfirmationResult> ConfirmPaymentAsync(
-        string token,
-        string digiSign,
-        string customerAccountReference,
-        OrbipayPaymentConfirmationRequest request);
-}
-
-/// <summary>
-/// Implementation of Orbipay hosted payment form integration.
-/// Follows the US Bank eBill system workflow for card payments.
-/// </summary>
 internal sealed partial class CardPaymentService : ICardPaymentService
 {
-    private readonly IConfiguration _config;
+    private const string EbillConfigCacheKey = "BillingPayments:Orbipay:EbillConfiguration";
+    private static readonly TimeSpan EbillConfigCacheDuration = TimeSpan.FromMinutes(15);
+    private static readonly SemaphoreSlim EbillConfigLock = new(1, 1);
+
     private readonly ILogger<CardPaymentService> _logger;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICardPaymentSystem _cardPaymentSystem;
-    private static readonly object CheckoutInitLock = new();
-    private static bool _checkoutInitialized;
+    private readonly IMemoryCache _memoryCache;
 
     public CardPaymentService(
-        IConfiguration config,
         ILogger<CardPaymentService> logger,
-        IHttpContextAccessor httpContextAccessor,
-        ICardPaymentSystem cardPaymentSystem)
+        ICardPaymentSystem cardPaymentSystem,
+        IMemoryCache memoryCache)
     {
-        _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _cardPaymentSystem = cardPaymentSystem ?? throw new ArgumentNullException(nameof(cardPaymentSystem));
-        EnsureCheckoutInitialized();
+        _memoryCache = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
     }
 
-    /// <summary>
-    /// Initializes Orbipay checkout SDK configuration one time per app domain.
-    /// </summary>
-    private void EnsureCheckoutInitialized()
+    private async Task<dynamic?> GetEbillConfigurationCachedAsync(CancellationToken cancellationToken = default)
     {
-        if (_checkoutInitialized)
+        if (_memoryCache.TryGetValue(EbillConfigCacheKey, out var cached) && cached is not null)
         {
-            return;
+            return cached;
         }
 
-        lock (CheckoutInitLock)
+        await EbillConfigLock.WaitAsync(cancellationToken);
+        try
         {
-            if (_checkoutInitialized)
+            if (_memoryCache.TryGetValue(EbillConfigCacheKey, out cached) && cached is not null)
             {
-                return;
+                return cached;
             }
 
-            var path = _config["Orbipay:CheckoutConfigPath"];
-            if (string.IsNullOrWhiteSpace(path))
+            var config = await _cardPaymentSystem.GetEbillConfigurationAsync();
+            if (config is null)
             {
-                return;
+                return null;
             }
 
-            if (!Path.IsPathRooted(path))
-            {
-                path = Path.Combine(AppContext.BaseDirectory, path);
-            }
+            _memoryCache.Set(
+                EbillConfigCacheKey,
+                config,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = EbillConfigCacheDuration,
+                    SlidingExpiration = TimeSpan.FromMinutes(5)
+                });
 
-            if (!File.Exists(path))
-            {
-                return;
-            }
-
-            Checkout.initProperties(path);
-            _checkoutInitialized = true;
+            return config;
+        }
+        finally
+        {
+            EbillConfigLock.Release();
         }
     }
 
@@ -119,8 +78,8 @@ internal sealed partial class CardPaymentService : ICardPaymentService
     {
         try
         {
-            var orbipaySection = _config.GetSection("Orbipay");
-            if (!orbipaySection.Exists())
+            var ebillConfig = await GetEbillConfigurationCachedAsync();
+            if (ebillConfig is null)
             {
                 LogOrbipayConfigMissing(_logger);
                 return new OrbipaySessionResult
@@ -130,12 +89,11 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                 };
             }
 
-            // Extract configuration
-            var hostedFormUrl = orbipaySection["HostedFormUrl"];
-            var clientKey = orbipaySection["ClientKey"];
-            var locale = orbipaySection["Locale"] ?? "en";
+            string hostedFormUrl = ebillConfig.HostedFormURL ?? string.Empty;
+            string clientKey = ebillConfig.TaxClientKey ?? string.Empty;
+            const string Locale = "en";
 
-            if (string.IsNullOrEmpty(hostedFormUrl) || string.IsNullOrEmpty(clientKey))
+            if (string.IsNullOrWhiteSpace(hostedFormUrl) || string.IsNullOrWhiteSpace(clientKey))
             {
                 LogOrbipayConfigIncomplete(_logger);
                 return new OrbipaySessionResult
@@ -145,20 +103,14 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                 };
             }
 
-            // Parse contact name
             var nameParts = (contactName ?? string.Empty).Split(' ', 2);
             var firstName = nameParts.Length > 0 ? nameParts[0] : string.Empty;
             var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
 
-            // Generate unique form/script IDs
-            var formId = "orbipay-checkout-form";
-            var scriptId = "orbipay-checkout-script";
-
-            // Build the hosted form HTML (mirrors reference VB.NET GetHostedForm)
             var html = BuildOrbipayFormMarkup(
                 hostedFormUrl,
-                formId,
-                scriptId,
+                "orbipay-checkout-form",
+                "orbipay-checkout-script",
                 clientKey,
                 firstName,
                 lastName,
@@ -170,7 +122,7 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                 zip,
                 country,
                 amount,
-                locale);
+                Locale);
 
             LogHostedFormSessionCreated(_logger, amount);
 
@@ -199,13 +151,23 @@ internal sealed partial class CardPaymentService : ICardPaymentService
     {
         try
         {
-            var orbipaySection = await _cardPaymentSystem.GetEbillConfigurationAsync();
-            var clientKey = orbipaySection.TaxClientKey;
-            var signatureKey = orbipaySection.TaxSecretKey;
-            var clientApiKey = orbipaySection.TaxApiKey;
-            var clientPrivateKey = orbipaySection.TaxPrivateKey;
-            var hwfPublicKey = orbipaySection.PublicKey;
-            var liveMode = orbipaySection.LiveMode == true ? "true" : "false";
+            var ebillConfig = await GetEbillConfigurationCachedAsync();
+            if (ebillConfig is null)
+            {
+                LogOrbipayCredentialsIncomplete(_logger);
+                return new OrbipayConfirmationResult
+                {
+                    Success = false,
+                    ErrorDescription = "Payment provider credentials are incomplete."
+                };
+            }
+
+            string clientKey = ebillConfig.TaxClientKey ?? string.Empty;
+            string signatureKey = ebillConfig.TaxSecretKey ?? string.Empty;
+            string clientApiKey = ebillConfig.TaxAPIKey ?? string.Empty;
+            string clientPrivateKey = ebillConfig.TaxPrivateKey ?? string.Empty;
+            string hwfPublicKey = ebillConfig.PublicKey ?? string.Empty;
+            var liveMode = ebillConfig.LiveMode ? "true" : "false";
 
             if (string.IsNullOrWhiteSpace(clientKey) ||
                 string.IsNullOrWhiteSpace(signatureKey) ||
@@ -221,10 +183,10 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                 };
             }
 
-            var customFields = BuildCustomFields(request);
+            var customFields = BuildCustomFields(request, ebillConfig);
             var invocationContext = new InvocationContext(clientApiKey, clientPrivateKey, hwfPublicKey);
 
-            var payment = new Com.Alacriti.Checkout.Api.Payment(customerAccountReference, request.Amount.ToString("F2", CultureInfo.InvariantCulture))
+            var payment = new Payment(customerAccountReference, request.Amount.ToString("F2", CultureInfo.InvariantCulture))
                 .withToken(token, digiSign)
                 .forClient(clientKey, signatureKey, clientApiKey)
                 .withCustomFields(customFields)
@@ -272,9 +234,27 @@ internal sealed partial class CardPaymentService : ICardPaymentService
             }
 
             var errors = payment?.Error?.ToList() ?? [];
-            var errorMessage = string.Join(" ", errors.Select(e => e.Message).Where(m => !string.IsNullOrWhiteSpace(m)));
-            var errorField = string.Join(" ", errors.Select(e => e.Field).Where(f => !string.IsNullOrWhiteSpace(f)));
-            var errorCode = string.Join(" ", errors.Select(e => e.Code).Where(c => !string.IsNullOrWhiteSpace(c)));
+            var errorMessage = string.Join(" ", errors.Select(e =>
+            {
+                return e.Message;
+            }).Where(m =>
+            {
+                return !string.IsNullOrWhiteSpace(m);
+            }));
+            var errorField = string.Join(" ", errors.Select(e =>
+            {
+                return e.Field;
+            }).Where(f =>
+            {
+                return !string.IsNullOrWhiteSpace(f);
+            }));
+            var errorCode = string.Join(" ", errors.Select(e =>
+            {
+                return e.Code;
+            }).Where(c =>
+            {
+                return !string.IsNullOrWhiteSpace(c);
+            }));
 
             return new OrbipayConfirmationResult
             {
@@ -302,6 +282,21 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                 ErrorDescription = "An error occurred while processing your payment."
             };
         }
+    }
+
+    private static Dictionary<string, string> BuildCustomFields(OrbipayPaymentConfirmationRequest request, dynamic ebillConfig)
+    {
+        return new Dictionary<string, string>
+        {
+            { "cdf001", Truncate(request.EmployerLegalName, 64) },
+            { "cdf002", "Employer Portal" },
+            { "cdf003", Truncate(request.UIAccountNumber, 64) },
+            { "cdf004", Truncate(request.EmployerAccountNumber, 64) },
+            { "cdf005", request.IsVoluntary ? "Voluntary" : "Employer" },
+            { "cdf006", Truncate((string?)ebillConfig.EmployerCollectionsWebsite ?? string.Empty, 64) },
+            { "cdf007", Truncate((string?)ebillConfig.EmployerCollectionsPhoneNumber ?? string.Empty, 64) },
+            { "cdf008", Truncate(request.EmployerAccountNumber[..Math.Min(5, request.EmployerAccountNumber.Length)], 64) }
+        };
     }
 
     /// <summary>Builds the Orbipay hosted form HTML markup.</summary>
@@ -347,22 +342,6 @@ internal sealed partial class CardPaymentService : ICardPaymentService
         sb.AppendLine("</form>");
 
         return sb.ToString();
-    }
-
-    /// <summary>Builds custom fields for Orbipay payment (max 64 chars per field).</summary>
-    private Dictionary<string, string> BuildCustomFields(OrbipayPaymentConfirmationRequest request)
-    {
-        return new Dictionary<string, string>
-        {
-            { "cdf001", Truncate(request.EmployerLegalName, 64) },
-            { "cdf002", "Employer Portal" },
-            { "cdf003", Truncate(request.UIAccountNumber, 64) },
-            { "cdf004", Truncate(request.EmployerAccountNumber, 64) },
-            { "cdf005", request.IsVoluntary ? "Voluntary" : "Employer" },
-            { "cdf006", Truncate(_config["Orbipay:Website"] ?? string.Empty, 64) },
-            { "cdf007", Truncate(_config["Orbipay:PhoneNumber"] ?? string.Empty, 64) },
-            { "cdf008", Truncate(request.EmployerAccountNumber[..Math.Min(5, request.EmployerAccountNumber.Length)], 64) }
-        };
     }
 
     private static string Truncate(string? value, int maxLength)
@@ -431,3 +410,4 @@ internal sealed partial class CardPaymentService : ICardPaymentService
 
     #endregion
 }
+

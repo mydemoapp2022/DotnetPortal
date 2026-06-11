@@ -6,3 +6,4 @@
 
 #Code Rules
 - Add XML summaries to each class and it's properties.
+- Use block body for lambda expression.
