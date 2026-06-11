@@ -276,9 +276,9 @@
                 </div>
             }
 
-            <CardPaymentVerificationModal @ref="_paymentModal"
+            @* <CardPaymentVerificationModal @ref="_paymentModal"
                                           OnPaymentCancelled="OnPaymentCancelled"
-                                          OnPaymentCompleted="OnPaymentCompleted" />
+                                          OnPaymentCompleted="OnPaymentCompleted" /> *@
 
             @* ── Button Bar ──────────────────────────────────────────── *@
             <nav class="billing-footer" aria-label="Page actions">
@@ -528,7 +528,7 @@
                 zip: _profile.ZipCode,
                 country: _profile.Country);
 
-            if (!result.Success)
+            if (!result.Success || string.IsNullOrWhiteSpace(result.HostedFormHtml))
             {
                 _cardPaymentError = result.ErrorMessage ?? "Unable to load the payment form. Please try again.";
                 _isSubmitting = false;
@@ -541,11 +541,11 @@
             _paymentCallbackRef = DotNetObjectReference.Create(this);
 
             await _paymentModalJsModule.InvokeVoidAsync("setupPaymentCallback", _paymentCallbackRef);
-            await _paymentModal!.OpenAsync(result);
+            await _paymentModalJsModule.InvokeVoidAsync("openOrbipayOverlay", result.HostedFormHtml);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error launching Orbipay modal");
+            Logger.LogError(ex, "Error launching Orbipay popup");
             _cardPaymentError = "An unexpected error occurred while launching payment.";
             _isSubmitting = false;
             StateHasChanged();
@@ -587,7 +587,6 @@
                 return;
             }
 
-            _paymentModal?.Close();
             _confirmationNumber = confirmation.ConfirmationNumber ?? $"ORB{DateTime.UtcNow:yyyyMMddHHmmss}";
             await NavigateToStep(CardStep.Confirmation, "Payment submitted. You are on the confirmation page.");
         }
@@ -671,7 +670,6 @@
         }
         catch
         {
-            // no-op
         }
 
         _paymentCallbackRef?.Dispose();

@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.ServiceModel;
 using System.Text;
+using Com.Alacriti.Checkout;
+using Com.Alacriti.Checkout.Api;
 using UI.EmployerPortal.Web.Features.BillingPayments.Models;
 
 namespace UI.EmployerPortal.Web.Features.BillingPayments.Services;
@@ -49,17 +51,20 @@ internal sealed partial class CardPaymentService : ICardPaymentService
     private readonly IConfiguration _config;
     private readonly ILogger<CardPaymentService> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICardPaymentSystem _cardPaymentSystem;
     private static readonly object CheckoutInitLock = new();
     private static bool _checkoutInitialized;
 
     public CardPaymentService(
         IConfiguration config,
         ILogger<CardPaymentService> logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ICardPaymentSystem cardPaymentSystem)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _cardPaymentSystem = cardPaymentSystem ?? throw new ArgumentNullException(nameof(cardPaymentSystem));
         EnsureCheckoutInitialized();
     }
 
@@ -194,13 +199,13 @@ internal sealed partial class CardPaymentService : ICardPaymentService
     {
         try
         {
-            var orbipaySection = _config.GetSection("Orbipay");
-            var clientKey = orbipaySection["ClientKey"];
-            var signatureKey = orbipaySection["SignatureKey"];
-            var clientApiKey = orbipaySection["ApiKey"];
-            var clientPrivateKey = orbipaySection["PrivateKey"];
-            var hwfPublicKey = orbipaySection["PublicKey"];
-            var liveMode = orbipaySection["LiveMode"]?.ToLowerInvariant() ?? "false";
+            var orbipaySection = await _cardPaymentSystem.GetEbillConfigurationAsync();
+            var clientKey = orbipaySection.TaxClientKey;
+            var signatureKey = orbipaySection.TaxSecretKey;
+            var clientApiKey = orbipaySection.TaxApiKey;
+            var clientPrivateKey = orbipaySection.TaxPrivateKey;
+            var hwfPublicKey = orbipaySection.PublicKey;
+            var liveMode = orbipaySection.LiveMode == true ? "true" : "false";
 
             if (string.IsNullOrWhiteSpace(clientKey) ||
                 string.IsNullOrWhiteSpace(signatureKey) ||
@@ -219,7 +224,7 @@ internal sealed partial class CardPaymentService : ICardPaymentService
             var customFields = BuildCustomFields(request);
             var invocationContext = new InvocationContext(clientApiKey, clientPrivateKey, hwfPublicKey);
 
-            Payment payment = new Payment(customerAccountReference, request.Amount.ToString("F2", CultureInfo.InvariantCulture))
+            var payment = new Com.Alacriti.Checkout.Api.Payment(customerAccountReference, request.Amount.ToString("F2", CultureInfo.InvariantCulture))
                 .withToken(token, digiSign)
                 .forClient(clientKey, signatureKey, clientApiKey)
                 .withCustomFields(customFields)
@@ -233,7 +238,7 @@ internal sealed partial class CardPaymentService : ICardPaymentService
                     _ = decimal.TryParse(payment.Fee.Feeamount, NumberStyles.Number, CultureInfo.InvariantCulture, out convenienceFee);
                 }
 
-                decimal amount = request.Amount;
+                var amount = request.Amount;
                 if (!string.IsNullOrWhiteSpace(payment.Amount))
                 {
                     _ = decimal.TryParse(payment.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out amount);

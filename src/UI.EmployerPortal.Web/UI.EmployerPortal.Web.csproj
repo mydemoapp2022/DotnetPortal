@@ -41,13 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-      <Reference Include="checkout-dotnet-core-sdk-v6.0.0">
-          <HintPath>lib\orbipay\checkout-dotnet-core-sdk-v6.0.0.dll</HintPath>
-          <Private>true</Private>
-      </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
       <None Include="orbipay_checkout_config.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -60,6 +53,12 @@
     <Folder Include="Features\EmployerRegistration\Services\" />
     <Folder Include="Startup\WcfServiceClients\" />
     <Folder Include="wwwroot\scripts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="co-dotnet-sdk-v5.0.0.1">
+      <HintPath>..\..\..\..\..\..\Downloads\co-dotnet-sdk-v5.0.0.1.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 
